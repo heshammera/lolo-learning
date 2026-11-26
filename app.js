@@ -647,9 +647,18 @@ function startWritingPath(program, stageIndex) {
 }
 
 function speakWritingTask() {
-  const item = traceState?.items[traceState.index];
-  if (!item?.say) return;
-  const text = item.prompt && item.say !== item.prompt ? `${item.prompt} ${item.say}` : item.say;
+  if (!traceState) return;
+  let text = '';
+  if (traceState.mode === 'advanced') {
+    const item = traceState.items?.[traceState.index];
+    if (!item) return;
+    text = item.prompt && item.say && item.say !== item.prompt ? `${item.prompt} ${item.say}` : item.say || item.prompt || '';
+  } else {
+    const target = traceState.prompts?.[traceState.index];
+    if (!target) return;
+    text = `اتبعي النقط بإصبعك واكتبي ${target.value}. ${target.clue || ''}`;
+  }
+  if (!text) return;
   $('#traceFeedback').textContent = 'لولو بتقولك السؤال… 🎧';
   speakTraceFeedback(text);
 }
@@ -819,17 +828,22 @@ function startTraceTest(lessonId) {
   $('#parentSheet').classList.remove('open');
   $('#traceSheet').classList.add('open');
   $('#traceSheet').setAttribute('aria-hidden', 'false');
+  $('#traceTitle').textContent = '✍️ نكتب ونتعلّم';
+  $('#traceVisual').hidden = true; $('#traceHear').hidden = false; $('#traceChoices').hidden = true;
   $('#traceCanvas').hidden = false;
+  $('#traceClear').hidden = false;
   $('#traceNext').hidden = false;
   $('#traceClose').onclick = closeTraceTest;
   $('#traceNext').onclick = nextTraceTarget;
   $('#traceClear').onclick = () => drawTraceTarget();
+  $('#traceHear').onclick = speakWritingTask;
   const canvas = $('#traceCanvas');
   canvas.onpointerdown = tracePointerDown;
   canvas.onpointermove = tracePointerMove;
   canvas.onpointerup = tracePointerUp;
   canvas.onpointercancel = tracePointerUp;
   drawTraceTarget();
+  speakWritingTask();
 }
 
 function closeTraceTest() {
@@ -941,7 +955,7 @@ function nextTraceTarget() {
   speakTraceFeedback(feedback);
   if (score < 38) { drawTraceTarget(); return; }
   traceState.scores.push({value: traceState.prompts[traceState.index].value, score});
-  if (traceState.index < 4) { traceState.index++; drawTraceTarget(); return; }
+  if (traceState.index < 4) { traceState.index++; drawTraceTarget(); speakWritingTask(); return; }
   const scores = traceState.scores.map(item => item.score);
   const percent = Math.round(scores.reduce((a, b) => a + b, 0) / scores.length);
   const old = traceResults[traceState.lesson.id];
