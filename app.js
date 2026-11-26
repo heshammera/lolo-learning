@@ -557,11 +557,18 @@ function buildEnglishWritingTasks(program, stageIndex) {
     return {type: 'order', prompt: 'رتّبي الحروف لتكتبي الكلمة اللي هتسمعيها', say: word, lang: 'en-US',
       target: word, expected: word, options: scrambled.map((letter, tile) => ({value: letter, tile}))};
   });
-  return Array.from({length: 5}, (_, index) => {
-    const word = words[index % words.length];
-    return {type: 'choice', prompt: 'كمّلي الجملة: I like _____.', say: `اسمعي الجملة: I like ${word}. واختاري الكلمة الناقصة.`,
-      lang: 'en-US', target: word, expected: word, options: makeWritingOptions(word, words)};
-  });
+  const sentences = [
+    {stem:'I am ___.', answer:'happy', options:['happy','fine','sad']},
+    {stem:'This is my ___.', answer:'mother', options:['mother','father','sister']},
+    {stem:'I see a ___.', answer:'cat', options:['cat','dog','book']},
+    {stem:'It is ___.', answer:'red', options:['red','blue','green']},
+    {stem:'I like ___.', answer:'apples', options:['apples','cake','milk']},
+  ];
+  return sentences.map(({stem, answer, options}) => ({
+    type:'choice', prompt:`كمّلي الجملة: ${stem}`, say:stem.replace('___', answer),
+    lang:'en-US', target:answer, expected:answer,
+    options:options.map(value=>({value,label:value})),
+  }));
 }
 
 function mathNumberBank(program) {

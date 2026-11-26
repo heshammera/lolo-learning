@@ -419,14 +419,14 @@ class Handler(BaseHTTPRequestHandler):
             self.end_headers()
             return
         relative = "index.html" if path == "/" else path.lstrip("/")
-        if relative not in {"index.html", "curriculum.json", "pcm-processor.js", "app.js"}:
+        if relative not in {"index.html", "curriculum.json", "pcm-processor.js", "app.js", "favicon.svg"}:
             return self.send_json(404, {"error": "Not found"})
         file = (ROOT / relative).resolve()
         if ROOT not in file.parents or not file.is_file():
             return self.send_json(404, {"error": "Not found"})
         content = file.read_bytes()
         mime = {".html": "text/html; charset=utf-8", ".json": "application/json; charset=utf-8",
-                ".js": "text/javascript; charset=utf-8"}.get(file.suffix, "application/octet-stream")
+                ".js": "text/javascript; charset=utf-8", ".svg": "image/svg+xml"}.get(file.suffix, "application/octet-stream")
         self.send_response(200)
         self.send_header("Content-Type", mime)
         self.send_header("Cache-Control", "no-store")
