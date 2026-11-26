@@ -33,6 +33,7 @@ BACKUP_MODEL = os.environ.get("GEMINI_BACKUP_MODEL", MODEL)
 OPENAI_MODEL = os.environ.get("OPENAI_REALTIME_MODEL", "gpt-realtime-2.1")
 ONBOARDING_TTS_MODEL = "gemini-3.8-flash-tts"
 ONBOARDING_TTS_CACHE = {}
+CHALLENGE_TTS_CACHE = {}
 CURRICULUM = json.loads((ROOT / "curriculum.json").read_text(encoding="utf-8"))
 PROGRAMS = [{"id": "foundation", "title": "تأسيس من الصفر", "units": CURRICULUM["units"]}
             ] + CURRICULUM.get("programs", [])
@@ -219,7 +220,65 @@ class Handler(BaseHTTPRequestHandler):
             return self.create_provider_token()
         if self.path == "/api/onboarding-audio":
             return self.create_onboarding_audio()
+        if self.path == "/api/challenge-audio":
+            return self.create_challenge_audio()
         return self.send_json(404, {"error": "Not found"})
+
+    def create_challenge_audio(self):
+        if not GEMINI_API_KEY:
+            return self.send_json(503, {"error": "صوت لولو مش متاح حالياً."})
+        try:
+            length = int(self.headers.get("Content-Length", "0"))
+            if length > 4000:
+                return self.send_json(400, {"error": "السؤال أطول من المسموح."})
+            body = json.loads(self.rfile.read(length) or b"{}")
+        except (ValueError, json.JSONDecodeError):
+            return self.send_json(400, {"error": "الطلب غير صالح."})
+        text = body.get("text")
+        if not isinstance(text, str) or not text.strip() or len(text) > 600:
+            return self.send_json(400, {"error": "نص السؤال غير صالح."})
+        text = text.strip()
+        if text in CHALLENGE_TTS_CACHE:
+            return self.send_json(200, CHALLENGE_TTS_CACHE[text])
+        payload = {
+            "model": ONBOARDING_TTS_MODEL,
+            "input": [{"type": "user_input", "content": [{
+                "type": "text", "text": text,
+                "annotations": [{"type": "speech_metadata", "style": "warm, cheerful, gentle young female teacher speaking Egyptian Arabic and clear simple English naturally"}],
+            }]}],
+            "response_format": {"type": "audio"},
+            "generation_config": {"speech_config": [{"voice": "Kore"}]},
+        }
+        request = Request(
+            "https://generativelanguage.googleapis.com/v1beta/interactions",
+            data=json.dumps(payload, ensure_ascii=False).encode(),
+            headers={"x-goog-api-key": GEMINI_API_KEY, "Content-Type": "application/json"},
+            method="POST",
+        )
+        try:
+            with urlopen(request, timeout=30) as response:
+                result = json.loads(response.read())
+            audio = result.get("output_audio", {}).get("data")
+            if not audio:
+                for step_result in result.get("steps", []):
+                    if step_result.get("type") != "model_output":
+                        continue
+                    for item in step_result.get("content", []):
+                        if item.get("type") == "audio" and item.get("data"):
+                            audio = item["data"]
+            if not audio:
+                return self.send_json(502, {"error": "لولو مش قادرة تطلع صوت السؤال دلوقتي."})
+            response_data = {"audio": audio, "mimeType": "audio/wav"}
+            if len(CHALLENGE_TTS_CACHE) >= 64:
+                CHALLENGE_TTS_CACHE.pop(next(iter(CHALLENGE_TTS_CACHE)))
+            CHALLENGE_TTS_CACHE[text] = response_data
+            self.send_json(200, response_data)
+        except HTTPError as error:
+            print("Gemini challenge TTS rejected:", error.code)
+            self.send_json(502, {"error": "تعذر تجهيز صوت لولو للسؤال."})
+        except (URLError, TimeoutError, json.JSONDecodeError) as error:
+            print("Gemini challenge TTS request failed:", type(error).__name__)
+            self.send_json(502, {"error": "الاتصال تأخر في تجهيز صوت لولو."})
 
     def create_onboarding_audio(self):
         if not GEMINI_API_KEY:

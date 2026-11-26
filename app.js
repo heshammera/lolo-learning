@@ -9,6 +9,8 @@ let testResults = JSON.parse(localStorage.getItem('lolo-test-results') || '{}');
 let traceResults = JSON.parse(localStorage.getItem('lolo-trace-results') || '{}');
 let writingPathResults = JSON.parse(localStorage.getItem('lolo-writing-path-results') || '{}');
 let writingPathOverrides = JSON.parse(localStorage.getItem('lolo-writing-path-overrides') || '{}');
+let traceSpeechRequestId = 0;
+let traceSpeechAudio = null;
 let lessonStats = JSON.parse(localStorage.getItem('lolo-lesson-stats') || '{}');
 const DEFAULT_PARENT_SETTINGS = {sessionMinutes: 10, speechPace: 'slow', hintLevel: 'gentle', repeatWords: true, rewardEnabled: true, rewardSeconds: 9, learningPath: 'selected'};
 let parentSettings = (() => { try { return {...DEFAULT_PARENT_SETTINGS, ...JSON.parse(localStorage.getItem('lolo-parent-settings') || '{}')}; } catch { return {...DEFAULT_PARENT_SETTINGS}; } })();
@@ -548,7 +550,7 @@ function buildEnglishWritingTasks(program, stageIndex) {
     const pattern = `${word.slice(0, hole)} _ ${word.slice(hole + 1)}`;
     return {type: 'draw', mode: 'memory', target: answer,
       prompt: `اكتبي الحرف الناقص: ${pattern}`, visual: pattern,
-      say: `الكلمة هي ${word}. اكتبي الحرف الناقص.`, lang: 'en-US', expected: answer};
+      say: `اسمعي الكلمة واكتبي الحرف الناقص: ${word}.`, lang: 'en-US', expected: answer};
   });
   if (stageIndex === 3) return Array.from({length: 5}, (_, index) => {
     const word = words[index % words.length];
@@ -647,15 +649,9 @@ function startWritingPath(program, stageIndex) {
 function speakWritingTask() {
   const item = traceState?.items[traceState.index];
   if (!item?.say) return;
-  if (!('speechSynthesis' in window)) return;
-  speechSynthesis.cancel();
-  const instruction = new SpeechSynthesisUtterance(item.prompt);
-  instruction.lang = 'ar-EG'; instruction.rate = 0.88; instruction.pitch = 1.2;
-  instruction.onend = () => {
-    if (!traceState || traceState.items[traceState.index] !== item) return;
-    speakTraceFeedback(item.say, item.lang || 'ar-EG');
-  };
-  speechSynthesis.speak(instruction);
+  const text = item.prompt && item.say !== item.prompt ? `${item.prompt} ${item.say}` : item.say;
+  $('#traceFeedback').textContent = 'لولو بتقولك السؤال… 🎧';
+  speakTraceFeedback(text);
 }
 
 function renderWritingTask() {
@@ -837,7 +833,8 @@ function startTraceTest(lessonId) {
 }
 
 function closeTraceTest() {
-  if ('speechSynthesis' in window) speechSynthesis.cancel();
+  traceSpeechRequestId++;
+  traceSpeechAudio?.pause(); traceSpeechAudio = null;
   $('#traceSheet').classList.remove('open');
   $('#traceSheet').setAttribute('aria-hidden', 'true');
   traceState = null;
@@ -956,11 +953,27 @@ function nextTraceTarget() {
   renderParentReport(); refreshLessonPicker(traceState.lesson.programId, traceState.lesson.unitId);
 }
 function speakTraceFeedback(text, lang = 'ar-EG') {
-  if (!('speechSynthesis' in window)) return;
-  speechSynthesis.cancel();
-  const utterance = new SpeechSynthesisUtterance(text);
-  utterance.lang = lang; utterance.rate = 0.88; utterance.pitch = 1.2;
-  speechSynthesis.speak(utterance);
+  const requestId = ++traceSpeechRequestId;
+  traceSpeechAudio?.pause();
+  traceSpeechAudio = null;
+  fetch('/api/challenge-audio', {
+    method: 'POST', headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({text, lang}),
+  }).then(async response => {
+    const data = await response.json();
+    if (!response.ok || !data.audio) throw new Error(data.error || 'صوت لولو مش جاهز دلوقتي.');
+    if (requestId !== traceSpeechRequestId) return;
+    const binary = atob(data.audio), bytes = new Uint8Array(binary.length);
+    for (let index=0; index<binary.length; index++) bytes[index] = binary.charCodeAt(index);
+    const audioUrl = URL.createObjectURL(new Blob([bytes], {type:data.mimeType || 'audio/wav'}));
+    const audio = new Audio(audioUrl); traceSpeechAudio = audio;
+    audio.onended = () => { URL.revokeObjectURL(audioUrl); if (traceSpeechAudio === audio) traceSpeechAudio = null; };
+    audio.onerror = () => { URL.revokeObjectURL(audioUrl); if (traceSpeechAudio === audio) traceSpeechAudio = null; };
+    await audio.play();
+  }).catch(error => {
+    if (requestId !== traceSpeechRequestId) return;
+    $('#traceFeedback').textContent = `${error.message || 'صوت لولو مش متاح.'} اضغطي «اسمعي السؤال تاني» للمحاولة.`;
+  });
 }
 
 function chooseLesson(lessonId, mode = 'lesson') {
