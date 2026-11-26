@@ -1,0 +1,13 @@
+{
+  "appId": "com.heshammera.lolo",
+  "appName": "لولو",
+  "webDir": "www",
+  "server": {
+    "url": "https://lolo-learning.vercel.app",
+    "cleartext": false,
+    "allowNavigation": [
+      "lolo-learning.vercel.app",
+      "lolo-learning-gt13f1500-heshams-projects-44342904.vercel.app"
+    ]
+  }
+}

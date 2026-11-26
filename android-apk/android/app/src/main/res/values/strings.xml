@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">لولو</string>
+    <string name="title_activity_main">لولو</string>
+    <string name="package_name">com.heshammera.lolo</string>
+    <string name="custom_url_scheme">com.heshammera.lolo</string>
+</resources>

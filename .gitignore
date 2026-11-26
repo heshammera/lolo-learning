@@ -5,3 +5,9 @@
 __pycache__/
 *.pyc
 *.log
+/android-apk/node_modules/
+/android-apk/android/.gradle/
+/android-apk/android/local.properties
+/android-apk/android/**/build/
+/android-apk/android/.idea/
+/android-apk/android/.DS_Store
