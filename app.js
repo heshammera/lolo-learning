@@ -6,6 +6,9 @@ let currentLesson = null;
 let mastered = new Set(JSON.parse(localStorage.getItem('lolo-mastered') || '[]'));
 let lessonExcellence = JSON.parse(localStorage.getItem('lolo-lesson-excellence') || '{}');
 let testResults = JSON.parse(localStorage.getItem('lolo-test-results') || '{}');
+let traceResults = JSON.parse(localStorage.getItem('lolo-trace-results') || '{}');
+let writingPathResults = JSON.parse(localStorage.getItem('lolo-writing-path-results') || '{}');
+let writingPathOverrides = JSON.parse(localStorage.getItem('lolo-writing-path-overrides') || '{}');
 let lessonStats = JSON.parse(localStorage.getItem('lolo-lesson-stats') || '{}');
 const DEFAULT_PARENT_SETTINGS = {sessionMinutes: 10, speechPace: 'slow', hintLevel: 'gentle', repeatWords: true, rewardEnabled: true, rewardSeconds: 9, learningPath: 'selected'};
 let parentSettings = (() => { try { return {...DEFAULT_PARENT_SETTINGS, ...JSON.parse(localStorage.getItem('lolo-parent-settings') || '{}')}; } catch { return {...DEFAULT_PARENT_SETTINGS}; } })();
@@ -332,6 +335,7 @@ function renderUnitSummary(unit) {
 }
 
 function renderProgramTests(program) {
+  renderWritingPath(program);
   const root = $('#programTests');
   root.replaceChildren();
   for (const unit of program.units) {
@@ -353,8 +357,29 @@ function renderProgramTests(program) {
       button.textContent = result ? `${result.passed ? '🏆' : '💪'} ${Math.round(result.correct / result.total * 100)}% · ${result.correct}/${result.total}` : 'ابدئي الاختبار';
       button.setAttribute('aria-label', `اختبار ${lesson.title || lesson.focus}`);
       button.onclick = () => chooseLesson(lesson.id, 'test');
-      row.append(label, button);
+      const traceResult = traceResults[lesson.id];
+      const targets = traceTargets(lesson);
+      if (targets.length) {
+        const traceButton = document.createElement('button');
+        traceButton.type = 'button';
+        traceButton.className = 'trace-test-button';
+        traceButton.textContent = traceResult ? `✍️ ${traceResult.percent}%` : '✍️ كتابة';
+        traceButton.setAttribute('aria-label', `اختبار كتابة باللمس ${lesson.title || lesson.focus}`);
+        traceButton.onclick = () => startTraceTest(lesson.id);
+        row.append(label, button, traceButton);
+      } else row.append(label, button);
       group.appendChild(row);
+      if (traceResult) {
+        const traceDetails = document.createElement('details');
+        traceDetails.className = 'test-details trace-details';
+        const traceSummary = document.createElement('summary');
+        traceSummary.textContent = `تفاصيل الكتابة · ${traceResult.percent}% · ${traceResult.attempts} محاولة`;
+        traceDetails.appendChild(traceSummary);
+        const traceScores = document.createElement('p');
+        traceScores.textContent = (traceResult.scores || []).map((item, index) => `${index + 1}. ${item.value}: ${item.score}%`).join(' · ');
+        traceDetails.appendChild(traceScores);
+        group.appendChild(traceDetails);
+      }
       if (result) {
         const details = document.createElement('details');
         details.className = 'test-details';
@@ -397,12 +422,535 @@ function renderProgramTests(program) {
   }
 }
 
+const ENGLISH_WRITING_STAGES = [
+  {title: 'انسخي الحرف من غير نقط', hint: 'شوفي نموذج الحرف واكتبيه بإيدك.'},
+  {title: 'اسمعي واكتبي', hint: 'اسمعي صوت الحرف، واكتبيه من غير نقط.'},
+  {title: 'كمّلي الكلمة', hint: 'اكتبي الحرف الناقص في الكلمة.'},
+  {title: 'رتّبي حروف الكلمة', hint: 'اسمعي الكلمة ورتّبي حروفها.'},
+  {title: 'كمّلي الجملة', hint: 'اسمعي الجملة واختاري الكلمة اللي تكملها.'},
+];
+const MATH_WRITING_STAGES = [
+  {title: 'اكتبي العدد الناقص حتى ١٠', hint: 'كمّلي تسلسل الأعداد الأولى واكتبي العدد الناقص.'},
+  {title: 'كمّلي التسلسل حتى ٢٠', hint: 'اكتبي العدد اللي بييجي بين عددين.'},
+  {title: 'العشرات والآحاد', hint: 'فكّري: العدد فيه كام عشرة وكام واحد؟'},
+  {title: 'قارني الأعداد', hint: 'اختاري العدد الأكبر أو قولي إنهم قد بعض.'},
+  {title: 'الجمع والطرح', hint: 'عدّي الصور واختاري ناتج العملية.'},
+  {title: 'المسائل المصوّرة', hint: 'اسمعي الحكاية، وعدّي الصور، واختاري الإجابة.'},
+];
+
+function writingStages(program) { return program.subject === 'math' ? MATH_WRITING_STAGES : ENGLISH_WRITING_STAGES; }
+function writingStageUnlocked(program, index) {
+  if (writingPathOverrides[program.id]) return true;
+  if (index === 0) {
+    const prerequisitePrograms = program.subject === 'math' ? [program.id] : [program.id, 'foundation'];
+    return allLessons().some(lesson => prerequisitePrograms.includes(lesson.programId) && (traceResults[lesson.id]?.percent || 0) >= 70);
+  }
+  const previous = writingPathResults[program.id]?.[index - 1];
+  return (previous?.bestPercent || previous?.percent || 0) >= 75;
+}
+function renderWritingPath(program) {
+  const root = $('#writingPath');
+  if (!root) return;
+  root.replaceChildren();
+  const stages = writingStages(program);
+  const section = document.createElement('section'); section.className = 'writing-path';
+  const heading = document.createElement('h3'); heading.textContent = program.subject === 'math' ? '🔢 مسار تحديات الماث' : '✍️ مسار الكتابة المتقدمة';
+  const intro = document.createElement('p'); intro.textContent = program.subject === 'math'
+    ? 'بعد إتقان تتبّع الأعداد تفتح التحديات بالتدريج: الأعداد حتى ١٠ و٢٠، العشرات والآحاد، المقارنة، العمليات، ثم المسائل المصوّرة.'
+    : 'بعد إتقان تتبّع الحروف تفتح التحديات بالتدريج: نسخ الحرف، كتابته من الصوت، إكمال الكلمة، ترتيب الحروف، ثم إكمال الجملة.';
+  section.append(heading, intro);
+  const override = document.createElement('button'); override.type = 'button'; override.className = 'writing-parent-unlock';
+  override.textContent = writingPathOverrides[program.id] ? '🔓 كل المراحل مفتوحة لوليّ الأمر' : '🔐 فتح كل المراحل لوليّ الأمر';
+  override.setAttribute('aria-pressed', String(!!writingPathOverrides[program.id]));
+  override.onclick = () => {
+    writingPathOverrides[program.id] = !writingPathOverrides[program.id];
+    localStorage.setItem('lolo-writing-path-overrides', JSON.stringify(writingPathOverrides));
+    refreshLessonPicker(program.id, $('#unitSelect')?.value);
+  };
+  section.appendChild(override);
+  const list = document.createElement('div'); list.className = 'writing-stage-list';
+  stages.forEach((stage, index) => {
+    const saved = writingPathResults[program.id]?.[index];
+    const open = writingStageUnlocked(program, index);
+    const button = document.createElement('button'); button.type = 'button';
+    button.className = `writing-stage${open ? ' unlocked' : ' locked'}${saved ? ' completed' : ''}`;
+    button.disabled = !open;
+    const mark = saved ? `${saved.bestPercent || saved.percent}%` : open ? 'ابدئي' : '🔒';
+    button.innerHTML = `<span class="writing-stage-number">${index + 1}</span><span class="writing-stage-copy"><b></b><small></small></span><span class="writing-stage-mark"></span>`;
+    button.querySelector('.writing-stage-copy b').textContent = stage.title;
+    button.querySelector('.writing-stage-copy small').textContent = stage.hint;
+    button.querySelector('.writing-stage-mark').textContent = mark;
+    button.onclick = () => startWritingPath(program, index);
+    list.appendChild(button);
+  });
+  section.appendChild(list);
+  const details = Object.entries(writingPathResults[program.id] || {}).filter(([, result]) => result);
+  if (details.length) {
+    const report = document.createElement('details'); report.className = 'writing-parent-report';
+    const summary = document.createElement('summary'); summary.textContent = 'تفاصيل نتائج تحديات الكتابة والماث'; report.appendChild(summary);
+    for (const [stageIndex, result] of details) {
+      const line = document.createElement('p');
+      line.textContent = `${stages[Number(stageIndex)]?.title || 'تحدي'} · ${result.percent}% · ${result.history?.length || 1} محاولة`;
+      report.appendChild(line);
+      for (const item of result.items || []) {
+        const answer = document.createElement('p'); answer.className = `writing-result-item ${item.correct ? 'correct' : 'wrong'}`;
+        answer.textContent = `${item.prompt} · ${item.correct ? '✅ صح' : `❌ الإجابة: ${item.expected}`}`;
+        report.appendChild(answer);
+      }
+    }
+    section.appendChild(report);
+  }
+  root.appendChild(section);
+}
+
+function writingWordBank(program) {
+  let lessons = program.units.flatMap(unit => unit.lessons);
+  let practiced = lessons.filter(lesson => mastered.has(lesson.id) || (traceResults[lesson.id]?.percent || 0) >= 70);
+  if (!practiced.length && program.id !== 'foundation') {
+    practiced = allLessons().filter(lesson => lesson.programId === 'foundation' && (mastered.has(lesson.id) || (traceResults[lesson.id]?.percent || 0) >= 70));
+  }
+  if (!practiced.length) practiced = program.units[0]?.lessons || lessons.slice(0, 5);
+  const source = practiced.flatMap(lesson => [
+    lesson.focus, lesson.title, ...(lesson.board?.tokens || []).map(token => token.text),
+  ]).filter(Boolean).join(' ');
+  const common = new Set(['this','that','what','where','when','your','from','with','have','here','there','please','thank','three','four','five','eight','seven','mother','father','sister','brother']);
+  const words = (source.match(/[A-Za-z]+/g) || []).map(word => word.toLowerCase()).filter(word => word.length >= 3 && word.length <= 7 && !common.has(word));
+  const unique = [...new Set(words)];
+  return unique.length ? unique : ['cat','sun','map','red','dog'];
+}
+
+function writingLetters(words) {
+  const letters = [...new Set(words.join('').toUpperCase())];
+  return letters.slice(0, 12).length ? letters.slice(0, 12) : ['A','B','C','D','E'];
+}
+
+function makeWritingOptions(answer, pool) {
+  const other = [...new Set(pool.filter(item => item !== answer))].slice(0, 2);
+  const choices = [answer, ...other];
+  return choices.length > 1 ? choices : [answer, answer === '1' ? '2' : '1'];
+}
+
+function buildEnglishWritingTasks(program, stageIndex) {
+  const words = writingWordBank(program);
+  const letters = writingLetters(words);
+  if (stageIndex <= 1) return Array.from({length: 5}, (_, index) => {
+    const letter = letters[index % letters.length];
+    return {type: 'draw', target: stageIndex === 0 ? letter : letter.toLowerCase(),
+      mode: stageIndex === 0 ? 'copy' : 'memory',
+      prompt: stageIndex === 0 ? `انسخي الحرف ${letter}` : 'اسمعي صوت الحرف واكتبيه',
+      say: letter,
+      lang: 'en-US', expected: letter};
+  });
+  if (stageIndex === 2) return Array.from({length: 5}, (_, index) => {
+    const word = words[index % words.length];
+    const hole = Math.max(1, Math.min(word.length - 2, Math.floor(word.length / 2)));
+    const answer = word[hole].toLowerCase();
+    const pattern = `${word.slice(0, hole)} _ ${word.slice(hole + 1)}`;
+    return {type: 'draw', mode: 'memory', target: answer,
+      prompt: `اكتبي الحرف الناقص: ${pattern}`, visual: pattern,
+      say: `الكلمة هي ${word}. اكتبي الحرف الناقص.`, lang: 'en-US', expected: answer};
+  });
+  if (stageIndex === 3) return Array.from({length: 5}, (_, index) => {
+    const word = words[index % words.length];
+    let scrambled = [...word];
+    if (scrambled.length > 1 && scrambled.join('') === word) scrambled = [scrambled.at(-1), ...scrambled.slice(0, -1)];
+    return {type: 'order', prompt: 'رتّبي الحروف لتكتبي الكلمة اللي هتسمعيها', say: word, lang: 'en-US',
+      target: word, expected: word, options: scrambled.map((letter, tile) => ({value: letter, tile}))};
+  });
+  return Array.from({length: 5}, (_, index) => {
+    const word = words[index % words.length];
+    return {type: 'choice', prompt: 'كمّلي الجملة: I like _____.', say: `اسمعي الجملة: I like ${word}. واختاري الكلمة الناقصة.`,
+      lang: 'en-US', target: word, expected: word, options: makeWritingOptions(word, words)};
+  });
+}
+
+function mathNumberBank(program) {
+  const text = program.units.flatMap(unit => unit.lessons.flatMap(lesson => [
+    lesson.focus, lesson.title, ...(lesson.board?.tokens || []).map(token => token.text),
+  ])).filter(Boolean).join(' ');
+  const values = (text.match(/[0-9٠-٩]+/g) || []).map(value => Number(value.replace(/[٠-٩]/g, digit => String('٠١٢٣٤٥٦٧٨٩'.indexOf(digit))))).filter(value => Number.isFinite(value) && value >= 0 && value <= 20);
+  for (const [word, value] of Object.entries({zero:0,one:1,two:2,three:3,four:4,five:5,six:6,seven:7,eight:8,nine:9,ten:10})) {
+    if (new RegExp(`\\b${word}\\b`, 'i').test(text)) values.push(value);
+  }
+  const unique = [...new Set(values)].sort((a, b) => a - b);
+  return unique.length ? unique : [0,1,2,3,4,5,6,7,8,9,10];
+}
+
+function buildMathWritingTasks(program, stageIndex) {
+  const numberBank = mathNumberBank(program);
+  const earlyTargets = [...new Set([0,2,5,8,10].filter(value => numberBank.includes(value)).concat(numberBank.filter(value => value <= 10)))].slice(0,5);
+  while (earlyTargets.length < 5) earlyTargets.push([0,2,5,8,10][earlyTargets.length]);
+  if (stageIndex === 0) return earlyTargets.map(target => {
+    if (target === 0) return {type:'draw', target:'0', mode:'memory', prompt:'اكتبي أول عدد: ؟ ، 1', visual:'؟　　1', say:'اكتبي العدد اللي بييجي قبل واحد.', lang:'ar-EG', expected:'0'};
+    if (target === 10) return {type:'draw', target:'10', mode:'memory', prompt:'اكتبي العدد اللي بعد 9', visual:'9　　؟', say:'اكتبي العدد اللي بييجي بعد تسعة.', lang:'ar-EG', expected:'10'};
+    const left = Math.max(0, target - 1), right = Math.min(20, target + 1);
+    return {type: 'draw', target: String(target), mode: 'memory',
+      prompt: `اكتبي العدد الناقص: ${left} ، ؟ ، ${right}`, visual: `${left}　　؟　　${right}`,
+      say: `العدد اللي قبل ${right} وبعد ${left}، اكتبيه بإصبعك.`, lang: 'ar-EG', expected: String(target)};
+  });
+  const teenTargets = [11,13,15,17,19].filter(value => numberBank.includes(value));
+  const sequenceTargets = teenTargets.length >= 5 ? teenTargets : [11,13,15,17,19];
+  if (stageIndex === 1) return sequenceTargets.map(target => ({type:'draw',target:String(target),mode:'memory',
+    prompt:`كمّلي التسلسل واكتبي العدد: ${target-1} ، ؟ ، ${target+1}`,visual:`${target-1}　　؟　　${target+1}`,
+    say:`اكتبي العدد اللي بين ${target-1} و${target+1}.`,lang:'ar-EG',expected:String(target)}));
+  if (stageIndex === 2) return [12,15,18,13,19].map(target => ({type:'draw',target:String(target%10),mode:'memory',
+    prompt:`كام واحد في العدد ${target}؟`,visual:`١ عشرة + ؟ آحاد = ${target}`,
+    say:`العدد ${target} فيه عشرة واحدة. اكتبي كام واحد فاضل.`,lang:'ar-EG',expected:String(target%10)}));
+  if (stageIndex === 3) return [[12,17],[14,14],[20,15],[9,13],[18,11]].map(([left,right]) => ({
+    type: 'choice', prompt: 'أنهي عدد أكبر؟', visual: `${left}　　أم　　${right}`,
+    say: `قارني العدد ${left} والعدد ${right}، واختاري الأكبر.`, lang: 'ar-EG',
+    target: left === right ? 'same' : left > right ? 'first' : 'second', expected: left > right ? String(left) : left < right ? String(right) : 'العددان قد بعض',
+    options: [{value:'first',label:String(left)}, {value:'second',label:String(right)}, {value:'same',label:'قد بعض'}],
+  }));
+  if (stageIndex === 4) return [[2,3,'+'],[6,2,'−'],[4,3,'+'],[8,5,'−'],[5,4,'+']].map(([left,right,op]) => {
+    const answer = op === '+' ? left + right : left - right;
+    const removed = op === '−' ? ` − ${'🍎'.repeat(right)} 🧺` : ` + ${'🍎'.repeat(right)}`;
+    return {type:'choice', prompt:'عدّي الصور واختاري الناتج', visual:`${'🍎'.repeat(left)}${removed}　=　؟`,
+      say:`${left} ${op === '+' ? 'زائد' : 'ناقص'} ${right} يساوي كام؟`, lang:'ar-EG', target:String(answer), expected:String(answer),
+      options:makeWritingOptions(String(answer), [String(Math.min(10,answer+1)), String(Math.max(0,answer-1)), String(Math.min(10,answer+2))]).map(value=>({value,label:value}))};
+  });
+  return [[2,1,'+','🐠'],[5,2,'−','🍪'],[3,3,'+','⭐'],[6,4,'−','🍎'],[4,2,'+','🧸']].map(([left,right,op,icon]) => {
+    const answer = op === '+' ? left + right : left - right;
+    const story = op === '+' ? `كان معاها ${left} ${icon} وجالها ${right} كمان. بقى معاها كام؟` : `كان معاها ${left} ${icon} وشالت ${right}. فاضل كام؟`;
+    return {type:'choice', prompt:'اسمعي الحكاية وعدّي الصور.', visual:`${icon.repeat(left)} ${op === '+' ? '✨' : '🧺'} ${icon.repeat(right)}`,
+      say:story, lang:'ar-EG', target:String(answer), expected:String(answer),
+      options:makeWritingOptions(String(answer), [String(answer+1), String(Math.max(0,answer-1)), String(answer+2)]).map(value=>({value,label:value}))};
+  });
+}
+
+function startWritingPath(program, stageIndex) {
+  if (!writingStageUnlocked(program, stageIndex)) return;
+  if (isActive || isStarting) stopSession();
+  const items = program.subject === 'math' ? buildMathWritingTasks(program, stageIndex) : buildEnglishWritingTasks(program, stageIndex);
+  traceState = {mode:'advanced', programId:program.id, stageIndex, items, index:0, results:[], attempts:0, selected:[]};
+  $('#parentSheet').classList.remove('open');
+  $('#traceSheet').classList.add('open'); $('#traceSheet').setAttribute('aria-hidden','false');
+  $('#traceTitle').textContent = program.subject === 'math' ? '🔢 تحدّي الماث' : '✍️ تحدّي الكتابة';
+  $('#traceVisual').hidden = true; $('#traceHear').hidden = true; $('#traceChoices').hidden = true;
+  $('#traceClear').hidden = false;
+  $('#traceCanvas').onpointerdown = tracePointerDown; $('#traceCanvas').onpointermove = tracePointerMove;
+  $('#traceCanvas').onpointerup = tracePointerUp; $('#traceCanvas').onpointercancel = tracePointerUp;
+  $('#traceClose').onclick = closeTraceTest; $('#traceClear').onclick = resetWritingAttempt;
+  $('#traceNext').onclick = checkWritingDraw;
+  $('#traceHear').onclick = () => speakWritingTask();
+  renderWritingTask();
+}
+
+function speakWritingTask() {
+  const item = traceState?.items[traceState.index];
+  if (!item?.say) return;
+  if (!('speechSynthesis' in window)) return;
+  speechSynthesis.cancel();
+  const instruction = new SpeechSynthesisUtterance(item.prompt);
+  instruction.lang = 'ar-EG'; instruction.rate = 0.88; instruction.pitch = 1.2;
+  instruction.onend = () => {
+    if (!traceState || traceState.items[traceState.index] !== item) return;
+    speakTraceFeedback(item.say, item.lang || 'ar-EG');
+  };
+  speechSynthesis.speak(instruction);
+}
+
+function renderWritingTask() {
+  const state = traceState, item = state?.items[state.index];
+  if (!item) return;
+  $('#traceCount').textContent = `السؤال ${state.index + 1} من ${state.items.length}`;
+  $('#tracePrompt').textContent = item.prompt;
+  $('#traceVisual').hidden = !item.visual;
+  $('#traceVisual').textContent = item.visual || '';
+  $('#traceHear').hidden = !item.say;
+  $('#traceChoices').replaceChildren(); $('#traceChoices').hidden = true;
+  $('#traceCanvas').hidden = item.type !== 'draw';
+  $('#traceClear').hidden = item.type !== 'draw' && item.type !== 'order';
+  $('#traceNext').hidden = item.type !== 'draw' && item.type !== 'order';
+  $('#traceFeedback').textContent = item.type === 'draw' ? 'اكتبي بإصبعك، وخدي وقتك 💛' : 'اختاري أو رتّبي إجابتك 💛';
+  state.selected = []; state.attempts = 0;
+  if (item.type === 'draw') {
+    state.currentItemMode = item.mode; state.prompts = state.items; state.mask = null;
+    drawTraceTarget();
+  } else {
+    $('#traceChoices').hidden = false;
+    if (item.type === 'order') {
+      updateOrderDisplay();
+      for (const tile of item.options) addWritingChoice(tile.value, () => {
+        if (state.selected.length >= item.target.length || state.selected.includes(tile)) return;
+        state.selected.push(tile);
+        const button = [...$('#traceChoices').querySelectorAll('button')].find(choice => choice.textContent === tile.value && !choice.disabled);
+        if (button) { button.disabled = true; button.classList.add('selected'); }
+        updateOrderDisplay();
+      });
+    } else {
+      for (const choice of item.options) {
+        const value = typeof choice === 'string' ? choice : choice.value;
+        const label = typeof choice === 'string' ? choice : choice.label;
+        addWritingChoice(label, () => submitWritingAnswer(value === item.target, value));
+      }
+    }
+  }
+  speakWritingTask();
+}
+
+function addWritingChoice(label, action) {
+  const button = document.createElement('button'); button.type='button'; button.className='trace-choice'; button.textContent=label; button.onclick=action;
+  $('#traceChoices').appendChild(button);
+  return button;
+}
+function resetWritingAttempt() {
+  if (!traceState || traceState.mode !== 'advanced') { drawTraceTarget(); return; }
+  const item = traceState.items[traceState.index];
+  if (item.type === 'order') {
+    traceState.selected = [];
+    $('#traceChoices').querySelectorAll('button').forEach(button => { button.disabled = false; button.classList.remove('selected'); });
+    updateOrderDisplay();
+    return;
+  }
+  drawTraceTarget();
+}
+function updateOrderDisplay() {
+  const item = traceState.items[traceState.index];
+  $('#traceVisual').hidden = false;
+  $('#traceVisual').textContent = `حروفك: ${traceState.selected.map(tile=>tile.value).join(' ') || [...item.target].map(()=> '＿').join(' ')}`;
+}
+function checkWritingDraw() {
+  if (!traceState || traceState.mode !== 'advanced') return;
+  const item = traceState.items[traceState.index];
+  if (item.type === 'order') { submitWritingAnswer(true, item.target); return; }
+  if (!traceState.hasStroke) { $('#traceFeedback').textContent='جربي تكتبي الإجابة الأول 🌼'; return; }
+  const score = gradeTrace(); traceState.attempts++;
+  if (score < 48 && traceState.attempts < 2) {
+    $('#traceFeedback').textContent='قريبة، امسحي وجربي تاني. ركّزي في شكل الحرف أو الرقم 💛';
+    speakTraceFeedback('قريبة، جربي تاني يا بطلة'); drawTraceTarget(); return;
+  }
+  submitWritingAnswer(score >= 62, item.target, score);
+}
+function submitWritingAnswer(correct, answer, score = null) {
+  const state = traceState, item = state?.items[state.index];
+  if (!state || state.mode !== 'advanced' || state.waiting) return;
+  if (item.type === 'order' && state.selected.length !== item.target.length) {
+    $('#traceFeedback').textContent='استخدمي كل الحروف الأول، وبعدها اضغطي «قيّمي كتابتي» 💛'; return;
+  }
+  state.waiting = true;
+  const finalCorrect = item.type === 'order' ? state.selected.map(tile=>tile.value).join('') === item.target : correct;
+  const childAnswer = item.type === 'order' ? state.selected.map(tile=>tile.value).join('') : String(answer);
+  state.results.push({prompt:item.prompt, answer:childAnswer, expected:item.expected || item.target, correct:finalCorrect, score});
+  $('#traceChoices').querySelectorAll('button').forEach(button=>button.disabled=true);
+  const feedback = finalCorrect ? 'برافو! إجابة ممتازة ⭐' : `الإجابة الصح ${item.expected || item.target}. نكمل ونتعلمها سوا 🌱`;
+  $('#traceFeedback').textContent = score === null ? feedback : `${feedback} · ${score}%`;
+  speakTraceFeedback(feedback);
+  setTimeout(() => {
+    if (!traceState || traceState !== state) return;
+    state.waiting=false;
+    if (state.index + 1 < state.items.length) { state.index++; renderWritingTask(); }
+    else finishWritingPath();
+  }, 1000);
+}
+
+function finishWritingPath() {
+  const state = traceState;
+  const correct = state.results.filter(item=>item.correct).length;
+  const percent = Math.round(correct / state.results.length * 100);
+  const programResults = writingPathResults[state.programId] || {};
+  const old = programResults[state.stageIndex] || {};
+  const attempt = {percent, items:state.results, completedAt:new Date().toISOString()};
+  const history = [...(old.history || []), attempt].slice(-10);
+  programResults[state.stageIndex] = {percent:Math.max(percent, old.bestPercent || old.percent || 0), bestPercent:Math.max(percent, old.bestPercent || old.percent || 0), attempts:(old.attempts||0)+1, items:state.results, history};
+  writingPathResults[state.programId] = programResults;
+  localStorage.setItem('lolo-writing-path-results', JSON.stringify(writingPathResults));
+  $('#traceCanvas').hidden=true; $('#traceHear').hidden=true; $('#traceChoices').hidden=true; $('#traceVisual').hidden=true; $('#traceClear').hidden=true; $('#traceNext').hidden=true;
+  $('#traceCount').textContent = `${correct} من ${state.results.length} إجابات صح`;
+  $('#tracePrompt').textContent = percent >= 75 ? 'عدّيتي المرحلة! المرحلة اللي بعدها بقت مفتوحة 🎉' : 'تدريب جميل! خلينا نعيد المرحلة عشان تثبتيها 🌼';
+  $('#traceFeedback').textContent = `نتيجتك ${percent}٪`;
+  speakTraceFeedback(percent >= 75 ? 'عديتي المرحلة، برافو يا بطلة!' : 'تدريب جميل، نعيد المرحلة ونتعلم أكتر');
+  const program = programList().find(item=>item.id===state.programId);
+  if (program) refreshLessonPicker(program.id, $('#unitSelect')?.value);
+  renderParentReport();
+}
+
 function showPickerTab(tab) {
   const tests = tab === 'tests';
   $('#lessonTab').setAttribute('aria-selected', String(!tests));
   $('#testsTab').setAttribute('aria-selected', String(tests));
   $('#lessonPanel').hidden = tests;
   $('#testsPanel').hidden = !tests;
+}
+
+function traceTargets(lesson) {
+  const focus = [lesson.focus, lesson.title, lesson.goal, ...(lesson.board?.tokens || []).map(token => token.text)].filter(Boolean).join(' ');
+  if (lesson.subject === 'math' || lesson.strand === 'math' || lesson.programId === 'math') {
+    const digits = [...focus.matchAll(/[0-9٠-٩]+/g)].flatMap(match => [...match[0]].map(digit => digit.replace(/[٠-٩]/g, value => String('٠١٢٣٤٥٦٧٨٩'.indexOf(value)))));
+    const numberWords = {zero:'0',one:'1',two:'2',three:'3',four:'4',five:'5',six:'6',seven:'7',eight:'8',nine:'9',ten:'10'};
+    for (const word of focus.toLowerCase().match(/[a-z]+/g) || []) if (numberWords[word]) digits.push(numberWords[word]);
+    const unique = [...new Set(digits)].slice(0, 5);
+    return unique.map(value => ({value, clue: `الرقم ${value}`}));
+  }
+  const words = [...focus.matchAll(/[A-Za-z]+/g)].map(match => match[0]);
+  const targets = [];
+  for (const word of words) {
+    for (const letter of [...word.toUpperCase()]) {
+      if (!targets.some(item => item.value === letter)) targets.push({value: letter, clue: `حرف ${letter} من كلمة ${word}`});
+      if (targets.length === 5) return targets;
+    }
+  }
+  return targets;
+}
+
+let traceState = null;
+function startTraceTest(lessonId) {
+  const lesson = allLessons().find(item => item.id === lessonId);
+  const targets = lesson && traceTargets(lesson);
+  $('#traceClose').onclick = closeTraceTest;
+  if (!targets?.length) {
+    traceState = null;
+    $('#tracePrompt').textContent = 'الدرس ده مفيهوش حروف أو أرقام مناسبة لاختبار الكتابة باللمس.';
+    $('#traceSheet').classList.add('open');
+    $('#traceSheet').setAttribute('aria-hidden', 'false');
+    $('#traceCanvas').hidden = true;
+    $('#traceNext').hidden = true;
+    return;
+  }
+  if (isActive || isStarting) stopSession();
+  const prompts = Array.from({length: 5}, (_, index) => targets[index % targets.length]);
+  traceState = {lesson, prompts, scores: [], index: 0};
+  $('#parentSheet').classList.remove('open');
+  $('#traceSheet').classList.add('open');
+  $('#traceSheet').setAttribute('aria-hidden', 'false');
+  $('#traceCanvas').hidden = false;
+  $('#traceNext').hidden = false;
+  $('#traceClose').onclick = closeTraceTest;
+  $('#traceNext').onclick = nextTraceTarget;
+  $('#traceClear').onclick = () => drawTraceTarget();
+  const canvas = $('#traceCanvas');
+  canvas.onpointerdown = tracePointerDown;
+  canvas.onpointermove = tracePointerMove;
+  canvas.onpointerup = tracePointerUp;
+  canvas.onpointercancel = tracePointerUp;
+  drawTraceTarget();
+}
+
+function closeTraceTest() {
+  if ('speechSynthesis' in window) speechSynthesis.cancel();
+  $('#traceSheet').classList.remove('open');
+  $('#traceSheet').setAttribute('aria-hidden', 'true');
+  traceState = null;
+}
+
+function drawTraceTarget() {
+  if (!traceState) return;
+  const canvas = $('#traceCanvas'), ctx = canvas.getContext('2d', {willReadFrequently: true});
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+  const target = traceState.prompts[traceState.index];
+  const advanced = traceState.mode === 'advanced';
+  const targetValue = String(advanced ? target.target : target.value);
+  if (!advanced) $('#tracePrompt').textContent = `اتبعي النقط بإصبعك: ${target.clue}`;
+  if (!advanced) $('#traceCount').textContent = `المحاولة ${traceState.index + 1} من 5`;
+  const mask = document.createElement('canvas'); mask.width = canvas.width; mask.height = canvas.height;
+  const mctx = mask.getContext('2d', {willReadFrequently: true});
+  mctx.fillStyle = '#000'; mctx.textAlign = 'center'; mctx.textBaseline = 'middle';
+  let size = targetValue.length > 1 ? 170 : 220;
+  mctx.font = `900 ${size}px Arial, sans-serif`;
+  mctx.fillText(targetValue, mask.width / 2, mask.height / 2, mask.width - 30);
+  const pixels = mctx.getImageData(0, 0, mask.width, mask.height).data;
+  const bounds = {left: mask.width, right: 0, top: mask.height, bottom: 0};
+  for (let y = 0; y < mask.height; y += 2) for (let x = 0; x < mask.width; x += 2) {
+    if (pixels[(y * mask.width + x) * 4 + 3] > 100) {
+      bounds.left = Math.min(bounds.left, x); bounds.right = Math.max(bounds.right, x);
+      bounds.top = Math.min(bounds.top, y); bounds.bottom = Math.max(bounds.bottom, y);
+    }
+  }
+  if (!advanced || traceState.currentItemMode === 'guided') {
+    ctx.fillStyle = '#b6a8e9';
+    for (let y = bounds.top; y <= bounds.bottom; y += 9) for (let x = bounds.left; x <= bounds.right; x += 9) {
+      if (pixels[(y * mask.width + x) * 4 + 3] > 110) { ctx.beginPath(); ctx.arc(x, y, 2, 0, Math.PI * 2); ctx.fill(); }
+    }
+  } else if (traceState.currentItemMode === 'copy') {
+    ctx.save(); ctx.globalAlpha = .16; ctx.fillStyle = '#7962dc'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.font = `900 ${size}px Arial, sans-serif`; ctx.fillText(targetValue, canvas.width / 2, canvas.height / 2, canvas.width - 30); ctx.restore();
+  }
+  traceState.mask = mask;
+  traceState.hasStroke = false;
+}
+
+function tracePoint(event) {
+  const rect = event.currentTarget.getBoundingClientRect();
+  return {x: (event.clientX - rect.left) * event.currentTarget.width / rect.width,
+    y: (event.clientY - rect.top) * event.currentTarget.height / rect.height};
+}
+function tracePointerDown(event) {
+  if (!traceState) return;
+  event.preventDefault(); event.currentTarget.setPointerCapture(event.pointerId);
+  const ctx = event.currentTarget.getContext('2d'), point = tracePoint(event);
+  traceState.hasStroke = true; traceState.last = point;
+  ctx.beginPath(); ctx.arc(point.x, point.y, 7, 0, Math.PI * 2); ctx.fillStyle = '#ff779a'; ctx.fill();
+}
+function tracePointerMove(event) {
+  if (!traceState?.last || !event.currentTarget.hasPointerCapture(event.pointerId)) return;
+  event.preventDefault(); const ctx = event.currentTarget.getContext('2d'), point = tracePoint(event);
+  ctx.beginPath(); ctx.moveTo(traceState.last.x, traceState.last.y); ctx.lineTo(point.x, point.y);
+  ctx.lineWidth = 14; ctx.lineCap = 'round'; ctx.strokeStyle = '#ff779a'; ctx.stroke(); traceState.last = point;
+}
+function tracePointerUp(event) {
+  if (!traceState) return;
+  event?.preventDefault?.();
+  traceState.last = null;
+}
+function gradeTrace() {
+  const canvas = $('#traceCanvas'), ink = canvas.getContext('2d', {willReadFrequently: true}).getImageData(0, 0, canvas.width, canvas.height).data;
+  const target = traceState.mask.getContext('2d', {willReadFrequently: true}).getImageData(0, 0, canvas.width, canvas.height).data;
+  const nearInkCanvas = document.createElement('canvas'); nearInkCanvas.width = canvas.width; nearInkCanvas.height = canvas.height;
+  const nearInkCtx = nearInkCanvas.getContext('2d');
+  const inkMask = nearInkCtx.createImageData(canvas.width, canvas.height);
+  for (let i = 3; i < ink.length; i += 4) {
+    if (ink[i - 3] > 190 && ink[i - 2] < 185 && ink[i - 1] > 110 && ink[i - 1] < 210) {
+      inkMask.data[i - 3] = inkMask.data[i - 2] = inkMask.data[i - 1] = inkMask.data[i] = 255;
+    }
+  }
+  nearInkCtx.putImageData(inkMask, 0, 0);
+  const blurredInkCanvas = document.createElement('canvas'); blurredInkCanvas.width = canvas.width; blurredInkCanvas.height = canvas.height;
+  const blurredInkCtx = blurredInkCanvas.getContext('2d', {willReadFrequently: true}); blurredInkCtx.filter = 'blur(8px)'; blurredInkCtx.drawImage(nearInkCanvas, 0, 0);
+  const nearInk = blurredInkCtx.getImageData(0, 0, canvas.width, canvas.height).data;
+  const nearTargetCanvas = document.createElement('canvas'); nearTargetCanvas.width = canvas.width; nearTargetCanvas.height = canvas.height;
+  const nearTargetCtx = nearTargetCanvas.getContext('2d', {willReadFrequently: true}); nearTargetCtx.filter = 'blur(8px)'; nearTargetCtx.drawImage(traceState.mask, 0, 0); nearTargetCtx.filter = 'none';
+  const nearTarget = nearTargetCtx.getImageData(0, 0, canvas.width, canvas.height).data;
+  let targetPixels = 0, matched = 0, inkPixels = 0, closeInkPixels = 0;
+  for (let i = 3; i < ink.length; i += 4) {
+    const t = target[i] > 100;
+    const drawn = ink[i - 3] > 190 && ink[i - 2] < 185 && ink[i - 1] > 110 && ink[i - 1] < 210;
+    if (t) { targetPixels++; if (nearInk[i] > 18) matched++; }
+    if (drawn) { inkPixels++; if (nearTarget[i] > 18) closeInkPixels++; }
+  }
+  const coverage = targetPixels ? matched / targetPixels : 0;
+  const precision = inkPixels ? closeInkPixels / inkPixels : 0;
+  return Math.round(100 * Math.max(0, Math.min(1, coverage * .75 + precision * .25)));
+}
+function nextTraceTarget() {
+  if (!traceState) return;
+  if (!traceState.hasStroke) {
+    $('#traceFeedback').textContent = 'جربي تمشي على النقط الأول، وأنا معاكي 💛';
+    return;
+  }
+  const score = gradeTrace();
+  const feedback = score >= 68 ? 'برافو! مشيتي على النقط كويس جدًا! ⭐' : score >= 38 ? 'قريبة قوي! حاولي تمشي على النقط واحدة واحدة 💛' : 'لسه محتاجة تدريب بسيط. امسحي وجربي تاني 🌱';
+  $('#traceFeedback').textContent = `${feedback} (${score}٪)`;
+  speakTraceFeedback(feedback);
+  if (score < 38) { drawTraceTarget(); return; }
+  traceState.scores.push({value: traceState.prompts[traceState.index].value, score});
+  if (traceState.index < 4) { traceState.index++; drawTraceTarget(); return; }
+  const scores = traceState.scores.map(item => item.score);
+  const percent = Math.round(scores.reduce((a, b) => a + b, 0) / scores.length);
+  const old = traceResults[traceState.lesson.id];
+  traceResults[traceState.lesson.id] = {percent, attempts: (old?.attempts || 0) + 1, scores: traceState.scores, completedAt: new Date().toISOString()};
+  localStorage.setItem('lolo-trace-results', JSON.stringify(traceResults));
+  $('#traceFeedback').textContent = `خلصتي الاختبار! نتيجتك ${percent}٪ 🎉`;
+  $('#traceCount').textContent = 'ممتاز، خلصتي الخمس محاولات!';
+  $('#traceCanvas').hidden = true; $('#traceNext').hidden = true;
+  renderParentReport(); refreshLessonPicker(traceState.lesson.programId, traceState.lesson.unitId);
+}
+function speakTraceFeedback(text, lang = 'ar-EG') {
+  if (!('speechSynthesis' in window)) return;
+  speechSynthesis.cancel();
+  const utterance = new SpeechSynthesisUtterance(text);
+  utterance.lang = lang; utterance.rate = 0.88; utterance.pitch = 1.2;
+  speechSynthesis.speak(utterance);
 }
 
 function chooseLesson(lessonId, mode = 'lesson') {
@@ -1075,7 +1623,9 @@ function parentProgressSummary() {
   const completed = lessons.filter(lesson => mastered.has(lesson.id)).length;
   const testCount = lessons.filter(lesson => testResults[lesson.id]).length;
   const honors = lessons.reduce((sum, lesson) => sum + (Number(lessonExcellence[lesson.id]) || 0), 0);
-  return `في المنهج ده: ${completed} من ${lessons.length} درس تمّوا · ${testCount} اختبار ${testCount === 1 ? 'محفوظ' : 'محفوظين'}${honors ? ` · 🏅 ${honors} شارات تفوق` : ''}.`;
+  const path = writingPathResults[programId] || {};
+  const advanced = Object.values(path).filter(result => (result?.bestPercent || result?.percent || 0) >= 75).length;
+  return `في المنهج ده: ${completed} من ${lessons.length} درس تمّوا · ${testCount} اختبار ${testCount === 1 ? 'محفوظ' : 'محفوظين'} · ${advanced} مراحل كتابة وماث متقدمة متقنة${honors ? ` · 🏅 ${honors} شارات تفوق` : ''}.`;
 }
 
 function setStatus(message) {
@@ -1712,6 +2262,7 @@ function renderParentReport() {
   const lessons = allLessons().filter(lesson => !programId || lesson.programId === programId);
   const completed = lessons.filter(lesson => mastered.has(lesson.id)).length;
   const testEntries = lessons.filter(lesson => testResults[lesson.id]);
+  const traceEntries = lessons.filter(lesson => traceResults[lesson.id]);
   const correct = lessons.reduce((sum, lesson) => sum + (Number(lessonStats[lesson.id]?.correct) || 0), 0);
   const wrong = lessons.reduce((sum, lesson) => sum + (Number(lessonStats[lesson.id]?.wrong) || 0), 0);
   const total = correct + wrong;
@@ -1723,14 +2274,23 @@ function renderParentReport() {
   };
   addCard('الدروس', `${completed} من ${lessons.length} مكتمل`);
   addCard('الإجابات', `${correct} صح · ${wrong} محتاجة مراجعة · ${total ? Math.round(correct / total * 100) : 0}% صح`);
-  addCard('الاختبارات', `${testEntries.length} اختبار محفوظ`);
+  addCard('الاختبارات', `${testEntries.length} شفهي · ${traceEntries.length} كتابة باللمس`);
+  const activeProgram = programList().find(program => program.id === programId);
+  if (activeProgram) {
+    const pathResults = writingPathResults[activeProgram.id] || {};
+    const done = Object.values(pathResults).filter(result => (result?.bestPercent || result?.percent || 0) >= 75).length;
+    const stageCount = writingStages(activeProgram).length;
+    addCard(activeProgram.subject === 'math' ? 'مسار الماث المتقدم' : 'مسار الكتابة المتقدمة', `${done} من ${stageCount} مراحل متقنة${writingPathOverrides[activeProgram.id] ? ' · فتح وليّ الأمر كل المراحل' : ''}`);
+  }
   for (const lesson of lessons) {
     const stats = lessonStats[lesson.id] || {};
     const result = testResults[lesson.id];
-    if (!stats.correct && !stats.wrong && !result) continue;
+    const trace = traceResults[lesson.id];
+    if (!stats.correct && !stats.wrong && !result && !trace) continue;
     const details = [];
     if (stats.correct || stats.wrong) details.push(`${stats.correct || 0} صح و${stats.wrong || 0} محتاجة مراجعة`);
     if (result) details.push(`الاختبار ${result.correct}/${result.total}`);
+    if (trace) details.push(`الكتابة باللمس ${trace.percent}% · ${trace.scores.map(item => `${item.value} ${item.score}%`).join('، ')}`);
     const history = Array.isArray(stats.history) ? stats.history : [];
     const errors = history.filter(item => item.is_correct === false).slice(-3);
     if (errors.length) details.push(`آخر إجابات للمراجعة: ${errors.map(item => item.answer || 'إجابة غير مسجلة').join('، ')}`);
@@ -1820,12 +2380,18 @@ $('#resetCourse').onclick = () => {
   mastered.clear();
   lessonExcellence = {};
   testResults = {};
+  traceResults = {};
+  writingPathResults = {};
+  writingPathOverrides = {};
   lessonStats = {};
   activeAnswerEvents = [];
   sessionMode = 'lesson';
   localStorage.removeItem('lolo-mastered');
   localStorage.removeItem('lolo-lesson-excellence');
   localStorage.removeItem('lolo-test-results');
+  localStorage.removeItem('lolo-trace-results');
+  localStorage.removeItem('lolo-writing-path-results');
+  localStorage.removeItem('lolo-writing-path-overrides');
   localStorage.removeItem('lolo-lesson-stats');
   localStorage.removeItem('lolo-explicit-lesson-choice');
   currentLesson = nextLesson() || allLessons()[0] || null;
@@ -1841,8 +2407,12 @@ $('#clearAnswerHistory').onclick = () => {
   if (!confirm('نمسح سجل الإجابات وتفاصيل الاختبارات؟ تقدم الدروس والشارات هيفضلوا محفوظين.')) return;
   lessonStats = {};
   testResults = {};
+  traceResults = {};
+  writingPathResults = {};
   localStorage.removeItem('lolo-lesson-stats');
   localStorage.removeItem('lolo-test-results');
+  localStorage.removeItem('lolo-trace-results');
+  localStorage.removeItem('lolo-writing-path-results');
   updateProgress();
   refreshLessonPicker(currentLesson?.programId, currentLesson?.unitId);
   renderParentReport();
