@@ -558,14 +558,15 @@ function buildEnglishWritingTasks(program, stageIndex) {
       target: word, expected: word, options: scrambled.map((letter, tile) => ({value: letter, tile}))};
   });
   const sentences = [
-    {stem:'I am ___.', answer:'happy', options:['happy','fine','sad']},
-    {stem:'This is my ___.', answer:'mother', options:['mother','father','sister']},
-    {stem:'I see a ___.', answer:'cat', options:['cat','dog','book']},
-    {stem:'It is ___.', answer:'red', options:['red','blue','green']},
-    {stem:'I like ___.', answer:'apples', options:['apples','cake','milk']},
+    {stem:'She is ___.', cue:'👧 😊', answer:'happy', options:['happy','apple','bus']},
+    {stem:'This is my ___.', cue:'👩', answer:'mother', options:['mother','green','run']},
+    {stem:'This is an ___.', cue:'🍎', answer:'apple', options:['apple','happy','swim']},
+    {stem:'It is ___.', cue:'🌳 💚', answer:'green', options:['green','mother','bus']},
+    {stem:'I can ___.', cue:'🏃', answer:'run', options:['run','apple','happy']},
   ];
-  return sentences.map(({stem, answer, options}) => ({
-    type:'choice', prompt:`كمّلي الجملة: ${stem}`, say:stem.replace('___', answer),
+  return sentences.map(({stem, cue, answer, options}) => ({
+    type:'choice', prompt:'بصي على الصورة، واختاري الكلمة اللي تكمل الجملة.', visual:`${cue}　${stem}`,
+    say:stem.replace('___', '...'),
     lang:'en-US', target:answer, expected:answer,
     options:options.map(value=>({value,label:value})),
   }));
@@ -678,13 +679,15 @@ function renderWritingTask() {
     $('#traceChoices').hidden = false;
     if (item.type === 'order') {
       updateOrderDisplay();
-      for (const tile of item.options) addWritingChoice(tile.value, () => {
+      for (const tile of item.options) {
+        const tileButton = addWritingChoice(tile.value, () => {
         if (state.selected.length >= item.target.length || state.selected.includes(tile)) return;
         state.selected.push(tile);
-        const button = [...$('#traceChoices').querySelectorAll('button')].find(choice => choice.textContent === tile.value && !choice.disabled);
-        if (button) { button.disabled = true; button.classList.add('selected'); }
+        tileButton.disabled = true; tileButton.classList.add('selected');
         updateOrderDisplay();
-      });
+        });
+        tileButton.setAttribute('aria-label', `الحرف ${tile.value}، قطعة رقم ${tile.tile + 1}`);
+      }
     } else {
       for (const choice of item.options) {
         const value = typeof choice === 'string' ? choice : choice.value;
