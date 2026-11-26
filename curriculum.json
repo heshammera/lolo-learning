@@ -1,0 +1,5643 @@
+{
+  "title": "تأسيس إنجليزي وماث + مناهج الصف الأول لغات",
+  "description": "تأسيس شفهي في الإنجليزي والماث، ثم مسارا Connect Plus 1 وMath للصف الأول الابتدائي لغات. تعليم تدريجي بالصوت والصور واختيار حر وإعادة مستمرة.",
+  "units": [
+    {
+      "id": "hello",
+      "title": "التعارف والتحية",
+      "lessons": [
+        {
+          "id": "hello-1",
+          "focus": "Hello, bye",
+          "goal": "الاستماع إلى التحية والرد عليها بكلمة أو إشارة",
+          "cards": [
+            [
+              "👋",
+              "تحية"
+            ],
+            [
+              "🚪",
+              "وداع"
+            ],
+            [
+              "😊",
+              "ابتسامة"
+            ]
+          ],
+          "board": {
+            "picture": "👋",
+            "tokens": [
+              {
+                "text": "Hello",
+                "role": "word"
+              },
+              {
+                "text": "Bye",
+                "role": "word"
+              }
+            ]
+          }
+        },
+        {
+          "id": "hello-2",
+          "focus": "How are you? I am happy / fine",
+          "goal": "فهم سؤال الحال والإجابة بكلمة واحدة",
+          "cards": [
+            [
+              "😊",
+              "سعيدة"
+            ],
+            [
+              "😌",
+              "بخير"
+            ],
+            [
+              "😴",
+              "نعسانة"
+            ]
+          ],
+          "board": {
+            "picture": "😊",
+            "tokens": [
+              {
+                "text": "I",
+                "role": "subject"
+              },
+              {
+                "text": "am",
+                "role": "verb"
+              },
+              {
+                "text": "happy",
+                "role": "detail"
+              }
+            ]
+          }
+        },
+        {
+          "id": "hello-3",
+          "focus": "Please, thank you",
+          "goal": "استخدام please و thank you في موقف تمثيلي بسيط",
+          "cards": [
+            [
+              "🙏",
+              "من فضلك"
+            ],
+            [
+              "🎁",
+              "هدية"
+            ],
+            [
+              "💛",
+              "شكر"
+            ]
+          ],
+          "board": {
+            "picture": "🙏",
+            "tokens": [
+              {
+                "text": "Please",
+                "role": "word"
+              },
+              {
+                "text": "Thank you",
+                "role": "word"
+              }
+            ]
+          }
+        },
+        {
+          "id": "hello-4",
+          "focus": "Yes, no, I don't know",
+          "goal": "الرد بثقة بنعم أو لا أو طلب المساعدة",
+          "cards": [
+            [
+              "✅",
+              "نعم"
+            ],
+            [
+              "❌",
+              "لا"
+            ],
+            [
+              "🤔",
+              "مش عارفة"
+            ]
+          ],
+          "board": {
+            "picture": "🤔",
+            "tokens": [
+              {
+                "text": "Yes",
+                "role": "word"
+              },
+              {
+                "text": "No",
+                "role": "word"
+              },
+              {
+                "text": "I don't know",
+                "role": "detail"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "classroom",
+      "title": "تعليمات الصف",
+      "lessons": [
+        {
+          "id": "class-1",
+          "focus": "Listen, look, repeat",
+          "goal": "اتباع ثلاث تعليمات شفهية قصيرة",
+          "cards": [
+            [
+              "👂",
+              "اسمعي"
+            ],
+            [
+              "👀",
+              "بصي"
+            ],
+            [
+              "🗣️",
+              "قولي ورايا"
+            ]
+          ],
+          "board": {
+            "picture": "👂",
+            "tokens": [
+              {
+                "text": "Listen",
+                "role": "verb"
+              },
+              {
+                "text": "Look",
+                "role": "verb"
+              },
+              {
+                "text": "Repeat",
+                "role": "verb"
+              }
+            ]
+          }
+        },
+        {
+          "id": "class-2",
+          "focus": "Stand up, sit down",
+          "goal": "ربط أمرين حركيين باللغة الإنجليزية",
+          "cards": [
+            [
+              "🧍",
+              "قفي"
+            ],
+            [
+              "🪑",
+              "اقعدي"
+            ],
+            [
+              "🤸",
+              "نطّي"
+            ]
+          ],
+          "board": {
+            "picture": "🧍",
+            "tokens": [
+              {
+                "text": "Stand up",
+                "role": "verb"
+              },
+              {
+                "text": "Sit down",
+                "role": "verb"
+              }
+            ]
+          }
+        },
+        {
+          "id": "class-3",
+          "focus": "Show me, give me",
+          "goal": "فهم التعليمات باستخدام أشياء قريبة",
+          "cards": [
+            [
+              "👆",
+              "وريني"
+            ],
+            [
+              "🎁",
+              "اديني"
+            ],
+            [
+              "🙋",
+              "خدي"
+            ]
+          ],
+          "board": {
+            "picture": "👆",
+            "tokens": [
+              {
+                "text": "Show me",
+                "role": "verb"
+              },
+              {
+                "text": "Give me",
+                "role": "verb"
+              }
+            ]
+          }
+        },
+        {
+          "id": "class-4",
+          "focus": "Open, close",
+          "goal": "تمييز أمرين متضادين في لعبة",
+          "cards": [
+            [
+              "📖",
+              "افتحي"
+            ],
+            [
+              "📕",
+              "اقفلي"
+            ],
+            [
+              "🔄",
+              "تاني"
+            ]
+          ],
+          "board": {
+            "picture": "📖",
+            "tokens": [
+              {
+                "text": "Open",
+                "role": "verb"
+              },
+              {
+                "text": "Close",
+                "role": "verb"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "colors",
+      "title": "الألوان والأشكال",
+      "lessons": [
+        {
+          "id": "color-1",
+          "focus": "red, blue, yellow",
+          "goal": "تمييز ثلاثة ألوان مسموعة من صور",
+          "cards": [
+            [
+              "🍎",
+              "أحمر"
+            ],
+            [
+              "🫐",
+              "أزرق"
+            ],
+            [
+              "🌞",
+              "أصفر"
+            ]
+          ],
+          "board": {
+            "picture": "🎨",
+            "tokens": [
+              {
+                "text": "red",
+                "role": "detail"
+              },
+              {
+                "text": "blue",
+                "role": "detail"
+              },
+              {
+                "text": "yellow",
+                "role": "detail"
+              }
+            ]
+          }
+        },
+        {
+          "id": "color-2",
+          "focus": "green, black, white",
+          "goal": "تمييز ألوان جديدة وإعادة كلمات سابقة",
+          "cards": [
+            [
+              "🐸",
+              "أخضر"
+            ],
+            [
+              "🐈‍⬛",
+              "أسود"
+            ],
+            [
+              "🐑",
+              "أبيض"
+            ]
+          ],
+          "board": {
+            "picture": "🟩",
+            "tokens": [
+              {
+                "text": "green",
+                "role": "detail"
+              },
+              {
+                "text": "black",
+                "role": "detail"
+              },
+              {
+                "text": "white",
+                "role": "detail"
+              }
+            ]
+          }
+        },
+        {
+          "id": "color-3",
+          "focus": "circle, square, star",
+          "goal": "اختيار الشكل الذي تسمع اسمه",
+          "cards": [
+            [
+              "🔵",
+              "دايرة"
+            ],
+            [
+              "🟦",
+              "مربع"
+            ],
+            [
+              "⭐",
+              "نجمة"
+            ]
+          ],
+          "board": {
+            "picture": "⭐",
+            "tokens": [
+              {
+                "text": "circle",
+                "role": "word"
+              },
+              {
+                "text": "square",
+                "role": "word"
+              },
+              {
+                "text": "star",
+                "role": "word"
+              }
+            ]
+          }
+        },
+        {
+          "id": "color-4",
+          "focus": "What color is it? It is...",
+          "goal": "الإجابة عن سؤال اللون بجملة قصيرة مدعومة بالصور",
+          "cards": [
+            [
+              "🍌",
+              "موزة"
+            ],
+            [
+              "🍓",
+              "فراولة"
+            ],
+            [
+              "🥦",
+              "خضار"
+            ]
+          ],
+          "board": {
+            "picture": "🍓",
+            "tokens": [
+              {
+                "text": "What color",
+                "role": "question"
+              },
+              {
+                "text": "is it?",
+                "role": "verb"
+              },
+              {
+                "text": "It is red",
+                "role": "detail"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "numbers",
+      "title": "الأرقام والعد",
+      "lessons": [
+        {
+          "id": "num-1",
+          "focus": "one, two, three",
+          "goal": "عد أشياء مرئية حتى ثلاثة باللغة الإنجليزية",
+          "cards": [
+            [
+              "🍓",
+              "واحدة"
+            ],
+            [
+              "🍓🍓",
+              "اتنين"
+            ],
+            [
+              "🍓🍓🍓",
+              "تلاتة"
+            ]
+          ],
+          "board": {
+            "picture": "🍓",
+            "tokens": [
+              {
+                "text": "one",
+                "role": "word"
+              },
+              {
+                "text": "two",
+                "role": "word"
+              },
+              {
+                "text": "three",
+                "role": "word"
+              }
+            ]
+          }
+        },
+        {
+          "id": "num-2",
+          "focus": "four, five",
+          "goal": "سماع أربعة وخمسة ومطابقة كمية الأشياء",
+          "cards": [
+            [
+              "⭐️⭐️⭐️⭐️",
+              "أربعة"
+            ],
+            [
+              "⭐️⭐️⭐️⭐️⭐️",
+              "خمسة"
+            ],
+            [
+              "⭐️",
+              "نجمة"
+            ]
+          ],
+          "board": {
+            "picture": "⭐",
+            "tokens": [
+              {
+                "text": "four",
+                "role": "word"
+              },
+              {
+                "text": "five",
+                "role": "word"
+              }
+            ]
+          }
+        },
+        {
+          "id": "num-3",
+          "focus": "six, seven, eight",
+          "goal": "تمييز الأعداد الجديدة في العد المسموع",
+          "cards": [
+            [
+              "🐞🐞🐞🐞🐞🐞",
+              "ستة"
+            ],
+            [
+              "🐞🐞🐞🐞🐞🐞🐞",
+              "سبعة"
+            ],
+            [
+              "🐞🐞🐞🐞🐞🐞🐞🐞",
+              "تمانية"
+            ]
+          ],
+          "board": {
+            "picture": "🐞",
+            "tokens": [
+              {
+                "text": "six",
+                "role": "word"
+              },
+              {
+                "text": "seven",
+                "role": "word"
+              },
+              {
+                "text": "eight",
+                "role": "word"
+              }
+            ]
+          }
+        },
+        {
+          "id": "num-4",
+          "focus": "nine, ten; how many?",
+          "goal": "العد حتى عشرة والإجابة عن how many",
+          "cards": [
+            [
+              "🎈🎈🎈🎈🎈🎈🎈🎈🎈",
+              "تسعة"
+            ],
+            [
+              "🎈🎈🎈🎈🎈🎈🎈🎈🎈🎈",
+              "عشرة"
+            ],
+            [
+              "❓",
+              "كام واحدة؟"
+            ]
+          ],
+          "board": {
+            "picture": "🎈",
+            "tokens": [
+              {
+                "text": "How many?",
+                "role": "question"
+              },
+              {
+                "text": "nine",
+                "role": "word"
+              },
+              {
+                "text": "ten",
+                "role": "word"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "people",
+      "title": "العائلة والناس",
+      "lessons": [
+        {
+          "id": "people-1",
+          "focus": "mother, father, sister, brother",
+          "goal": "فهم كلمات أفراد الأسرة من صور",
+          "cards": [
+            [
+              "👩",
+              "ماما"
+            ],
+            [
+              "👨",
+              "بابا"
+            ],
+            [
+              "👧👦",
+              "أخت وأخ"
+            ]
+          ],
+          "board": {
+            "picture": "👨‍👩‍👧",
+            "tokens": [
+              {
+                "text": "mother",
+                "role": "word"
+              },
+              {
+                "text": "father",
+                "role": "word"
+              },
+              {
+                "text": "sister",
+                "role": "word"
+              }
+            ]
+          }
+        },
+        {
+          "id": "people-2",
+          "focus": "baby, friend, teacher",
+          "goal": "تمييز أشخاص مألوفين واستخدام كلمة friend",
+          "cards": [
+            [
+              "👶",
+              "طفل"
+            ],
+            [
+              "🧒",
+              "صاحبة"
+            ],
+            [
+              "👩‍🏫",
+              "معلمة"
+            ]
+          ],
+          "board": {
+            "picture": "👩‍🏫",
+            "tokens": [
+              {
+                "text": "baby",
+                "role": "word"
+              },
+              {
+                "text": "friend",
+                "role": "word"
+              },
+              {
+                "text": "teacher",
+                "role": "word"
+              }
+            ]
+          }
+        },
+        {
+          "id": "people-3",
+          "focus": "This is my...",
+          "goal": "قول تركيب قصير عن شخص في صورة دون مشاركة بيانات شخصية",
+          "cards": [
+            [
+              "👩‍👧",
+              "ماما"
+            ],
+            [
+              "👭",
+              "صاحبة"
+            ],
+            [
+              "👩‍🏫",
+              "معلمة"
+            ]
+          ],
+          "board": {
+            "picture": "👩‍👧",
+            "tokens": [
+              {
+                "text": "This",
+                "role": "subject"
+              },
+              {
+                "text": "is",
+                "role": "verb"
+              },
+              {
+                "text": "my",
+                "role": "article"
+              },
+              {
+                "text": "friend",
+                "role": "noun"
+              }
+            ]
+          }
+        },
+        {
+          "id": "people-4",
+          "focus": "he, she; who is this?",
+          "goal": "فهم he و she من السياق المصور",
+          "cards": [
+            [
+              "👦",
+              "ولد"
+            ],
+            [
+              "👧",
+              "بنت"
+            ],
+            [
+              "❓",
+              "مين ده؟"
+            ]
+          ],
+          "board": {
+            "picture": "👧",
+            "tokens": [
+              {
+                "text": "he",
+                "role": "subject"
+              },
+              {
+                "text": "she",
+                "role": "subject"
+              },
+              {
+                "text": "is",
+                "role": "verb"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "body",
+      "title": "الجسم والحركة",
+      "lessons": [
+        {
+          "id": "body-1",
+          "focus": "head, eyes, ears, nose, mouth",
+          "goal": "سماع واختيار أعضاء الوجه في لعبة الإشارة",
+          "cards": [
+            [
+              "👀",
+              "عين"
+            ],
+            [
+              "👂",
+              "ودن"
+            ],
+            [
+              "👃",
+              "مناخير"
+            ]
+          ],
+          "board": {
+            "picture": "🙂",
+            "tokens": [
+              {
+                "text": "head",
+                "role": "word"
+              },
+              {
+                "text": "eyes",
+                "role": "word"
+              },
+              {
+                "text": "nose",
+                "role": "word"
+              }
+            ]
+          }
+        },
+        {
+          "id": "body-2",
+          "focus": "hands, arms, legs, feet",
+          "goal": "تمييز أجزاء الجسم أثناء الحركة",
+          "cards": [
+            [
+              "👏",
+              "إيدين"
+            ],
+            [
+              "🦵",
+              "رجل"
+            ],
+            [
+              "🦶",
+              "قدم"
+            ]
+          ],
+          "board": {
+            "picture": "🦵",
+            "tokens": [
+              {
+                "text": "hands",
+                "role": "word"
+              },
+              {
+                "text": "legs",
+                "role": "word"
+              },
+              {
+                "text": "feet",
+                "role": "word"
+              }
+            ]
+          }
+        },
+        {
+          "id": "body-3",
+          "focus": "clap, jump, walk, stop",
+          "goal": "اتباع أوامر الحركة والتوقف",
+          "cards": [
+            [
+              "👏",
+              "سقفي"
+            ],
+            [
+              "🦘",
+              "انطي"
+            ],
+            [
+              "🛑",
+              "استني"
+            ]
+          ],
+          "board": {
+            "picture": "👏",
+            "tokens": [
+              {
+                "text": "clap",
+                "role": "verb"
+              },
+              {
+                "text": "jump",
+                "role": "verb"
+              },
+              {
+                "text": "walk",
+                "role": "verb"
+              },
+              {
+                "text": "stop",
+                "role": "verb"
+              }
+            ]
+          }
+        },
+        {
+          "id": "body-4",
+          "focus": "I can...",
+          "goal": "التعبير شفهياً عن حركة تستطيع الطفلة فعلها",
+          "cards": [
+            [
+              "🏃‍♀️",
+              "أجري"
+            ],
+            [
+              "💃",
+              "أرقص"
+            ],
+            [
+              "🎤",
+              "أغني"
+            ]
+          ],
+          "board": {
+            "picture": "🏃‍♀️",
+            "tokens": [
+              {
+                "text": "I",
+                "role": "subject"
+              },
+              {
+                "text": "can",
+                "role": "verb"
+              },
+              {
+                "text": "jump",
+                "role": "detail"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "animals",
+      "title": "الحيوانات",
+      "lessons": [
+        {
+          "id": "animal-1",
+          "focus": "cat, dog, bird",
+          "goal": "تمييز حيوانات مألوفة وتقليد صوتها",
+          "cards": [
+            [
+              "🐱",
+              "قطة"
+            ],
+            [
+              "🐶",
+              "كلب"
+            ],
+            [
+              "🐦",
+              "عصفورة"
+            ]
+          ],
+          "board": {
+            "picture": "🐱",
+            "tokens": [
+              {
+                "text": "cat",
+                "role": "word"
+              },
+              {
+                "text": "dog",
+                "role": "word"
+              },
+              {
+                "text": "bird",
+                "role": "word"
+              }
+            ]
+          }
+        },
+        {
+          "id": "animal-2",
+          "focus": "fish, rabbit, duck",
+          "goal": "فهم أسماء حيوانات جديدة",
+          "cards": [
+            [
+              "🐟",
+              "سمكة"
+            ],
+            [
+              "🐰",
+              "أرنب"
+            ],
+            [
+              "🦆",
+              "بطة"
+            ]
+          ],
+          "board": {
+            "picture": "🐟",
+            "tokens": [
+              {
+                "text": "fish",
+                "role": "word"
+              },
+              {
+                "text": "rabbit",
+                "role": "word"
+              },
+              {
+                "text": "duck",
+                "role": "word"
+              }
+            ]
+          }
+        },
+        {
+          "id": "animal-3",
+          "focus": "lion, elephant, monkey",
+          "goal": "اختيار الحيوان من وصف صوتي أو حركة",
+          "cards": [
+            [
+              "🦁",
+              "أسد"
+            ],
+            [
+              "🐘",
+              "فيل"
+            ],
+            [
+              "🐒",
+              "قرد"
+            ]
+          ],
+          "board": {
+            "picture": "🦁",
+            "tokens": [
+              {
+                "text": "lion",
+                "role": "word"
+              },
+              {
+                "text": "elephant",
+                "role": "word"
+              },
+              {
+                "text": "monkey",
+                "role": "word"
+              }
+            ]
+          }
+        },
+        {
+          "id": "animal-4",
+          "focus": "big, small; it is a...",
+          "goal": "وصف حيوان بكلمة حجم وتركيب بسيط",
+          "cards": [
+            [
+              "🐘",
+              "كبير"
+            ],
+            [
+              "🐭",
+              "صغير"
+            ],
+            [
+              "🦒",
+              "زرافة"
+            ]
+          ],
+          "board": {
+            "picture": "🐘",
+            "tokens": [
+              {
+                "text": "It",
+                "role": "subject"
+              },
+              {
+                "text": "is",
+                "role": "verb"
+              },
+              {
+                "text": "a",
+                "role": "article"
+              },
+              {
+                "text": "big cat",
+                "role": "noun"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "food",
+      "title": "الأكل والشرب",
+      "lessons": [
+        {
+          "id": "food-1",
+          "focus": "apple, banana, orange",
+          "goal": "تمييز أسماء فواكه يحبها الطفل",
+          "cards": [
+            [
+              "🍎",
+              "تفاحة"
+            ],
+            [
+              "🍌",
+              "موزة"
+            ],
+            [
+              "🍊",
+              "برتقالة"
+            ]
+          ],
+          "board": {
+            "picture": "🍎",
+            "tokens": [
+              {
+                "text": "apple",
+                "role": "word"
+              },
+              {
+                "text": "banana",
+                "role": "word"
+              },
+              {
+                "text": "orange",
+                "role": "word"
+              }
+            ]
+          }
+        },
+        {
+          "id": "food-2",
+          "focus": "bread, cheese, milk",
+          "goal": "فهم كلمات طعام مألوف",
+          "cards": [
+            [
+              "🍞",
+              "عيش"
+            ],
+            [
+              "🧀",
+              "جبنة"
+            ],
+            [
+              "🥛",
+              "لبن"
+            ]
+          ],
+          "board": {
+            "picture": "🥛",
+            "tokens": [
+              {
+                "text": "bread",
+                "role": "word"
+              },
+              {
+                "text": "cheese",
+                "role": "word"
+              },
+              {
+                "text": "milk",
+                "role": "word"
+              }
+            ]
+          }
+        },
+        {
+          "id": "food-3",
+          "focus": "I like..., I don't like...",
+          "goal": "قول تفضيل الطعام بنعم أو لا",
+          "cards": [
+            [
+              "😋",
+              "بحبه"
+            ],
+            [
+              "🙅",
+              "مش بحبه"
+            ],
+            [
+              "🍓",
+              "فراولة"
+            ]
+          ],
+          "board": {
+            "picture": "🍓",
+            "tokens": [
+              {
+                "text": "I",
+                "role": "subject"
+              },
+              {
+                "text": "like",
+                "role": "verb"
+              },
+              {
+                "text": "apples",
+                "role": "noun"
+              }
+            ]
+          }
+        },
+        {
+          "id": "food-4",
+          "focus": "I am hungry/thirsty; please",
+          "goal": "التعبير عن الجوع أو العطش وطلب شيء بأدب",
+          "cards": [
+            [
+              "🍽️",
+              "جعانة"
+            ],
+            [
+              "🥤",
+              "عطشانة"
+            ],
+            [
+              "💧",
+              "مياه"
+            ]
+          ],
+          "board": {
+            "picture": "🥤",
+            "tokens": [
+              {
+                "text": "I",
+                "role": "subject"
+              },
+              {
+                "text": "am",
+                "role": "verb"
+              },
+              {
+                "text": "hungry",
+                "role": "detail"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "alphabet",
+      "title": "أصوات الحروف الإنجليزية",
+      "lessons": [
+        {
+          "id": "alpha-1",
+          "focus": "letter sounds A-F with familiar words",
+          "goal": "سماع أصوات أول الحروف وربط الصوت بصورة دون اختبار قراءة",
+          "cards": [
+            [
+              "🍎",
+              "تفاحة"
+            ],
+            [
+              "⚽",
+              "كرة"
+            ],
+            [
+              "🐱",
+              "قطة"
+            ]
+          ],
+          "board": {
+            "picture": "🍎",
+            "tokens": [
+              {
+                "text": "a",
+                "role": "sound"
+              },
+              {
+                "text": "apple",
+                "role": "word"
+              },
+              {
+                "text": "b",
+                "role": "sound"
+              },
+              {
+                "text": "ball",
+                "role": "word"
+              }
+            ]
+          }
+        },
+        {
+          "id": "alpha-2",
+          "focus": "letter sounds G-L with familiar words",
+          "goal": "تمييز أصوات جديدة في بداية الكلمات المألوفة",
+          "cards": [
+            [
+              "🐐",
+              "ماعز"
+            ],
+            [
+              "🏠",
+              "بيت"
+            ],
+            [
+              "🧊",
+              "تلج"
+            ]
+          ],
+          "board": {
+            "picture": "🏠",
+            "tokens": [
+              {
+                "text": "g",
+                "role": "sound"
+              },
+              {
+                "text": "goat",
+                "role": "word"
+              },
+              {
+                "text": "h",
+                "role": "sound"
+              },
+              {
+                "text": "house",
+                "role": "word"
+              }
+            ]
+          }
+        },
+        {
+          "id": "alpha-3",
+          "focus": "letter sounds M-R with familiar words",
+          "goal": "الاستماع للصوت الأول ومقارنته بكلمات أخرى",
+          "cards": [
+            [
+              "🌙",
+              "قمر"
+            ],
+            [
+              "🐟",
+              "سمكة"
+            ],
+            [
+              "🤖",
+              "روبوت"
+            ]
+          ],
+          "board": {
+            "picture": "🌙",
+            "tokens": [
+              {
+                "text": "m",
+                "role": "sound"
+              },
+              {
+                "text": "moon",
+                "role": "word"
+              },
+              {
+                "text": "n",
+                "role": "sound"
+              },
+              {
+                "text": "nose",
+                "role": "word"
+              }
+            ]
+          }
+        },
+        {
+          "id": "alpha-4",
+          "focus": "letter sounds S-Z with familiar words",
+          "goal": "مراجعة أصوات الحروف وربطها بصور وكلمات",
+          "cards": [
+            [
+              "☀️",
+              "شمس"
+            ],
+            [
+              "🐯",
+              "نمر"
+            ],
+            [
+              "🦓",
+              "حمار وحشي"
+            ]
+          ],
+          "board": {
+            "picture": "☀️",
+            "tokens": [
+              {
+                "text": "s",
+                "role": "sound"
+              },
+              {
+                "text": "sun",
+                "role": "word"
+              },
+              {
+                "text": "t",
+                "role": "sound"
+              },
+              {
+                "text": "tiger",
+                "role": "word"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "sounds",
+      "title": "الانتباه لأصوات الكلمات",
+      "lessons": [
+        {
+          "id": "sound-1",
+          "focus": "same and different beginning sounds",
+          "goal": "سماع ما إذا كانت كلمتان تبدآن بالصوت نفسه",
+          "cards": [
+            [
+              "🐱🐄",
+              "نفس الصوت"
+            ],
+            [
+              "🐶🍎",
+              "صوت مختلف"
+            ],
+            [
+              "👂",
+              "اسمعي"
+            ]
+          ],
+          "board": {
+            "picture": "👂",
+            "tokens": [
+              {
+                "text": "cat",
+                "role": "word"
+              },
+              {
+                "text": "cow",
+                "role": "word"
+              },
+              {
+                "text": "same sound",
+                "role": "detail"
+              }
+            ]
+          }
+        },
+        {
+          "id": "sound-2",
+          "focus": "rhymes: cat/hat, sun/fun",
+          "goal": "الاستمتاع بكلمات تنتهي بصوت متشابه",
+          "cards": [
+            [
+              "🐱🎩",
+              "قافية ات"
+            ],
+            [
+              "☀️🎉",
+              "قافية ان"
+            ],
+            [
+              "🎵",
+              "اسمعي القافية"
+            ]
+          ],
+          "board": {
+            "picture": "🐱",
+            "tokens": [
+              {
+                "text": "cat",
+                "role": "word"
+              },
+              {
+                "text": "hat",
+                "role": "word"
+              },
+              {
+                "text": "sun",
+                "role": "word"
+              },
+              {
+                "text": "fun",
+                "role": "word"
+              }
+            ]
+          }
+        },
+        {
+          "id": "sound-3",
+          "focus": "hear the first sound in a word",
+          "goal": "تحديد الصوت الأول في كلمة مألوفة مع مساعدة",
+          "cards": [
+            [
+              "🐟",
+              "ففف"
+            ],
+            [
+              "☀️",
+              "سسس"
+            ],
+            [
+              "🍎",
+              "أأأ"
+            ]
+          ],
+          "board": {
+            "picture": "🐟",
+            "tokens": [
+              {
+                "text": "fish",
+                "role": "word"
+              },
+              {
+                "text": "f",
+                "role": "sound"
+              }
+            ]
+          }
+        },
+        {
+          "id": "sound-4",
+          "focus": "blend two and three sounds orally",
+          "goal": "دمج أصوات ببطء في لعبة سمعية قبل ظهور الكتابة",
+          "cards": [
+            [
+              "🐱",
+              "كات"
+            ],
+            [
+              "☀️",
+              "سن"
+            ],
+            [
+              "🖐️",
+              "هاند"
+            ]
+          ],
+          "board": {
+            "picture": "🐱",
+            "tokens": [
+              {
+                "text": "c",
+                "role": "sound"
+              },
+              {
+                "text": "a",
+                "role": "sound"
+              },
+              {
+                "text": "t",
+                "role": "sound"
+              },
+              {
+                "text": "cat",
+                "role": "word"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "first-words",
+      "title": "الكلمات والعبارات الأولى",
+      "lessons": [
+        {
+          "id": "first-1",
+          "focus": "oral blending of simple CVC words: cat, dog, sun",
+          "goal": "سماع دمج أصوات كلمة قصيرة ثم اختيار صورتها",
+          "cards": [
+            [
+              "🐱",
+              "قطة"
+            ],
+            [
+              "🐶",
+              "كلب"
+            ],
+            [
+              "☀️",
+              "شمس"
+            ]
+          ],
+          "board": {
+            "picture": "🐱",
+            "tokens": [
+              {
+                "text": "cat",
+                "role": "word"
+              },
+              {
+                "text": "dog",
+                "role": "word"
+              },
+              {
+                "text": "sun",
+                "role": "word"
+              }
+            ]
+          }
+        },
+        {
+          "id": "first-2",
+          "focus": "CVC words with short a: cat, hat, map",
+          "goal": "تمييز كلمات قصيرة متقاربة بالصوت من صورها",
+          "cards": [
+            [
+              "🐱",
+              "قطة"
+            ],
+            [
+              "🎩",
+              "كاب"
+            ],
+            [
+              "🗺️",
+              "خريطة"
+            ]
+          ],
+          "board": {
+            "picture": "🎩",
+            "tokens": [
+              {
+                "text": "c",
+                "role": "sound"
+              },
+              {
+                "text": "a",
+                "role": "sound"
+              },
+              {
+                "text": "t",
+                "role": "sound"
+              },
+              {
+                "text": "cat",
+                "role": "word"
+              }
+            ]
+          }
+        },
+        {
+          "id": "first-3",
+          "focus": "CVC words with short i/o: sit, pin, dog, pot",
+          "goal": "الاستماع لحركات قصيرة مختلفة دون حفظ تهجئة مكتوبة",
+          "cards": [
+            [
+              "🪑",
+              "اقعدي"
+            ],
+            [
+              "📌",
+              "دبوس"
+            ],
+            [
+              "🐶",
+              "كلب"
+            ]
+          ],
+          "board": {
+            "picture": "🪑",
+            "tokens": [
+              {
+                "text": "sit",
+                "role": "word"
+              },
+              {
+                "text": "pin",
+                "role": "word"
+              },
+              {
+                "text": "dog",
+                "role": "word"
+              }
+            ]
+          }
+        },
+        {
+          "id": "first-4",
+          "focus": "simple spoken chunks: I see..., It is a...",
+          "goal": "استخدام عبارة قصيرة لوصف صورة شائعة",
+          "cards": [
+            [
+              "👀🐱",
+              "شايفة قطة"
+            ],
+            [
+              "🍎",
+              "تفاحة"
+            ],
+            [
+              "🚗",
+              "عربية"
+            ]
+          ],
+          "board": {
+            "picture": "👀",
+            "tokens": [
+              {
+                "text": "I",
+                "role": "subject"
+              },
+              {
+                "text": "see",
+                "role": "verb"
+              },
+              {
+                "text": "a cat",
+                "role": "noun"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "home-weather",
+      "title": "البيت والملابس والطقس",
+      "lessons": [
+        {
+          "id": "home-1",
+          "focus": "bed, door, chair",
+          "goal": "فهم أسماء أشياء مألوفة في البيت من صور",
+          "cards": [
+            [
+              "🛏️",
+              "سرير"
+            ],
+            [
+              "🚪",
+              "باب"
+            ],
+            [
+              "🪑",
+              "كرسي"
+            ]
+          ],
+          "board": {
+            "picture": "🛏️",
+            "tokens": [
+              {
+                "text": "bed",
+                "role": "word"
+              },
+              {
+                "text": "door",
+                "role": "word"
+              },
+              {
+                "text": "chair",
+                "role": "word"
+              }
+            ]
+          }
+        },
+        {
+          "id": "home-2",
+          "focus": "shirt, shoes, hat",
+          "goal": "اختيار قطعة الملابس التي تسمع اسمها",
+          "cards": [
+            [
+              "👕",
+              "تيشيرت"
+            ],
+            [
+              "👟",
+              "جزمة"
+            ],
+            [
+              "🧢",
+              "كاب"
+            ]
+          ],
+          "board": {
+            "picture": "👕",
+            "tokens": [
+              {
+                "text": "shirt",
+                "role": "word"
+              },
+              {
+                "text": "shoes",
+                "role": "word"
+              },
+              {
+                "text": "hat",
+                "role": "word"
+              }
+            ]
+          }
+        },
+        {
+          "id": "home-3",
+          "focus": "sunny, rainy, hot, cold",
+          "goal": "تمييز كلمات طقس شائعة والتعبير عنها",
+          "cards": [
+            [
+              "☀️",
+              "مشمس"
+            ],
+            [
+              "🌧️",
+              "ممطر"
+            ],
+            [
+              "🥶",
+              "برد"
+            ]
+          ],
+          "board": {
+            "picture": "🌦️",
+            "tokens": [
+              {
+                "text": "sunny",
+                "role": "detail"
+              },
+              {
+                "text": "rainy",
+                "role": "detail"
+              },
+              {
+                "text": "hot",
+                "role": "detail"
+              },
+              {
+                "text": "cold",
+                "role": "detail"
+              }
+            ]
+          }
+        },
+        {
+          "id": "home-4",
+          "focus": "Where is...? Here it is!",
+          "goal": "لعب لعبة سمعية للعثور على شيء والإشارة إليه",
+          "cards": [
+            [
+              "🔎",
+              "فين؟"
+            ],
+            [
+              "🧸",
+              "لعبة"
+            ],
+            [
+              "🙌",
+              "أهي!"
+            ]
+          ],
+          "board": {
+            "picture": "🔎",
+            "tokens": [
+              {
+                "text": "Where",
+                "role": "question"
+              },
+              {
+                "text": "is",
+                "role": "verb"
+              },
+              {
+                "text": "it?",
+                "role": "noun"
+              },
+              {
+                "text": "Here it is!",
+                "role": "detail"
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "programs": [
+    {
+      "id": "connect-plus-1",
+      "title": "Connect Plus 1 · الصف الأول لغات",
+      "gradeId": "grade-1",
+      "gradeLabel": "الصف الأول الابتدائي",
+      "curriculumLabel": "Connect Plus 1 · مدارس لغات",
+      "description": "موضوعات الصف الأول على مدار العام: نفسي، أسرتي، مجتمعي، المزرعة، المواصلات، العالم حولي، التسوق، المهن، السوق، الخروج، الوقت، ووقت الفراغ.",
+      "units": [
+        {
+          "id": "cp1-me",
+          "title": "Unit 1 · This is me",
+          "lessons": [
+            {
+              "id": "cp1-me-1",
+              "title": "التحية والتعارف",
+              "strand": "speaking",
+              "focus": "Greetings; What is your name? My name is...",
+              "goal": "تسمع التحية وتقول اسمها بالإنجليزية من غير ذكر اسمها الكامل أو أي معلومة شخصية أخرى.",
+              "cards": [
+                [
+                  "👋",
+                  "مرحبا"
+                ],
+                [
+                  "😊",
+                  "أنا"
+                ],
+                [
+                  "🧒",
+                  "طفلة"
+                ]
+              ],
+              "board": {
+                "picture": "👋",
+                "tokens": [
+                  {
+                    "text": "Hello",
+                    "role": "word"
+                  },
+                  {
+                    "text": "I am Lolo",
+                    "role": "detail"
+                  }
+                ]
+              }
+            },
+            {
+              "id": "cp1-me-2",
+              "title": "أنا عندي كام سنة؟",
+              "strand": "grammar",
+              "focus": "I am / I’m + age; numbers one to ten",
+              "goal": "تستخدم I am أو I’m مع رقم عمر بسيط، وتفهم سؤال How old are you?",
+              "cards": [
+                [
+                  "🎂",
+                  "عيد ميلاد"
+                ],
+                [
+                  "🔢",
+                  "أرقام"
+                ],
+                [
+                  "🙋‍♀️",
+                  "أنا"
+                ]
+              ],
+              "board": {
+                "picture": "🎂",
+                "tokens": [
+                  {
+                    "text": "I",
+                    "role": "subject"
+                  },
+                  {
+                    "text": "am",
+                    "role": "verb"
+                  },
+                  {
+                    "text": "six",
+                    "role": "detail"
+                  }
+                ]
+              }
+            },
+            {
+              "id": "cp1-me-3",
+              "title": "أجزاء الجسم وأصواتها",
+              "strand": "phonics",
+              "focus": "Beginning sounds in body words: head, hand, mouth, nose; hear /h/, /m/, /n/",
+              "goal": "تسمع الصوت الأول في كلمات جسم مألوفة وتختار الصورة المطابقة، من غير قراءة أو تهجئة.",
+              "cards": [
+                [
+                  "🙂",
+                  "وجه"
+                ],
+                [
+                  "👄",
+                  "فم"
+                ],
+                [
+                  "👃",
+                  "أنف"
+                ]
+              ],
+              "board": {
+                "picture": "🙂",
+                "tokens": [
+                  {
+                    "text": "h",
+                    "role": "sound"
+                  },
+                  {
+                    "text": "head",
+                    "role": "word"
+                  },
+                  {
+                    "text": "m",
+                    "role": "sound"
+                  },
+                  {
+                    "text": "mouth",
+                    "role": "word"
+                  }
+                ]
+              }
+            },
+            {
+              "id": "cp1-me-4",
+              "title": "جرامر: my وyour",
+              "strand": "grammar",
+              "focus": "Possessive adjectives my / your; This is my...",
+              "goal": "تفرق سمعياً بين my وyour في وصف صورة أو شيء قريب.",
+              "cards": [
+                [
+                  "🧸",
+                  "لعبتي"
+                ],
+                [
+                  "🎒",
+                  "شنطتك"
+                ],
+                [
+                  "👆",
+                  "بتاعي ولا بتاعك؟"
+                ]
+              ],
+              "board": {
+                "picture": "🎒",
+                "tokens": [
+                  {
+                    "text": "my",
+                    "role": "article"
+                  },
+                  {
+                    "text": "bag",
+                    "role": "noun"
+                  },
+                  {
+                    "text": "your",
+                    "role": "article"
+                  },
+                  {
+                    "text": "bag",
+                    "role": "noun"
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "id": "cp1-family",
+          "title": "Unit 2 · Meet my family",
+          "lessons": [
+            {
+              "id": "cp1-family-1",
+              "title": "أفراد الأسرة",
+              "strand": "speaking",
+              "focus": "mother, father, sister, brother, baby; This is my...",
+              "goal": "تسمي أفراد أسرة خيالية أو مرسومة، وتستخدم This is my...",
+              "cards": [
+                [
+                  "👩",
+                  "ماما"
+                ],
+                [
+                  "👨",
+                  "بابا"
+                ],
+                [
+                  "👧👦",
+                  "أخت وأخ"
+                ]
+              ],
+              "board": {
+                "picture": "👨‍👩‍👧",
+                "tokens": [
+                  {
+                    "text": "This",
+                    "role": "subject"
+                  },
+                  {
+                    "text": "is",
+                    "role": "verb"
+                  },
+                  {
+                    "text": "my",
+                    "role": "article"
+                  },
+                  {
+                    "text": "family",
+                    "role": "noun"
+                  }
+                ]
+              }
+            },
+            {
+              "id": "cp1-family-2",
+              "title": "جرامر: he وshe",
+              "strand": "grammar",
+              "focus": "Personal pronouns he / she with is",
+              "goal": "تختار he للولد وshe للبنت وتقول جملة قصيرة مثل She is happy.",
+              "cards": [
+                [
+                  "👦",
+                  "ولد"
+                ],
+                [
+                  "👧",
+                  "بنت"
+                ],
+                [
+                  "😊",
+                  "مبسوط"
+                ]
+              ],
+              "board": {
+                "picture": "👧",
+                "tokens": [
+                  {
+                    "text": "She",
+                    "role": "subject"
+                  },
+                  {
+                    "text": "is",
+                    "role": "verb"
+                  },
+                  {
+                    "text": "happy",
+                    "role": "detail"
+                  }
+                ]
+              }
+            },
+            {
+              "id": "cp1-family-3",
+              "title": "فونكس: أصوات الأسرة",
+              "strand": "phonics",
+              "focus": "First sounds /f/, /m/, /b/, /s/ in family words",
+              "goal": "تسمع وتقارن أول صوت في family, mother, baby, sister باستخدام الصور.",
+              "cards": [
+                [
+                  "👨‍👩‍👧",
+                  "أسرة"
+                ],
+                [
+                  "👶",
+                  "بيبي"
+                ],
+                [
+                  "👂",
+                  "اسمعي"
+                ]
+              ],
+              "board": {
+                "picture": "👶",
+                "tokens": [
+                  {
+                    "text": "f",
+                    "role": "sound"
+                  },
+                  {
+                    "text": "family",
+                    "role": "word"
+                  },
+                  {
+                    "text": "m",
+                    "role": "sound"
+                  },
+                  {
+                    "text": "mother",
+                    "role": "word"
+                  }
+                ]
+              }
+            },
+            {
+              "id": "cp1-family-4",
+              "title": "جرامر: his وher",
+              "strand": "grammar",
+              "focus": "Possessive adjectives his / her with family objects",
+              "goal": "تسمع الفرق بين his وher وتصف ملكية في قصة خيالية بسيطة.",
+              "cards": [
+                [
+                  "👦🎒",
+                  "شنطته"
+                ],
+                [
+                  "👧🧸",
+                  "لعبتها"
+                ],
+                [
+                  "🎁",
+                  "هدية"
+                ]
+              ],
+              "board": {
+                "picture": "🧸",
+                "tokens": [
+                  {
+                    "text": "his",
+                    "role": "article"
+                  },
+                  {
+                    "text": "toy",
+                    "role": "noun"
+                  },
+                  {
+                    "text": "her",
+                    "role": "article"
+                  },
+                  {
+                    "text": "doll",
+                    "role": "noun"
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "id": "cp1-community",
+          "title": "Unit 3 · In my community",
+          "lessons": [
+            {
+              "id": "cp1-community-1",
+              "title": "المدرسة والمجتمع",
+              "strand": "speaking",
+              "focus": "school, classroom, park, shop, teacher, friend",
+              "goal": "تتعرف على أماكن وأشخاص في المجتمع من الصور وتستجيب لسؤال What can you see?",
+              "cards": [
+                [
+                  "🏫",
+                  "مدرسة"
+                ],
+                [
+                  "🌳",
+                  "حديقة"
+                ],
+                [
+                  "👩‍🏫",
+                  "معلمة"
+                ]
+              ],
+              "board": {
+                "picture": "🏫",
+                "tokens": [
+                  {
+                    "text": "school",
+                    "role": "word"
+                  },
+                  {
+                    "text": "park",
+                    "role": "word"
+                  },
+                  {
+                    "text": "shop",
+                    "role": "word"
+                  }
+                ]
+              }
+            },
+            {
+              "id": "cp1-community-2",
+              "title": "جرامر: a وan",
+              "strand": "grammar",
+              "focus": "Indefinite articles a / an in familiar phrases",
+              "goal": "تسمع a أو an في عبارات قصيرة مثل a pen وan apple وتختار الصورة.",
+              "cards": [
+                [
+                  "✏️",
+                  "قلم"
+                ],
+                [
+                  "🍎",
+                  "تفاحة"
+                ],
+                [
+                  "🧸",
+                  "لعبة"
+                ]
+              ],
+              "board": {
+                "picture": "🍎",
+                "tokens": [
+                  {
+                    "text": "a",
+                    "role": "article"
+                  },
+                  {
+                    "text": "book",
+                    "role": "noun"
+                  },
+                  {
+                    "text": "an",
+                    "role": "article"
+                  },
+                  {
+                    "text": "apple",
+                    "role": "noun"
+                  }
+                ]
+              }
+            },
+            {
+              "id": "cp1-community-3",
+              "title": "فونكس: أصوات المدرسة",
+              "strand": "phonics",
+              "focus": "Beginning sounds /b/, /p/, /k/ in book, pencil, classroom",
+              "goal": "تسمع أول صوت في كلمات مدرسية مألوفة وتطابقه مع صورة أخرى تبدأ بالصوت نفسه.",
+              "cards": [
+                [
+                  "📘",
+                  "كتاب"
+                ],
+                [
+                  "✏️",
+                  "قلم"
+                ],
+                [
+                  "🎒",
+                  "شنطة"
+                ]
+              ],
+              "board": {
+                "picture": "📘",
+                "tokens": [
+                  {
+                    "text": "b",
+                    "role": "sound"
+                  },
+                  {
+                    "text": "book",
+                    "role": "word"
+                  },
+                  {
+                    "text": "p",
+                    "role": "sound"
+                  },
+                  {
+                    "text": "pencil",
+                    "role": "word"
+                  }
+                ]
+              }
+            },
+            {
+              "id": "cp1-community-4",
+              "title": "جرامر: فين الحاجة؟",
+              "strand": "grammar",
+              "focus": "Where is...? It is in / on / under...",
+              "goal": "تفهم سؤال Where is...? وتستخدم in أو on مع أشياء مرئية.",
+              "cards": [
+                [
+                  "📦",
+                  "جوا"
+                ],
+                [
+                  "🪑",
+                  "على"
+                ],
+                [
+                  "⬇️",
+                  "تحت"
+                ]
+              ],
+              "board": {
+                "picture": "📦",
+                "tokens": [
+                  {
+                    "text": "Where",
+                    "role": "question"
+                  },
+                  {
+                    "text": "is",
+                    "role": "verb"
+                  },
+                  {
+                    "text": "the ball?",
+                    "role": "noun"
+                  },
+                  {
+                    "text": "It is in",
+                    "role": "detail"
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "id": "cp1-farm",
+          "title": "Unit 4 · On the farm",
+          "lessons": [
+            {
+              "id": "cp1-farm-1",
+              "title": "حيوانات المزرعة",
+              "strand": "speaking",
+              "focus": "cow, sheep, horse, duck, chicken, farmer",
+              "goal": "تتعرف على حيوانات المزرعة من الاسم أو الصوت وتختار صورتها.",
+              "cards": [
+                [
+                  "🐄",
+                  "بقرة"
+                ],
+                [
+                  "🐑",
+                  "خروف"
+                ],
+                [
+                  "🦆",
+                  "بطة"
+                ]
+              ],
+              "board": {
+                "picture": "🐄",
+                "tokens": [
+                  {
+                    "text": "cow",
+                    "role": "word"
+                  },
+                  {
+                    "text": "duck",
+                    "role": "word"
+                  },
+                  {
+                    "text": "farmer",
+                    "role": "word"
+                  }
+                ]
+              }
+            },
+            {
+              "id": "cp1-farm-2",
+              "title": "جرامر: مفرد وجمع",
+              "strand": "grammar",
+              "focus": "One / many; singular and plural nouns with -s",
+              "goal": "تميز بين حيوان واحد وأكتر من حيوان، وتسمع الجمع في جمل قصيرة.",
+              "cards": [
+                [
+                  "🐔",
+                  "فرخة"
+                ],
+                [
+                  "🐔🐔",
+                  "فرختين"
+                ],
+                [
+                  "🐑🐑🐑",
+                  "خرفان"
+                ]
+              ],
+              "board": {
+                "picture": "🐔",
+                "tokens": [
+                  {
+                    "text": "one",
+                    "role": "detail"
+                  },
+                  {
+                    "text": "chicken",
+                    "role": "noun"
+                  },
+                  {
+                    "text": "many",
+                    "role": "detail"
+                  },
+                  {
+                    "text": "chickens",
+                    "role": "noun"
+                  }
+                ]
+              }
+            },
+            {
+              "id": "cp1-farm-3",
+              "title": "فونكس: صوت a القصير",
+              "strand": "phonics",
+              "focus": "Short a sound in apple, ant, animal, and farm words",
+              "goal": "تسمع صوت a القصير في أول كلمة مألوفة وتختار الصورة التي تبدأ به.",
+              "cards": [
+                [
+                  "🍎",
+                  "تفاحة"
+                ],
+                [
+                  "🐜",
+                  "نملة"
+                ],
+                [
+                  "🐄",
+                  "بقرة"
+                ]
+              ],
+              "board": {
+                "picture": "🍎",
+                "tokens": [
+                  {
+                    "text": "a",
+                    "role": "sound"
+                  },
+                  {
+                    "text": "apple",
+                    "role": "word"
+                  },
+                  {
+                    "text": "a",
+                    "role": "sound"
+                  },
+                  {
+                    "text": "ant",
+                    "role": "word"
+                  }
+                ]
+              }
+            },
+            {
+              "id": "cp1-farm-4",
+              "title": "جرامر: It is وThey are",
+              "strand": "grammar",
+              "focus": "It is a... / They are... for one or more animals",
+              "goal": "تصف صورة فيها حيوان واحد أو أكتر بجملة شفهية قصيرة.",
+              "cards": [
+                [
+                  "🐎",
+                  "حصان"
+                ],
+                [
+                  "🐎🐎",
+                  "حصانين"
+                ],
+                [
+                  "🌾",
+                  "مزرعة"
+                ]
+              ],
+              "board": {
+                "picture": "🐎",
+                "tokens": [
+                  {
+                    "text": "It",
+                    "role": "subject"
+                  },
+                  {
+                    "text": "is",
+                    "role": "verb"
+                  },
+                  {
+                    "text": "a horse",
+                    "role": "noun"
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "id": "cp1-transport",
+          "title": "Unit 5 · Transportation",
+          "lessons": [
+            {
+              "id": "cp1-transport-1",
+              "title": "وسائل المواصلات",
+              "strand": "speaking",
+              "focus": "car, bus, train, boat, plane, bicycle",
+              "goal": "تتعرف على وسائل مواصلات وتفرّق بين ما يسير على الطريق أو الماء أو في الجو.",
+              "cards": [
+                [
+                  "🚌",
+                  "أتوبيس"
+                ],
+                [
+                  "🚲",
+                  "عجلة"
+                ],
+                [
+                  "✈️",
+                  "طيارة"
+                ]
+              ],
+              "board": {
+                "picture": "🚌",
+                "tokens": [
+                  {
+                    "text": "bus",
+                    "role": "word"
+                  },
+                  {
+                    "text": "train",
+                    "role": "word"
+                  },
+                  {
+                    "text": "plane",
+                    "role": "word"
+                  }
+                ]
+              }
+            },
+            {
+              "id": "cp1-transport-2",
+              "title": "جرامر: I can وI can’t",
+              "strand": "grammar",
+              "focus": "can / can’t for simple abilities and movement",
+              "goal": "تسمع can وcan’t وتستخدمهما مع فعل أو حركة بسيطة.",
+              "cards": [
+                [
+                  "🏃",
+                  "أقدر أجري"
+                ],
+                [
+                  "🕊️",
+                  "أقدر أطير؟"
+                ],
+                [
+                  "🛑",
+                  "مش أقدر"
+                ]
+              ],
+              "board": {
+                "picture": "🏃",
+                "tokens": [
+                  {
+                    "text": "I",
+                    "role": "subject"
+                  },
+                  {
+                    "text": "can",
+                    "role": "verb"
+                  },
+                  {
+                    "text": "run",
+                    "role": "detail"
+                  },
+                  {
+                    "text": "can't",
+                    "role": "verb"
+                  },
+                  {
+                    "text": "fly",
+                    "role": "detail"
+                  }
+                ]
+              }
+            },
+            {
+              "id": "cp1-transport-3",
+              "title": "فونكس: أصوات الحركة",
+              "strand": "phonics",
+              "focus": "Beginning sounds /t/, /b/, /r/ in train, bus, road",
+              "goal": "تسمع الصوت الأول في أسماء المواصلات وتلتقط كلمة تبدأ بالصوت نفسه.",
+              "cards": [
+                [
+                  "🚂",
+                  "قطار"
+                ],
+                [
+                  "🚌",
+                  "أتوبيس"
+                ],
+                [
+                  "🛣️",
+                  "طريق"
+                ]
+              ],
+              "board": {
+                "picture": "🚂",
+                "tokens": [
+                  {
+                    "text": "t",
+                    "role": "sound"
+                  },
+                  {
+                    "text": "train",
+                    "role": "word"
+                  },
+                  {
+                    "text": "b",
+                    "role": "sound"
+                  },
+                  {
+                    "text": "bus",
+                    "role": "word"
+                  }
+                ]
+              }
+            },
+            {
+              "id": "cp1-transport-4",
+              "title": "جرامر: أروح بإيه؟",
+              "strand": "grammar",
+              "focus": "I go by bus / car / train; by + transport",
+              "goal": "تقول وسيلة انتقال في تركيب I go by... من خلال صور ومواقف خيالية.",
+              "cards": [
+                [
+                  "🚌",
+                  "بالعربية؟"
+                ],
+                [
+                  "🚗",
+                  "بالعربية"
+                ],
+                [
+                  "🚆",
+                  "بالقطار"
+                ]
+              ],
+              "board": {
+                "picture": "🚗",
+                "tokens": [
+                  {
+                    "text": "I",
+                    "role": "subject"
+                  },
+                  {
+                    "text": "go",
+                    "role": "verb"
+                  },
+                  {
+                    "text": "by bus",
+                    "role": "detail"
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "id": "cp1-world",
+          "title": "Unit 6 · The world around us",
+          "lessons": [
+            {
+              "id": "cp1-world-1",
+              "title": "الطبيعة والألوان",
+              "strand": "speaking",
+              "focus": "sun, sky, sea, trees; basic colour and size words",
+              "goal": "تصف شيئاً مألوفاً بكلمة لون أو حجم في جملة قصيرة.",
+              "cards": [
+                [
+                  "🌳",
+                  "شجرة"
+                ],
+                [
+                  "🌊",
+                  "بحر"
+                ],
+                [
+                  "🌞",
+                  "شمس"
+                ]
+              ],
+              "board": {
+                "picture": "🌳",
+                "tokens": [
+                  {
+                    "text": "green",
+                    "role": "detail"
+                  },
+                  {
+                    "text": "tree",
+                    "role": "noun"
+                  },
+                  {
+                    "text": "blue",
+                    "role": "detail"
+                  },
+                  {
+                    "text": "sky",
+                    "role": "noun"
+                  }
+                ]
+              }
+            },
+            {
+              "id": "cp1-world-2",
+              "title": "جرامر: this وthat",
+              "strand": "grammar",
+              "focus": "this / that for near and far objects",
+              "goal": "تميز بين شيء قريب وشيء بعيد وتستخدم this أو that في الإشارة.",
+              "cards": [
+                [
+                  "🍎",
+                  "قريب"
+                ],
+                [
+                  "⭐",
+                  "بعيد"
+                ],
+                [
+                  "👆",
+                  "ده"
+                ]
+              ],
+              "board": {
+                "picture": "🍎",
+                "tokens": [
+                  {
+                    "text": "this",
+                    "role": "article"
+                  },
+                  {
+                    "text": "apple",
+                    "role": "noun"
+                  },
+                  {
+                    "text": "that",
+                    "role": "article"
+                  },
+                  {
+                    "text": "star",
+                    "role": "noun"
+                  }
+                ]
+              }
+            },
+            {
+              "id": "cp1-world-3",
+              "title": "فونكس: أصوات الطبيعة",
+              "strand": "phonics",
+              "focus": "Beginning sounds /s/, /w/, /l/ in sun, water, leaf",
+              "goal": "تسمع الصوت الأول في كلمات الطبيعة وتختار الصورة ذات الصوت نفسه.",
+              "cards": [
+                [
+                  "☀️",
+                  "شمس"
+                ],
+                [
+                  "💧",
+                  "مياه"
+                ],
+                [
+                  "🍃",
+                  "ورقة شجر"
+                ]
+              ],
+              "board": {
+                "picture": "☀️",
+                "tokens": [
+                  {
+                    "text": "s",
+                    "role": "sound"
+                  },
+                  {
+                    "text": "sun",
+                    "role": "word"
+                  },
+                  {
+                    "text": "w",
+                    "role": "sound"
+                  },
+                  {
+                    "text": "water",
+                    "role": "word"
+                  }
+                ]
+              }
+            },
+            {
+              "id": "cp1-world-4",
+              "title": "جرامر: It is + وصف",
+              "strand": "grammar",
+              "focus": "It is + adjective; colours and simple describing words",
+              "goal": "تصف شيئاً بجملة It is... وتراجع الألوان والأشكال شفهياً.",
+              "cards": [
+                [
+                  "🔴",
+                  "أحمر"
+                ],
+                [
+                  "🔵",
+                  "أزرق"
+                ],
+                [
+                  "⭐",
+                  "نجمة"
+                ]
+              ],
+              "board": {
+                "picture": "⭐",
+                "tokens": [
+                  {
+                    "text": "It",
+                    "role": "subject"
+                  },
+                  {
+                    "text": "is",
+                    "role": "verb"
+                  },
+                  {
+                    "text": "blue",
+                    "role": "detail"
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "id": "cp1-shopping",
+          "title": "Unit 7 · Let’s go shopping",
+          "lessons": [
+            {
+              "id": "cp1-shopping-1",
+              "title": "ملابس وألوان",
+              "strand": "speaking",
+              "focus": "shirt, dress, shoes, hat; clothes and colours",
+              "goal": "تختار قطعة ملابس من وصف صوتي بسيط وتقول لونها.",
+              "cards": [
+                [
+                  "👕",
+                  "تيشيرت"
+                ],
+                [
+                  "👗",
+                  "فستان"
+                ],
+                [
+                  "👟",
+                  "جزمة"
+                ]
+              ],
+              "board": {
+                "picture": "👕",
+                "tokens": [
+                  {
+                    "text": "red",
+                    "role": "detail"
+                  },
+                  {
+                    "text": "shirt",
+                    "role": "noun"
+                  },
+                  {
+                    "text": "blue",
+                    "role": "detail"
+                  },
+                  {
+                    "text": "shoes",
+                    "role": "noun"
+                  }
+                ]
+              }
+            },
+            {
+              "id": "cp1-shopping-2",
+              "title": "جرامر: this وthese",
+              "strand": "grammar",
+              "focus": "this is / these are for one or more items",
+              "goal": "تفرق سمعياً بين قطعة واحدة وأشياء متعددة في لعبة تسوق.",
+              "cards": [
+                [
+                  "🧦",
+                  "شراب واحد"
+                ],
+                [
+                  "🧦🧦",
+                  "شرابين"
+                ],
+                [
+                  "👟👟",
+                  "جزمتين"
+                ]
+              ],
+              "board": {
+                "picture": "🧦",
+                "tokens": [
+                  {
+                    "text": "This is",
+                    "role": "detail"
+                  },
+                  {
+                    "text": "a sock",
+                    "role": "noun"
+                  },
+                  {
+                    "text": "These are",
+                    "role": "detail"
+                  },
+                  {
+                    "text": "socks",
+                    "role": "noun"
+                  }
+                ]
+              }
+            },
+            {
+              "id": "cp1-shopping-3",
+              "title": "فونكس: sh وch",
+              "strand": "phonics",
+              "focus": "Listen to /sh/ and /ch/ in shoe, shirt, chair, cheese",
+              "goal": "تسمع الفرق بين صوتي sh وch في أول كلمات مألوفة من الصور.",
+              "cards": [
+                [
+                  "👟",
+                  "shoe"
+                ],
+                [
+                  "🪑",
+                  "chair"
+                ],
+                [
+                  "🧀",
+                  "cheese"
+                ]
+              ],
+              "board": {
+                "picture": "👟",
+                "tokens": [
+                  {
+                    "text": "sh",
+                    "role": "sound"
+                  },
+                  {
+                    "text": "shoe",
+                    "role": "word"
+                  },
+                  {
+                    "text": "ch",
+                    "role": "sound"
+                  },
+                  {
+                    "text": "chair",
+                    "role": "word"
+                  }
+                ]
+              }
+            },
+            {
+              "id": "cp1-shopping-4",
+              "title": "جرامر: I want",
+              "strand": "grammar",
+              "focus": "I want... / Do you want...? polite requests",
+              "goal": "تطلب شيئاً في تمثيل لعبة باستخدام I want مع كلمة واحدة.",
+              "cards": [
+                [
+                  "🧢",
+                  "كاب"
+                ],
+                [
+                  "🎁",
+                  "هدية"
+                ],
+                [
+                  "🛍️",
+                  "شنطة تسوق"
+                ]
+              ],
+              "board": {
+                "picture": "🛍️",
+                "tokens": [
+                  {
+                    "text": "I",
+                    "role": "subject"
+                  },
+                  {
+                    "text": "want",
+                    "role": "verb"
+                  },
+                  {
+                    "text": "a hat",
+                    "role": "noun"
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "id": "cp1-work",
+          "title": "Unit 8 · Off to work",
+          "lessons": [
+            {
+              "id": "cp1-work-1",
+              "title": "المهن والأدوات",
+              "strand": "speaking",
+              "focus": "doctor, teacher, farmer, cook, driver; work tools",
+              "goal": "تربط صاحب المهنة بأداة أو مكان عمل مناسب من الصور.",
+              "cards": [
+                [
+                  "👩‍⚕️",
+                  "دكتورة"
+                ],
+                [
+                  "👩‍🏫",
+                  "معلمة"
+                ],
+                [
+                  "👨‍🍳",
+                  "طباخ"
+                ]
+              ],
+              "board": {
+                "picture": "👩‍⚕️",
+                "tokens": [
+                  {
+                    "text": "doctor",
+                    "role": "word"
+                  },
+                  {
+                    "text": "teacher",
+                    "role": "word"
+                  },
+                  {
+                    "text": "farmer",
+                    "role": "word"
+                  }
+                ]
+              }
+            },
+            {
+              "id": "cp1-work-2",
+              "title": "جرامر: he/she is",
+              "strand": "grammar",
+              "focus": "He is a... / She is a... with jobs",
+              "goal": "تستخدم he أو she مع is عند وصف شخصية خيالية ومهنتها.",
+              "cards": [
+                [
+                  "👨‍⚕️",
+                  "دكتور"
+                ],
+                [
+                  "👩‍🏫",
+                  "معلمة"
+                ],
+                [
+                  "🧑‍🍳",
+                  "طباخ"
+                ]
+              ],
+              "board": {
+                "picture": "👩‍🏫",
+                "tokens": [
+                  {
+                    "text": "He",
+                    "role": "subject"
+                  },
+                  {
+                    "text": "is",
+                    "role": "verb"
+                  },
+                  {
+                    "text": "a doctor",
+                    "role": "noun"
+                  }
+                ]
+              }
+            },
+            {
+              "id": "cp1-work-3",
+              "title": "فونكس: أصوات المهن",
+              "strand": "phonics",
+              "focus": "Beginning sounds /d/, /t/, /f/, /j/ in doctor, teacher, farmer, job",
+              "goal": "تسمع الصوت الأول في أسماء المهن وتجد كلمة أخرى تشاركه.",
+              "cards": [
+                [
+                  "🩺",
+                  "دكتور"
+                ],
+                [
+                  "🍳",
+                  "طباخ"
+                ],
+                [
+                  "🚜",
+                  "مزارع"
+                ]
+              ],
+              "board": {
+                "picture": "🩺",
+                "tokens": [
+                  {
+                    "text": "d",
+                    "role": "sound"
+                  },
+                  {
+                    "text": "doctor",
+                    "role": "word"
+                  },
+                  {
+                    "text": "f",
+                    "role": "sound"
+                  },
+                  {
+                    "text": "farmer",
+                    "role": "word"
+                  }
+                ]
+              }
+            },
+            {
+              "id": "cp1-work-4",
+              "title": "جرامر: المضارع البسيط",
+              "strand": "grammar",
+              "focus": "Simple present verbs for routines: I help / He helps",
+              "goal": "تلاحظ الفرق بين جملة I وجملة he/she في أفعال يومية شائعة من غير شرح قواعد مجرد.",
+              "cards": [
+                [
+                  "🤝",
+                  "أساعد"
+                ],
+                [
+                  "🧑‍⚕️",
+                  "هو يساعد"
+                ],
+                [
+                  "🧹",
+                  "أنظف"
+                ]
+              ],
+              "board": {
+                "picture": "🤝",
+                "tokens": [
+                  {
+                    "text": "I",
+                    "role": "subject"
+                  },
+                  {
+                    "text": "help",
+                    "role": "verb"
+                  },
+                  {
+                    "text": "She",
+                    "role": "subject"
+                  },
+                  {
+                    "text": "helps",
+                    "role": "verb"
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "id": "cp1-market",
+          "title": "Unit 9 · At the market",
+          "lessons": [
+            {
+              "id": "cp1-market-1",
+              "title": "فواكه وخضار",
+              "strand": "speaking",
+              "focus": "fruit, vegetables, apples, bananas, tomatoes, carrots",
+              "goal": "تطلب أو تختار طعاماً مألوفاً من صور السوق.",
+              "cards": [
+                [
+                  "🍌",
+                  "موز"
+                ],
+                [
+                  "🍅",
+                  "طماطم"
+                ],
+                [
+                  "🥕",
+                  "جزر"
+                ]
+              ],
+              "board": {
+                "picture": "🍌",
+                "tokens": [
+                  {
+                    "text": "fruit",
+                    "role": "word"
+                  },
+                  {
+                    "text": "banana",
+                    "role": "word"
+                  },
+                  {
+                    "text": "tomato",
+                    "role": "word"
+                  }
+                ]
+              }
+            },
+            {
+              "id": "cp1-market-2",
+              "title": "جرامر: How many?",
+              "strand": "grammar",
+              "focus": "How many...? counting items and plural nouns",
+              "goal": "تجاوب عن How many? بالعد الشفهي لأشياء من واحد إلى عشرة.",
+              "cards": [
+                [
+                  "🍊",
+                  "واحدة"
+                ],
+                [
+                  "🍊🍊🍊",
+                  "تلاتة"
+                ],
+                [
+                  "❓",
+                  "كام واحدة؟"
+                ]
+              ],
+              "board": {
+                "picture": "🍊",
+                "tokens": [
+                  {
+                    "text": "How many?",
+                    "role": "question"
+                  },
+                  {
+                    "text": "three",
+                    "role": "detail"
+                  },
+                  {
+                    "text": "apples",
+                    "role": "noun"
+                  }
+                ]
+              }
+            },
+            {
+              "id": "cp1-market-3",
+              "title": "فونكس: أصوات الأكل",
+              "strand": "phonics",
+              "focus": "Beginning sounds /m/, /f/, /c/, /t/ in market, fruit, carrot, tomato",
+              "goal": "تسمع أول صوت في أسماء الطعام وتختار صورة تبدأ بالصوت نفسه.",
+              "cards": [
+                [
+                  "🥭",
+                  "مانجا"
+                ],
+                [
+                  "🍓",
+                  "فراولة"
+                ],
+                [
+                  "🥕",
+                  "جزر"
+                ]
+              ],
+              "board": {
+                "picture": "🥭",
+                "tokens": [
+                  {
+                    "text": "m",
+                    "role": "sound"
+                  },
+                  {
+                    "text": "mango",
+                    "role": "word"
+                  },
+                  {
+                    "text": "f",
+                    "role": "sound"
+                  },
+                  {
+                    "text": "fruit",
+                    "role": "word"
+                  }
+                ]
+              }
+            },
+            {
+              "id": "cp1-market-4",
+              "title": "جرامر: some وa",
+              "strand": "grammar",
+              "focus": "a + one item; some + more than one item in simple requests",
+              "goal": "تسمع a مع شيء واحد وsome مع كمية من الطعام داخل لعبة السوق.",
+              "cards": [
+                [
+                  "🍎",
+                  "تفاحة"
+                ],
+                [
+                  "🍎🍎🍎",
+                  "تفاح"
+                ],
+                [
+                  "🛒",
+                  "سلة"
+                ]
+              ],
+              "board": {
+                "picture": "🍎",
+                "tokens": [
+                  {
+                    "text": "an",
+                    "role": "article"
+                  },
+                  {
+                    "text": "apple",
+                    "role": "noun"
+                  },
+                  {
+                    "text": "some",
+                    "role": "article"
+                  },
+                  {
+                    "text": "apples",
+                    "role": "noun"
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "id": "cp1-out-about",
+          "title": "Unit 10 · Out and about",
+          "lessons": [
+            {
+              "id": "cp1-out-1",
+              "title": "أماكن الخروج",
+              "strand": "speaking",
+              "focus": "park, beach, zoo, library, street; activities outdoors",
+              "goal": "تتعرف على أماكن مألوفة وتختار نشاطاً مناسباً لكل مكان.",
+              "cards": [
+                [
+                  "🏖️",
+                  "شاطئ"
+                ],
+                [
+                  "🦁",
+                  "حديقة حيوان"
+                ],
+                [
+                  "📚",
+                  "مكتبة"
+                ]
+              ],
+              "board": {
+                "picture": "🏖️",
+                "tokens": [
+                  {
+                    "text": "park",
+                    "role": "word"
+                  },
+                  {
+                    "text": "beach",
+                    "role": "word"
+                  },
+                  {
+                    "text": "zoo",
+                    "role": "word"
+                  }
+                ]
+              }
+            },
+            {
+              "id": "cp1-out-2",
+              "title": "جرامر: there is وthere are",
+              "strand": "grammar",
+              "focus": "There is / there are to describe one or more things in a place",
+              "goal": "تصف مشهداً بجملة there is لشيء واحد أو there are لأكثر من شيء.",
+              "cards": [
+                [
+                  "🌳",
+                  "شجرة"
+                ],
+                [
+                  "🌳🌳",
+                  "شجر"
+                ],
+                [
+                  "🏞️",
+                  "مكان"
+                ]
+              ],
+              "board": {
+                "picture": "🌳",
+                "tokens": [
+                  {
+                    "text": "There is",
+                    "role": "detail"
+                  },
+                  {
+                    "text": "a tree",
+                    "role": "noun"
+                  },
+                  {
+                    "text": "There are",
+                    "role": "detail"
+                  },
+                  {
+                    "text": "two birds",
+                    "role": "noun"
+                  }
+                ]
+              }
+            },
+            {
+              "id": "cp1-out-3",
+              "title": "فونكس: أصوات الأماكن",
+              "strand": "phonics",
+              "focus": "Beginning sounds /z/, /l/, /p/, /b/ in zoo, library, park, beach",
+              "goal": "تسمع بداية أسماء الأماكن وتربط الصوت بصورتين مختلفتين.",
+              "cards": [
+                [
+                  "🦓",
+                  "حيوان في zoo"
+                ],
+                [
+                  "📚",
+                  "مكتبة"
+                ],
+                [
+                  "🏞️",
+                  "حديقة"
+                ]
+              ],
+              "board": {
+                "picture": "🦓",
+                "tokens": [
+                  {
+                    "text": "z",
+                    "role": "sound"
+                  },
+                  {
+                    "text": "zoo",
+                    "role": "word"
+                  },
+                  {
+                    "text": "p",
+                    "role": "sound"
+                  },
+                  {
+                    "text": "park",
+                    "role": "word"
+                  }
+                ]
+              }
+            },
+            {
+              "id": "cp1-out-4",
+              "title": "جرامر: أسأل عن المكان",
+              "strand": "grammar",
+              "focus": "Where...? prepositions in / on / under / near",
+              "goal": "تسأل أو تجيب عن مكان شيء مخفي مستخدمة كلمة مكان واحدة.",
+              "cards": [
+                [
+                  "🔎",
+                  "فين؟"
+                ],
+                [
+                  "📦",
+                  "جوا"
+                ],
+                [
+                  "🌳",
+                  "جنب"
+                ]
+              ],
+              "board": {
+                "picture": "🔎",
+                "tokens": [
+                  {
+                    "text": "Where",
+                    "role": "question"
+                  },
+                  {
+                    "text": "is",
+                    "role": "verb"
+                  },
+                  {
+                    "text": "the ball?",
+                    "role": "noun"
+                  },
+                  {
+                    "text": "Under the chair",
+                    "role": "detail"
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "id": "cp1-time",
+          "title": "Unit 11 · It’s ten o’clock",
+          "lessons": [
+            {
+              "id": "cp1-time-1",
+              "title": "الساعة بالتمام",
+              "strand": "speaking",
+              "focus": "Numbers to twelve; What time is it? It is ... o’clock",
+              "goal": "تسمع الساعة بالتمام وتطابقها مع صورة روتين يومي.",
+              "cards": [
+                [
+                  "🕐",
+                  "الساعة واحدة"
+                ],
+                [
+                  "🕙",
+                  "الساعة عشرة"
+                ],
+                [
+                  "🕛",
+                  "الساعة اتناشر"
+                ]
+              ],
+              "board": {
+                "picture": "🕙",
+                "tokens": [
+                  {
+                    "text": "What time?",
+                    "role": "question"
+                  },
+                  {
+                    "text": "It's ten",
+                    "role": "detail"
+                  },
+                  {
+                    "text": "o'clock",
+                    "role": "noun"
+                  }
+                ]
+              }
+            },
+            {
+              "id": "cp1-time-2",
+              "title": "جرامر: أوقات يومي",
+              "strand": "grammar",
+              "focus": "Simple present routines: I wake up / I go to bed; at + o’clock",
+              "goal": "تحكي شفهياً خطوة أو خطوتين من روتين يومي خيالي باستخدام I.",
+              "cards": [
+                [
+                  "🌅",
+                  "أصحى"
+                ],
+                [
+                  "🍽️",
+                  "آكل"
+                ],
+                [
+                  "🌙",
+                  "أنام"
+                ]
+              ],
+              "board": {
+                "picture": "🌅",
+                "tokens": [
+                  {
+                    "text": "I",
+                    "role": "subject"
+                  },
+                  {
+                    "text": "wake up",
+                    "role": "verb"
+                  },
+                  {
+                    "text": "at seven",
+                    "role": "detail"
+                  }
+                ]
+              }
+            },
+            {
+              "id": "cp1-time-3",
+              "title": "فونكس: أصوات الوقت",
+              "strand": "phonics",
+              "focus": "Beginning sounds /w/, /c/, /b/, /n/ in wake, clock, bed, night",
+              "goal": "تسمع الصوت الأول في كلمات مرتبطة بالوقت وتجد كلمة تبدأ مثله.",
+              "cards": [
+                [
+                  "⏰",
+                  "ساعة"
+                ],
+                [
+                  "🛏️",
+                  "سرير"
+                ],
+                [
+                  "🌙",
+                  "ليل"
+                ]
+              ],
+              "board": {
+                "picture": "🛏️",
+                "tokens": [
+                  {
+                    "text": "w",
+                    "role": "sound"
+                  },
+                  {
+                    "text": "wake",
+                    "role": "word"
+                  },
+                  {
+                    "text": "b",
+                    "role": "sound"
+                  },
+                  {
+                    "text": "bed",
+                    "role": "word"
+                  }
+                ]
+              }
+            },
+            {
+              "id": "cp1-time-4",
+              "title": "مراجعة: أسأل وأجاوب عن الوقت",
+              "strand": "review",
+              "focus": "Review time questions, routine verbs, numbers, and daily sequence",
+              "goal": "تراجع الوقت والروتين في حوار قصير مع المعلمة من غير حفظ جمل طويلة.",
+              "cards": [
+                [
+                  "🕗",
+                  "الصبح"
+                ],
+                [
+                  "🏫",
+                  "المدرسة"
+                ],
+                [
+                  "🌙",
+                  "بالليل"
+                ]
+              ],
+              "board": {
+                "picture": "⏰",
+                "tokens": [
+                  {
+                    "text": "I",
+                    "role": "subject"
+                  },
+                  {
+                    "text": "wake up",
+                    "role": "verb"
+                  },
+                  {
+                    "text": "at eight",
+                    "role": "detail"
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "id": "cp1-free-time",
+          "title": "Unit 12 · My free time",
+          "lessons": [
+            {
+              "id": "cp1-free-1",
+              "title": "هواياتي",
+              "strand": "speaking",
+              "focus": "play, draw, sing, dance, swim, read-aloud listening",
+              "goal": "تختار نشاطاً تحبه وتخبر المعلمة به بكلمة أو جملة قصيرة.",
+              "cards": [
+                [
+                  "🎨",
+                  "أرسم"
+                ],
+                [
+                  "🎵",
+                  "أغني"
+                ],
+                [
+                  "💃",
+                  "أرقص"
+                ]
+              ],
+              "board": {
+                "picture": "🎨",
+                "tokens": [
+                  {
+                    "text": "draw",
+                    "role": "word"
+                  },
+                  {
+                    "text": "sing",
+                    "role": "word"
+                  },
+                  {
+                    "text": "dance",
+                    "role": "word"
+                  }
+                ]
+              }
+            },
+            {
+              "id": "cp1-free-2",
+              "title": "جرامر: I like / I don’t like",
+              "strand": "grammar",
+              "focus": "I like / I don’t like + activity; Do you like...?",
+              "goal": "تعبر عن تفضيل بسيط وتفهم سؤال Do you like...?",
+              "cards": [
+                [
+                  "😍",
+                  "بحب"
+                ],
+                [
+                  "🙅‍♀️",
+                  "مش بحب"
+                ],
+                [
+                  "❓",
+                  "بتحبي؟"
+                ]
+              ],
+              "board": {
+                "picture": "🎵",
+                "tokens": [
+                  {
+                    "text": "I",
+                    "role": "subject"
+                  },
+                  {
+                    "text": "like",
+                    "role": "verb"
+                  },
+                  {
+                    "text": "music",
+                    "role": "noun"
+                  },
+                  {
+                    "text": "don't like",
+                    "role": "detail"
+                  }
+                ]
+              }
+            },
+            {
+              "id": "cp1-free-3",
+              "title": "فونكس: ندمج أصوات قصيرة",
+              "strand": "phonics",
+              "focus": "Oral blending of simple consonant-vowel-consonant words: cat, sun, map, sit",
+              "goal": "تسمع ثلاثة أصوات ببطء ثم تدمجها لتتعرف على كلمة من صورة، من غير قراءة أو تهجئة.",
+              "cards": [
+                [
+                  "🐱",
+                  "قطة"
+                ],
+                [
+                  "☀️",
+                  "شمس"
+                ],
+                [
+                  "🗺️",
+                  "خريطة"
+                ]
+              ],
+              "board": {
+                "picture": "🐱",
+                "tokens": [
+                  {
+                    "text": "c",
+                    "role": "sound"
+                  },
+                  {
+                    "text": "a",
+                    "role": "sound"
+                  },
+                  {
+                    "text": "t",
+                    "role": "sound"
+                  },
+                  {
+                    "text": "cat",
+                    "role": "word"
+                  }
+                ]
+              }
+            },
+            {
+              "id": "cp1-free-4",
+              "title": "مراجعة مفتوحة: أنا أقدر وأحب",
+              "strand": "review",
+              "focus": "Spiral review: likes, can, family, places, numbers, and phonics sounds",
+              "goal": "تستخدم ما تعلمته في لعبة كلام واختيارات، وتختار بعد ذلك أي درس تحب تكراره.",
+              "cards": [
+                [
+                  "⭐",
+                  "اختاري"
+                ],
+                [
+                  "🎨",
+                  "نشاط"
+                ],
+                [
+                  "🎉",
+                  "مراجعة"
+                ]
+              ],
+              "board": {
+                "picture": "⭐",
+                "tokens": [
+                  {
+                    "text": "I",
+                    "role": "subject"
+                  },
+                  {
+                    "text": "can",
+                    "role": "verb"
+                  },
+                  {
+                    "text": "play",
+                    "role": "detail"
+                  },
+                  {
+                    "text": "I like",
+                    "role": "verb"
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "math-grade-1",
+      "title": "Math · الصف الأول الابتدائي لغات",
+      "gradeId": "grade-1",
+      "gradeLabel": "الصف الأول الابتدائي",
+      "curriculumLabel": "Math لغات · تأسيس ثم منهج أولى ابتدائي",
+      "subject": "math",
+      "description": "مسار شفهي يبدأ بتأسيس العدّ وفهم الكمية والأشكال، ثم ينتقل إلى موضوعات ماث الصف الأول. محتوى تأسيسي عام مناسب للصف الأول، ويمكن مطابقة ترتيبه مع كتاب المدرسة عند توفير الفهرس.",
+      "units": [
+        {
+          "id": "math-found-count",
+          "title": "تأسيس ١ · العد وفهم الكمية",
+          "lessons": [
+            {
+              "id": "math-found-count-1",
+              "title": "نعدّ حاجات حقيقية",
+              "strand": "math",
+              "focus": "counting objects from one to five",
+              "goal": "تعدّ مجموعة صغيرة واحداً واحداً وتربط كل شيء بعدد واحد",
+              "cards": [
+                [
+                  "🍎",
+                  "واحدة"
+                ],
+                [
+                  "🍎🍎",
+                  "اتنين"
+                ],
+                [
+                  "🍎🍎🍎",
+                  "تلاتة"
+                ]
+              ],
+              "board": {
+                "picture": "🍎",
+                "tokens": [
+                  {
+                    "text": "1",
+                    "role": "word"
+                  },
+                  {
+                    "text": "2",
+                    "role": "detail"
+                  },
+                  {
+                    "text": "3",
+                    "role": "detail"
+                  }
+                ],
+                "focusIndex": 0
+              }
+            },
+            {
+              "id": "math-found-count-2",
+              "title": "واحد لكل شيء",
+              "strand": "math",
+              "focus": "one-to-one counting",
+              "goal": "تعدّ الأشياء من غير تكرار أو نسيان مع الإشارة إليها",
+              "cards": [
+                [
+                  "🍎",
+                  "واحدة"
+                ],
+                [
+                  "🍎🍎",
+                  "اتنين"
+                ],
+                [
+                  "🍎🍎🍎",
+                  "تلاتة"
+                ]
+              ],
+              "board": {
+                "picture": "🧸",
+                "tokens": [
+                  {
+                    "text": "one",
+                    "role": "word"
+                  },
+                  {
+                    "text": "each",
+                    "role": "detail"
+                  },
+                  {
+                    "text": "count",
+                    "role": "detail"
+                  }
+                ],
+                "focusIndex": 0
+              }
+            },
+            {
+              "id": "math-found-count-3",
+              "title": "مين عنده أكتر؟",
+              "strand": "math",
+              "focus": "compare small quantities",
+              "goal": "تتعرف على المجموعة الأكبر والأصغر باستخدام أشياء ملموسة",
+              "cards": [
+                [
+                  "🍎",
+                  "واحدة"
+                ],
+                [
+                  "🍎🍎",
+                  "اتنين"
+                ],
+                [
+                  "🍎🍎🍎",
+                  "تلاتة"
+                ]
+              ],
+              "board": {
+                "picture": "⭐",
+                "tokens": [
+                  {
+                    "text": "more",
+                    "role": "word"
+                  },
+                  {
+                    "text": "less",
+                    "role": "detail"
+                  },
+                  {
+                    "text": "same",
+                    "role": "detail"
+                  }
+                ],
+                "focusIndex": 0
+              }
+            },
+            {
+              "id": "math-found-count-4",
+              "title": "يعني إيه مفيش؟",
+              "strand": "math",
+              "focus": "zero as an empty set",
+              "goal": "تفهم أن الصفر يعني عدم وجود شيء في المجموعة",
+              "cards": [
+                [
+                  "🍎",
+                  "واحدة"
+                ],
+                [
+                  "🍎🍎",
+                  "اتنين"
+                ],
+                [
+                  "🍎🍎🍎",
+                  "تلاتة"
+                ]
+              ],
+              "board": {
+                "picture": "🧺",
+                "tokens": [
+                  {
+                    "text": "zero",
+                    "role": "word"
+                  },
+                  {
+                    "text": "none",
+                    "role": "detail"
+                  },
+                  {
+                    "text": "empty",
+                    "role": "detail"
+                  }
+                ],
+                "focusIndex": 0
+              }
+            }
+          ]
+        },
+        {
+          "id": "math-found-numbers",
+          "title": "تأسيس ٢ · الأرقام لحد عشرة",
+          "lessons": [
+            {
+              "id": "math-found-numbers-1",
+              "title": "نتعرف على الأرقام",
+              "strand": "math",
+              "focus": "recognize numerals 0–5",
+              "goal": "تربط شكل الرقم من صفر إلى خمسة بكمية ممثلة بالصور",
+              "cards": [
+                [
+                  "1️⃣2️⃣3️⃣",
+                  "واحد اتنين تلاتة"
+                ],
+                [
+                  "4️⃣5️⃣6️⃣",
+                  "أربعة خمسة ستة"
+                ],
+                [
+                  "7️⃣8️⃣🔟",
+                  "سبعة تمانية عشرة"
+                ]
+              ],
+              "board": {
+                "picture": "🔢",
+                "tokens": [
+                  {
+                    "text": "0",
+                    "role": "word"
+                  },
+                  {
+                    "text": "1",
+                    "role": "detail"
+                  },
+                  {
+                    "text": "5",
+                    "role": "detail"
+                  }
+                ],
+                "focusIndex": 0
+              }
+            },
+            {
+              "id": "math-found-numbers-2",
+              "title": "نرتب الأرقام",
+              "strand": "math",
+              "focus": "sequence numbers 0–5",
+              "goal": "ترتب الأعداد الصغيرة من الأصغر للأكبر بالصور",
+              "cards": [
+                [
+                  "1️⃣2️⃣3️⃣",
+                  "واحد اتنين تلاتة"
+                ],
+                [
+                  "4️⃣5️⃣6️⃣",
+                  "أربعة خمسة ستة"
+                ],
+                [
+                  "7️⃣8️⃣🔟",
+                  "سبعة تمانية عشرة"
+                ]
+              ],
+              "board": {
+                "picture": "🪜",
+                "tokens": [
+                  {
+                    "text": "1",
+                    "role": "word"
+                  },
+                  {
+                    "text": "2",
+                    "role": "detail"
+                  },
+                  {
+                    "text": "3",
+                    "role": "detail"
+                  }
+                ],
+                "focusIndex": 0
+              }
+            },
+            {
+              "id": "math-found-numbers-3",
+              "title": "نكمل العدد الناقص",
+              "strand": "math",
+              "focus": "missing numbers to 5",
+              "goal": "تحدد العدد الناقص في تسلسل مسموع أو مصور حتى خمسة",
+              "cards": [
+                [
+                  "1️⃣2️⃣3️⃣",
+                  "واحد اتنين تلاتة"
+                ],
+                [
+                  "4️⃣5️⃣6️⃣",
+                  "أربعة خمسة ستة"
+                ],
+                [
+                  "7️⃣8️⃣🔟",
+                  "سبعة تمانية عشرة"
+                ]
+              ],
+              "board": {
+                "picture": "🧩",
+                "tokens": [
+                  {
+                    "text": "2",
+                    "role": "word"
+                  },
+                  {
+                    "text": "4",
+                    "role": "detail"
+                  },
+                  {
+                    "text": "5",
+                    "role": "detail"
+                  }
+                ],
+                "focusIndex": 0
+              }
+            },
+            {
+              "id": "math-found-numbers-4",
+              "title": "نعدّ لحد عشرة",
+              "strand": "math",
+              "focus": "count quantities 0–10",
+              "goal": "تعدّ مجموعات حتى عشرة وتختار الكمية المطابقة",
+              "cards": [
+                [
+                  "1️⃣2️⃣3️⃣",
+                  "واحد اتنين تلاتة"
+                ],
+                [
+                  "4️⃣5️⃣6️⃣",
+                  "أربعة خمسة ستة"
+                ],
+                [
+                  "7️⃣8️⃣🔟",
+                  "سبعة تمانية عشرة"
+                ]
+              ],
+              "board": {
+                "picture": "🎈",
+                "tokens": [
+                  {
+                    "text": "5",
+                    "role": "word"
+                  },
+                  {
+                    "text": "8",
+                    "role": "detail"
+                  },
+                  {
+                    "text": "10",
+                    "role": "detail"
+                  }
+                ],
+                "focusIndex": 0
+              }
+            }
+          ]
+        },
+        {
+          "id": "math-found-shapes",
+          "title": "تأسيس ٣ · الأشكال والأنماط",
+          "lessons": [
+            {
+              "id": "math-found-shapes-1",
+              "title": "الدائرة والمربع",
+              "strand": "math",
+              "focus": "circle and square",
+              "goal": "تميز الدائرة والمربع في أشياء وصور من حولها",
+              "cards": [
+                [
+                  "⚪",
+                  "دائرة"
+                ],
+                [
+                  "🟥",
+                  "مربع"
+                ],
+                [
+                  "🔺",
+                  "مثلث"
+                ]
+              ],
+              "board": {
+                "picture": "🔵",
+                "tokens": [
+                  {
+                    "text": "circle",
+                    "role": "word"
+                  },
+                  {
+                    "text": "square",
+                    "role": "detail"
+                  },
+                  {
+                    "text": "triangle",
+                    "role": "detail"
+                  }
+                ],
+                "focusIndex": 0
+              }
+            },
+            {
+              "id": "math-found-shapes-2",
+              "title": "المثلث والمستطيل",
+              "strand": "math",
+              "focus": "triangle and rectangle",
+              "goal": "تميز المثلث والمستطيل وتلاحظ الأضلاع بصرياً",
+              "cards": [
+                [
+                  "⚪",
+                  "دائرة"
+                ],
+                [
+                  "🟥",
+                  "مربع"
+                ],
+                [
+                  "🔺",
+                  "مثلث"
+                ]
+              ],
+              "board": {
+                "picture": "🔺",
+                "tokens": [
+                  {
+                    "text": "triangle",
+                    "role": "word"
+                  },
+                  {
+                    "text": "rectangle",
+                    "role": "detail"
+                  },
+                  {
+                    "text": "circle",
+                    "role": "detail"
+                  }
+                ],
+                "focusIndex": 0
+              }
+            },
+            {
+              "id": "math-found-shapes-3",
+              "title": "فوق وتحت وجنب",
+              "strand": "math",
+              "focus": "position words: on, under, next to",
+              "goal": "تفهم مواقع الأشياء وتختار الصورة المطابقة للتوجيه الصوتي",
+              "cards": [
+                [
+                  "⚪",
+                  "دائرة"
+                ],
+                [
+                  "🟥",
+                  "مربع"
+                ],
+                [
+                  "🔺",
+                  "مثلث"
+                ]
+              ],
+              "board": {
+                "picture": "🧸",
+                "tokens": [
+                  {
+                    "text": "on",
+                    "role": "word"
+                  },
+                  {
+                    "text": "under",
+                    "role": "detail"
+                  },
+                  {
+                    "text": "next to",
+                    "role": "detail"
+                  }
+                ],
+                "focusIndex": 0
+              }
+            },
+            {
+              "id": "math-found-shapes-4",
+              "title": "نمط بيتكرر",
+              "strand": "math",
+              "focus": "simple repeating patterns",
+              "goal": "تكمل نمطاً بسيطاً من لونين أو شكلين باختيار الصورة",
+              "cards": [
+                [
+                  "⚪",
+                  "دائرة"
+                ],
+                [
+                  "🟥",
+                  "مربع"
+                ],
+                [
+                  "🔺",
+                  "مثلث"
+                ]
+              ],
+              "board": {
+                "picture": "🔴",
+                "tokens": [
+                  {
+                    "text": "red-blue",
+                    "role": "word"
+                  },
+                  {
+                    "text": "red-red",
+                    "role": "detail"
+                  },
+                  {
+                    "text": "blue-red",
+                    "role": "detail"
+                  }
+                ],
+                "focusIndex": 0
+              }
+            }
+          ]
+        },
+        {
+          "id": "math-grade-count",
+          "title": "منهج الماث · الأعداد حتى ٢٠",
+          "lessons": [
+            {
+              "id": "math-grade-count-1",
+              "title": "نعدّ من ١١ إلى ١٥",
+              "strand": "math",
+              "focus": "count and represent 11–15",
+              "goal": "تعدّ مجموعات حتى خمسة عشر وتربط العدد بالكمية",
+              "cards": [
+                [
+                  "1️⃣5️⃣",
+                  "خمستاشر"
+                ],
+                [
+                  "1️⃣8️⃣",
+                  "تمانتاشر"
+                ],
+                [
+                  "2️⃣0️⃣",
+                  "عشرين"
+                ]
+              ],
+              "board": {
+                "picture": "🍓",
+                "tokens": [
+                  {
+                    "text": "11",
+                    "role": "word"
+                  },
+                  {
+                    "text": "13",
+                    "role": "detail"
+                  },
+                  {
+                    "text": "15",
+                    "role": "detail"
+                  }
+                ],
+                "focusIndex": 0
+              }
+            },
+            {
+              "id": "math-grade-count-2",
+              "title": "نعدّ من ١٦ إلى ٢٠",
+              "strand": "math",
+              "focus": "count and represent 16–20",
+              "goal": "تعدّ مجموعات حتى عشرين باستخدام عشرات وآحاد",
+              "cards": [
+                [
+                  "1️⃣5️⃣",
+                  "خمستاشر"
+                ],
+                [
+                  "1️⃣8️⃣",
+                  "تمانتاشر"
+                ],
+                [
+                  "2️⃣0️⃣",
+                  "عشرين"
+                ]
+              ],
+              "board": {
+                "picture": "🐞",
+                "tokens": [
+                  {
+                    "text": "16",
+                    "role": "word"
+                  },
+                  {
+                    "text": "18",
+                    "role": "detail"
+                  },
+                  {
+                    "text": "20",
+                    "role": "detail"
+                  }
+                ],
+                "focusIndex": 0
+              }
+            },
+            {
+              "id": "math-grade-count-3",
+              "title": "قبل وبعد وبين",
+              "strand": "math",
+              "focus": "one more, one less, before and after",
+              "goal": "تحدد العدد السابق أو التالي لعدد حتى عشرين شفهياً",
+              "cards": [
+                [
+                  "1️⃣5️⃣",
+                  "خمستاشر"
+                ],
+                [
+                  "1️⃣8️⃣",
+                  "تمانتاشر"
+                ],
+                [
+                  "2️⃣0️⃣",
+                  "عشرين"
+                ]
+              ],
+              "board": {
+                "picture": "🚂",
+                "tokens": [
+                  {
+                    "text": "before",
+                    "role": "word"
+                  },
+                  {
+                    "text": "number",
+                    "role": "detail"
+                  },
+                  {
+                    "text": "after",
+                    "role": "detail"
+                  }
+                ],
+                "focusIndex": 0
+              }
+            },
+            {
+              "id": "math-grade-count-4",
+              "title": "نقارن الأعداد",
+              "strand": "math",
+              "focus": "compare numbers to 20",
+              "goal": "تقارن كميتين حتى عشرين: أكثر أو أقل أو متساوي",
+              "cards": [
+                [
+                  "1️⃣5️⃣",
+                  "خمستاشر"
+                ],
+                [
+                  "1️⃣8️⃣",
+                  "تمانتاشر"
+                ],
+                [
+                  "2️⃣0️⃣",
+                  "عشرين"
+                ]
+              ],
+              "board": {
+                "picture": "⚖️",
+                "tokens": [
+                  {
+                    "text": "more",
+                    "role": "word"
+                  },
+                  {
+                    "text": "less",
+                    "role": "detail"
+                  },
+                  {
+                    "text": "same",
+                    "role": "detail"
+                  }
+                ],
+                "focusIndex": 0
+              }
+            }
+          ]
+        },
+        {
+          "id": "math-grade-place",
+          "title": "منهج الماث · العشرات والآحاد",
+          "lessons": [
+            {
+              "id": "math-grade-place-1",
+              "title": "عشرة واحدة",
+              "strand": "math",
+              "focus": "groups of ten",
+              "goal": "تكوّن مجموعة من عشرة أشياء وتلاحظها كمجموعة واحدة",
+              "cards": [
+                [
+                  "🟠🟠🟠🟠🟠🟠🟠🟠🟠🟠",
+                  "عشرة"
+                ],
+                [
+                  "🟠",
+                  "واحد"
+                ],
+                [
+                  "🟠🟠🟠",
+                  "تلاتة"
+                ]
+              ],
+              "board": {
+                "picture": "🟠",
+                "tokens": [
+                  {
+                    "text": "ten",
+                    "role": "word"
+                  },
+                  {
+                    "text": "one",
+                    "role": "detail"
+                  },
+                  {
+                    "text": "two",
+                    "role": "detail"
+                  }
+                ],
+                "focusIndex": 0
+              }
+            },
+            {
+              "id": "math-grade-place-2",
+              "title": "العشرات والآحاد",
+              "strand": "math",
+              "focus": "tens and ones to 20",
+              "goal": "تمثل أعداداً حتى عشرين بعشرة وآحاد باستخدام مكعبات",
+              "cards": [
+                [
+                  "🟠🟠🟠🟠🟠🟠🟠🟠🟠🟠",
+                  "عشرة"
+                ],
+                [
+                  "🟠",
+                  "واحد"
+                ],
+                [
+                  "🟠🟠🟠",
+                  "تلاتة"
+                ]
+              ],
+              "board": {
+                "picture": "🧱",
+                "tokens": [
+                  {
+                    "text": "10",
+                    "role": "word"
+                  },
+                  {
+                    "text": "11",
+                    "role": "detail"
+                  },
+                  {
+                    "text": "15",
+                    "role": "detail"
+                  }
+                ],
+                "focusIndex": 0
+              }
+            },
+            {
+              "id": "math-grade-place-3",
+              "title": "نكوّن العدد",
+              "strand": "math",
+              "focus": "compose numbers to 20",
+              "goal": "تركب عدداً حتى عشرين من مجموعات عشرات وآحاد",
+              "cards": [
+                [
+                  "🟠🟠🟠🟠🟠🟠🟠🟠🟠🟠",
+                  "عشرة"
+                ],
+                [
+                  "🟠",
+                  "واحد"
+                ],
+                [
+                  "🟠🟠🟠",
+                  "تلاتة"
+                ]
+              ],
+              "board": {
+                "picture": "🧺",
+                "tokens": [
+                  {
+                    "text": "10+2",
+                    "role": "word"
+                  },
+                  {
+                    "text": "10+5",
+                    "role": "detail"
+                  },
+                  {
+                    "text": "10+8",
+                    "role": "detail"
+                  }
+                ],
+                "focusIndex": 0
+              }
+            },
+            {
+              "id": "math-grade-place-4",
+              "title": "نفك العدد",
+              "strand": "math",
+              "focus": "decompose numbers to 20",
+              "goal": "تفك عدداً حتى عشرين إلى عشرات وآحاد بطريقة محسوسة",
+              "cards": [
+                [
+                  "🟠🟠🟠🟠🟠🟠🟠🟠🟠🟠",
+                  "عشرة"
+                ],
+                [
+                  "🟠",
+                  "واحد"
+                ],
+                [
+                  "🟠🟠🟠",
+                  "تلاتة"
+                ]
+              ],
+              "board": {
+                "picture": "🧩",
+                "tokens": [
+                  {
+                    "text": "12",
+                    "role": "word"
+                  },
+                  {
+                    "text": "15",
+                    "role": "detail"
+                  },
+                  {
+                    "text": "18",
+                    "role": "detail"
+                  }
+                ],
+                "focusIndex": 0
+              }
+            }
+          ]
+        },
+        {
+          "id": "math-grade-add",
+          "title": "منهج الماث · الجمع حتى ١٠",
+          "lessons": [
+            {
+              "id": "math-grade-add-1",
+              "title": "الجمع يعني نزود",
+              "strand": "math",
+              "focus": "addition as putting together",
+              "goal": "تفهم الجمع بضم مجموعتين صغيرتين وعدّ الكل",
+              "cards": [
+                [
+                  "🍎🍎",
+                  "اتنين"
+                ],
+                [
+                  "🍎🍎🍎",
+                  "تلاتة"
+                ],
+                [
+                  "🍎🍎🍎🍎🍎",
+                  "خمسة"
+                ]
+              ],
+              "board": {
+                "picture": "🍎",
+                "tokens": [
+                  {
+                    "text": "add",
+                    "role": "word"
+                  },
+                  {
+                    "text": "join",
+                    "role": "detail"
+                  },
+                  {
+                    "text": "total",
+                    "role": "detail"
+                  }
+                ],
+                "focusIndex": 0
+              }
+            },
+            {
+              "id": "math-grade-add-2",
+              "title": "نجمع بالصور",
+              "strand": "math",
+              "focus": "add within 5",
+              "goal": "تحل جمعاً مصوراً حتى خمسة وتقول الناتج شفهياً",
+              "cards": [
+                [
+                  "🍎🍎",
+                  "اتنين"
+                ],
+                [
+                  "🍎🍎🍎",
+                  "تلاتة"
+                ],
+                [
+                  "🍎🍎🍎🍎🍎",
+                  "خمسة"
+                ]
+              ],
+              "board": {
+                "picture": "🐠",
+                "tokens": [
+                  {
+                    "text": "2",
+                    "role": "word"
+                  },
+                  {
+                    "text": "3",
+                    "role": "detail"
+                  },
+                  {
+                    "text": "5",
+                    "role": "detail"
+                  }
+                ],
+                "focusIndex": 0
+              }
+            },
+            {
+              "id": "math-grade-add-3",
+              "title": "نجمع حتى ١٠",
+              "strand": "math",
+              "focus": "add within 10",
+              "goal": "تحل جمعاً حتى عشرة بالعدّ أو باستخدام أشياء",
+              "cards": [
+                [
+                  "🍎🍎",
+                  "اتنين"
+                ],
+                [
+                  "🍎🍎🍎",
+                  "تلاتة"
+                ],
+                [
+                  "🍎🍎🍎🍎🍎",
+                  "خمسة"
+                ]
+              ],
+              "board": {
+                "picture": "⭐",
+                "tokens": [
+                  {
+                    "text": "4",
+                    "role": "word"
+                  },
+                  {
+                    "text": "7",
+                    "role": "detail"
+                  },
+                  {
+                    "text": "10",
+                    "role": "detail"
+                  }
+                ],
+                "focusIndex": 0
+              }
+            },
+            {
+              "id": "math-grade-add-4",
+              "title": "نكمل العشرة",
+              "strand": "math",
+              "focus": "number pairs that make 10",
+              "goal": "تتعرف على زوجين من الأعداد يكون مجموعهما عشرة",
+              "cards": [
+                [
+                  "🍎🍎",
+                  "اتنين"
+                ],
+                [
+                  "🍎🍎🍎",
+                  "تلاتة"
+                ],
+                [
+                  "🍎🍎🍎🍎🍎",
+                  "خمسة"
+                ]
+              ],
+              "board": {
+                "picture": "🌼",
+                "tokens": [
+                  {
+                    "text": "5+5",
+                    "role": "word"
+                  },
+                  {
+                    "text": "6+4",
+                    "role": "detail"
+                  },
+                  {
+                    "text": "7+3",
+                    "role": "detail"
+                  }
+                ],
+                "focusIndex": 0
+              }
+            }
+          ]
+        },
+        {
+          "id": "math-grade-subtract",
+          "title": "منهج الماث · الطرح حتى ١٠",
+          "lessons": [
+            {
+              "id": "math-grade-subtract-1",
+              "title": "الطرح يعني ناخد",
+              "strand": "math",
+              "focus": "subtraction as taking away",
+              "goal": "تفهم الطرح بإزالة أشياء من مجموعة ثم عدّ الباقي",
+              "cards": [
+                [
+                  "🍪🍪🍪🍪🍪",
+                  "خمسة"
+                ],
+                [
+                  "🍪🍪🍪",
+                  "تلاتة"
+                ],
+                [
+                  "🫙",
+                  "مفيش"
+                ]
+              ],
+              "board": {
+                "picture": "🍪",
+                "tokens": [
+                  {
+                    "text": "take away",
+                    "role": "word"
+                  },
+                  {
+                    "text": "remain",
+                    "role": "detail"
+                  },
+                  {
+                    "text": "all",
+                    "role": "detail"
+                  }
+                ],
+                "focusIndex": 0
+              }
+            },
+            {
+              "id": "math-grade-subtract-2",
+              "title": "نطرح بالصور",
+              "strand": "math",
+              "focus": "subtract within 5",
+              "goal": "تحل طرحاً مصوراً حتى خمسة وتقول الباقي",
+              "cards": [
+                [
+                  "🍪🍪🍪🍪🍪",
+                  "خمسة"
+                ],
+                [
+                  "🍪🍪🍪",
+                  "تلاتة"
+                ],
+                [
+                  "🫙",
+                  "مفيش"
+                ]
+              ],
+              "board": {
+                "picture": "🧸",
+                "tokens": [
+                  {
+                    "text": "1",
+                    "role": "word"
+                  },
+                  {
+                    "text": "2",
+                    "role": "detail"
+                  },
+                  {
+                    "text": "4",
+                    "role": "detail"
+                  }
+                ],
+                "focusIndex": 0
+              }
+            },
+            {
+              "id": "math-grade-subtract-3",
+              "title": "نطرح حتى ١٠",
+              "strand": "math",
+              "focus": "subtract within 10",
+              "goal": "تحل طرحاً حتى عشرة باستخدام الأشياء أو العدّ للخلف",
+              "cards": [
+                [
+                  "🍪🍪🍪🍪🍪",
+                  "خمسة"
+                ],
+                [
+                  "🍪🍪🍪",
+                  "تلاتة"
+                ],
+                [
+                  "🫙",
+                  "مفيش"
+                ]
+              ],
+              "board": {
+                "picture": "🎈",
+                "tokens": [
+                  {
+                    "text": "3",
+                    "role": "word"
+                  },
+                  {
+                    "text": "5",
+                    "role": "detail"
+                  },
+                  {
+                    "text": "8",
+                    "role": "detail"
+                  }
+                ],
+                "focusIndex": 0
+              }
+            },
+            {
+              "id": "math-grade-subtract-4",
+              "title": "الجمع والطرح أصحاب",
+              "strand": "math",
+              "focus": "related addition and subtraction facts",
+              "goal": "تربط بين موقف جمع وطرح عكسي باستخدام الصور",
+              "cards": [
+                [
+                  "🍪🍪🍪🍪🍪",
+                  "خمسة"
+                ],
+                [
+                  "🍪🍪🍪",
+                  "تلاتة"
+                ],
+                [
+                  "🫙",
+                  "مفيش"
+                ]
+              ],
+              "board": {
+                "picture": "🪄",
+                "tokens": [
+                  {
+                    "text": "add",
+                    "role": "word"
+                  },
+                  {
+                    "text": "take away",
+                    "role": "detail"
+                  },
+                  {
+                    "text": "same group",
+                    "role": "detail"
+                  }
+                ],
+                "focusIndex": 0
+              }
+            }
+          ]
+        },
+        {
+          "id": "math-grade-problems",
+          "title": "منهج الماث · مسائل كلامية",
+          "lessons": [
+            {
+              "id": "math-grade-problems-1",
+              "title": "مسألة جمع من الحياة",
+              "strand": "math",
+              "focus": "addition word problems",
+              "goal": "تستمع لمسألة قصيرة وتختار صورة الجمع المناسبة وتحلها",
+              "cards": [
+                [
+                  "🍊🍊",
+                  "جمع"
+                ],
+                [
+                  "🍊",
+                  "طرح"
+                ],
+                [
+                  "🧺",
+                  "مجموعة"
+                ]
+              ],
+              "board": {
+                "picture": "🍊",
+                "tokens": [
+                  {
+                    "text": "add",
+                    "role": "word"
+                  },
+                  {
+                    "text": "take away",
+                    "role": "detail"
+                  },
+                  {
+                    "text": "count",
+                    "role": "detail"
+                  }
+                ],
+                "focusIndex": 0
+              }
+            },
+            {
+              "id": "math-grade-problems-2",
+              "title": "مسألة طرح من الحياة",
+              "strand": "math",
+              "focus": "subtraction word problems",
+              "goal": "تستمع لمسألة نقص وتختار صورة الطرح المناسبة",
+              "cards": [
+                [
+                  "🍊🍊",
+                  "جمع"
+                ],
+                [
+                  "🍊",
+                  "طرح"
+                ],
+                [
+                  "🧺",
+                  "مجموعة"
+                ]
+              ],
+              "board": {
+                "picture": "🚗",
+                "tokens": [
+                  {
+                    "text": "more",
+                    "role": "word"
+                  },
+                  {
+                    "text": "less",
+                    "role": "detail"
+                  },
+                  {
+                    "text": "same",
+                    "role": "detail"
+                  }
+                ],
+                "focusIndex": 0
+              }
+            },
+            {
+              "id": "math-grade-problems-3",
+              "title": "نختار العملية المناسبة",
+              "strand": "math",
+              "focus": "choose addition or subtraction",
+              "goal": "تميز من القصة المسموعة هل نضيف أشياء أم نأخذ منها",
+              "cards": [
+                [
+                  "🍊🍊",
+                  "جمع"
+                ],
+                [
+                  "🍊",
+                  "طرح"
+                ],
+                [
+                  "🧺",
+                  "مجموعة"
+                ]
+              ],
+              "board": {
+                "picture": "🧠",
+                "tokens": [
+                  {
+                    "text": "add",
+                    "role": "word"
+                  },
+                  {
+                    "text": "take away",
+                    "role": "detail"
+                  },
+                  {
+                    "text": "neither",
+                    "role": "detail"
+                  }
+                ],
+                "focusIndex": 0
+              }
+            },
+            {
+              "id": "math-grade-problems-4",
+              "title": "نحكي المسألة بالرسم",
+              "strand": "math",
+              "focus": "model a simple story problem",
+              "goal": "تمثل مسألة مسموعة بصورة أو أشياء ثم تقول الإجابة",
+              "cards": [
+                [
+                  "🍊🍊",
+                  "جمع"
+                ],
+                [
+                  "🍊",
+                  "طرح"
+                ],
+                [
+                  "🧺",
+                  "مجموعة"
+                ]
+              ],
+              "board": {
+                "picture": "🎨",
+                "tokens": [
+                  {
+                    "text": "draw",
+                    "role": "word"
+                  },
+                  {
+                    "text": "count",
+                    "role": "detail"
+                  },
+                  {
+                    "text": "answer",
+                    "role": "detail"
+                  }
+                ],
+                "focusIndex": 0
+              }
+            }
+          ]
+        },
+        {
+          "id": "math-grade-geometry",
+          "title": "منهج الماث · الأشكال والمجسمات",
+          "lessons": [
+            {
+              "id": "math-grade-geometry-1",
+              "title": "أشكال مسطحة",
+              "strand": "math",
+              "focus": "2D shapes: circle, triangle, square, rectangle",
+              "goal": "تتعرف على الأشكال المسطحة وتطابقها مع أشياء مألوفة",
+              "cards": [
+                [
+                  "⚪",
+                  "دائرة"
+                ],
+                [
+                  "🟥",
+                  "مربع"
+                ],
+                [
+                  "🔺",
+                  "مثلث"
+                ]
+              ],
+              "board": {
+                "picture": "🔷",
+                "tokens": [
+                  {
+                    "text": "circle",
+                    "role": "word"
+                  },
+                  {
+                    "text": "triangle",
+                    "role": "detail"
+                  },
+                  {
+                    "text": "square",
+                    "role": "detail"
+                  }
+                ],
+                "focusIndex": 0
+              }
+            },
+            {
+              "id": "math-grade-geometry-2",
+              "title": "أشكال لها أركان",
+              "strand": "math",
+              "focus": "sides and corners of shapes",
+              "goal": "تقارن الأشكال بعدد الأضلاع أو الزوايا بصرياً",
+              "cards": [
+                [
+                  "⚪",
+                  "دائرة"
+                ],
+                [
+                  "🟥",
+                  "مربع"
+                ],
+                [
+                  "🔺",
+                  "مثلث"
+                ]
+              ],
+              "board": {
+                "picture": "📐",
+                "tokens": [
+                  {
+                    "text": "3 corners",
+                    "role": "word"
+                  },
+                  {
+                    "text": "4 corners",
+                    "role": "detail"
+                  },
+                  {
+                    "text": "no corners",
+                    "role": "detail"
+                  }
+                ],
+                "focusIndex": 0
+              }
+            },
+            {
+              "id": "math-grade-geometry-3",
+              "title": "مجسمات حوالينا",
+              "strand": "math",
+              "focus": "3D shapes: sphere, cube, cylinder",
+              "goal": "تتعرف على الكرة والمكعب والأسطوانة من مجسمات مألوفة",
+              "cards": [
+                [
+                  "⚪",
+                  "دائرة"
+                ],
+                [
+                  "🟥",
+                  "مربع"
+                ],
+                [
+                  "🔺",
+                  "مثلث"
+                ]
+              ],
+              "board": {
+                "picture": "⚽",
+                "tokens": [
+                  {
+                    "text": "sphere",
+                    "role": "word"
+                  },
+                  {
+                    "text": "cube",
+                    "role": "detail"
+                  },
+                  {
+                    "text": "cylinder",
+                    "role": "detail"
+                  }
+                ],
+                "focusIndex": 0
+              }
+            },
+            {
+              "id": "math-grade-geometry-4",
+              "title": "نبني شكل من أشكال",
+              "strand": "math",
+              "focus": "compose pictures from shapes",
+              "goal": "تكون صورة بسيطة من أشكال وتحدد الأشكال التي استخدمتها",
+              "cards": [
+                [
+                  "⚪",
+                  "دائرة"
+                ],
+                [
+                  "🟥",
+                  "مربع"
+                ],
+                [
+                  "🔺",
+                  "مثلث"
+                ]
+              ],
+              "board": {
+                "picture": "🏠",
+                "tokens": [
+                  {
+                    "text": "house",
+                    "role": "word"
+                  },
+                  {
+                    "text": "car",
+                    "role": "detail"
+                  },
+                  {
+                    "text": "tree",
+                    "role": "detail"
+                  }
+                ],
+                "focusIndex": 0
+              }
+            }
+          ]
+        },
+        {
+          "id": "math-grade-measure",
+          "title": "منهج الماث · القياس والمقارنة",
+          "lessons": [
+            {
+              "id": "math-grade-measure-1",
+              "title": "أطول وأقصر",
+              "strand": "math",
+              "focus": "compare length and height",
+              "goal": "تقارن طول شيئين باستخدام أطول وأقصر من غير أرقام",
+              "cards": [
+                [
+                  "📏",
+                  "طويل"
+                ],
+                [
+                  "✏️",
+                  "قصير"
+                ],
+                [
+                  "🧱",
+                  "قد بعض"
+                ]
+              ],
+              "board": {
+                "picture": "📏",
+                "tokens": [
+                  {
+                    "text": "longer",
+                    "role": "word"
+                  },
+                  {
+                    "text": "shorter",
+                    "role": "detail"
+                  },
+                  {
+                    "text": "same",
+                    "role": "detail"
+                  }
+                ],
+                "focusIndex": 0
+              }
+            },
+            {
+              "id": "math-grade-measure-2",
+              "title": "أثقل وأخف",
+              "strand": "math",
+              "focus": "compare weight",
+              "goal": "تميز الأثقل والأخف باستخدام أشياء وصور",
+              "cards": [
+                [
+                  "📏",
+                  "طويل"
+                ],
+                [
+                  "✏️",
+                  "قصير"
+                ],
+                [
+                  "🧱",
+                  "قد بعض"
+                ]
+              ],
+              "board": {
+                "picture": "⚖️",
+                "tokens": [
+                  {
+                    "text": "heavier",
+                    "role": "word"
+                  },
+                  {
+                    "text": "lighter",
+                    "role": "detail"
+                  },
+                  {
+                    "text": "same",
+                    "role": "detail"
+                  }
+                ],
+                "focusIndex": 0
+              }
+            },
+            {
+              "id": "math-grade-measure-3",
+              "title": "أكثر وأقل في السعة",
+              "strand": "math",
+              "focus": "compare capacity",
+              "goal": "تقارن أوعية بسيطة من حيث كمية ما تتسع له",
+              "cards": [
+                [
+                  "📏",
+                  "طويل"
+                ],
+                [
+                  "✏️",
+                  "قصير"
+                ],
+                [
+                  "🧱",
+                  "قد بعض"
+                ]
+              ],
+              "board": {
+                "picture": "🫗",
+                "tokens": [
+                  {
+                    "text": "full",
+                    "role": "word"
+                  },
+                  {
+                    "text": "empty",
+                    "role": "detail"
+                  },
+                  {
+                    "text": "half",
+                    "role": "detail"
+                  }
+                ],
+                "focusIndex": 0
+              }
+            },
+            {
+              "id": "math-grade-measure-4",
+              "title": "نقيس بوحدات بسيطة",
+              "strand": "math",
+              "focus": "measure with informal units",
+              "goal": "تقيس طول شيء بعدد مكعبات أو خطوات متساوية",
+              "cards": [
+                [
+                  "📏",
+                  "طويل"
+                ],
+                [
+                  "✏️",
+                  "قصير"
+                ],
+                [
+                  "🧱",
+                  "قد بعض"
+                ]
+              ],
+              "board": {
+                "picture": "🧱",
+                "tokens": [
+                  {
+                    "text": "cubes",
+                    "role": "word"
+                  },
+                  {
+                    "text": "steps",
+                    "role": "detail"
+                  },
+                  {
+                    "text": "measure",
+                    "role": "detail"
+                  }
+                ],
+                "focusIndex": 0
+              }
+            }
+          ]
+        },
+        {
+          "id": "math-grade-time-data",
+          "title": "منهج الماث · الوقت والأنماط والبيانات",
+          "lessons": [
+            {
+              "id": "math-grade-time-data-1",
+              "title": "الصبح والليل",
+              "strand": "math",
+              "focus": "sequence daily events",
+              "goal": "ترتب صور أحداث يومية وتربطها بالصباح أو المساء",
+              "cards": [
+                [
+                  "🌞",
+                  "الصبح"
+                ],
+                [
+                  "🌙",
+                  "بالليل"
+                ],
+                [
+                  "📅",
+                  "أيام"
+                ]
+              ],
+              "board": {
+                "picture": "🌞",
+                "tokens": [
+                  {
+                    "text": "morning",
+                    "role": "word"
+                  },
+                  {
+                    "text": "afternoon",
+                    "role": "detail"
+                  },
+                  {
+                    "text": "night",
+                    "role": "detail"
+                  }
+                ],
+                "focusIndex": 0
+              }
+            },
+            {
+              "id": "math-grade-time-data-2",
+              "title": "أيام الأسبوع",
+              "strand": "math",
+              "focus": "days of the week",
+              "goal": "تتعرف شفهياً على ترتيب الأيام واستخدام قبل وبعد",
+              "cards": [
+                [
+                  "🌞",
+                  "الصبح"
+                ],
+                [
+                  "🌙",
+                  "بالليل"
+                ],
+                [
+                  "📅",
+                  "أيام"
+                ]
+              ],
+              "board": {
+                "picture": "📅",
+                "tokens": [
+                  {
+                    "text": "before",
+                    "role": "word"
+                  },
+                  {
+                    "text": "today",
+                    "role": "detail"
+                  },
+                  {
+                    "text": "after",
+                    "role": "detail"
+                  }
+                ],
+                "focusIndex": 0
+              }
+            },
+            {
+              "id": "math-grade-time-data-3",
+              "title": "نجمع ونقارن بيانات",
+              "strand": "math",
+              "focus": "sort and represent simple data",
+              "goal": "تصنف صوراً في مجموعات وتقارن أي مجموعة أكثر أو أقل",
+              "cards": [
+                [
+                  "🌞",
+                  "الصبح"
+                ],
+                [
+                  "🌙",
+                  "بالليل"
+                ],
+                [
+                  "📅",
+                  "أيام"
+                ]
+              ],
+              "board": {
+                "picture": "🧺",
+                "tokens": [
+                  {
+                    "text": "more",
+                    "role": "word"
+                  },
+                  {
+                    "text": "less",
+                    "role": "detail"
+                  },
+                  {
+                    "text": "same",
+                    "role": "detail"
+                  }
+                ],
+                "focusIndex": 0
+              }
+            },
+            {
+              "id": "math-grade-time-data-4",
+              "title": "مراجعة ماث بحكاية",
+              "strand": "math",
+              "focus": "mixed oral math review",
+              "goal": "تطبق العد والمقارنة والجمع والطرح في لعبة قصصية",
+              "cards": [
+                [
+                  "🌞",
+                  "الصبح"
+                ],
+                [
+                  "🌙",
+                  "بالليل"
+                ],
+                [
+                  "📅",
+                  "أيام"
+                ]
+              ],
+              "board": {
+                "picture": "📚",
+                "tokens": [
+                  {
+                    "text": "count",
+                    "role": "word"
+                  },
+                  {
+                    "text": "add",
+                    "role": "detail"
+                  },
+                  {
+                    "text": "take away",
+                    "role": "detail"
+                  }
+                ],
+                "focusIndex": 0
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

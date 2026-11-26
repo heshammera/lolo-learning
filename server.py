@@ -1,0 +1,440 @@
+"""Local web server and voice-provider credential issuer."""
+from datetime import datetime, timedelta, timezone
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from pathlib import Path
+from urllib.error import HTTPError, URLError
+from urllib.request import Request, urlopen
+import json
+import os
+
+ROOT = Path(__file__).resolve().parent
+PORT = int(os.environ.get("PORT", "4173"))
+
+
+def load_local_env():
+    env_file = ROOT / ".env"
+    if not env_file.exists():
+        return
+    for line in env_file.read_text(encoding="utf-8").splitlines():
+        line = line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        name, value = line.split("=", 1)
+        os.environ.setdefault(name.strip(), value.strip().strip('"').strip("'"))
+
+
+load_local_env()
+GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
+GEMINI_BACKUP_API_KEY = os.environ.get("GEMINI_BACKUP_API_KEY")
+OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
+OPENAI_ENABLED = os.environ.get("OPENAI_ENABLED", "true").strip().lower() in {"1", "true", "yes", "on"}
+MODEL = "models/gemini-3.8-live"
+BACKUP_MODEL = os.environ.get("GEMINI_BACKUP_MODEL", MODEL)
+OPENAI_MODEL = os.environ.get("OPENAI_REALTIME_MODEL", "gpt-realtime-2.1")
+ONBOARDING_TTS_MODEL = "gemini-3.8-flash-tts"
+ONBOARDING_TTS_CACHE = {}
+CURRICULUM = json.loads((ROOT / "curriculum.json").read_text(encoding="utf-8"))
+PROGRAMS = [{"id": "foundation", "title": "تأسيس من الصفر", "units": CURRICULUM["units"]}
+            ] + CURRICULUM.get("programs", [])
+LESSONS = {lesson["id"]: (program, unit, lesson)
+           for program in PROGRAMS for unit in program["units"] for lesson in unit["lessons"]}
+TOOL_DECLARATIONS = [{
+    "name": "show_math_scene",
+    "description": "اعرضي نشاط الماث على الشاشة. بعد استدعاء الأداة، التزمي حرفياً بحقل visualState في النتيجة: لا تذكري أي جسم أو لون أو عدد غير وارد فيه. في الطرح انتظري التفاعل قبل ذكر المتبقي، وفي الجمع انتظري ضغط الإضافة.",
+    "parameters": {
+        "type": "OBJECT",
+        "properties": {
+            "lesson_id": {"type": "STRING"},
+            "scene": {"type": "STRING", "enum": ["objects", "addition", "subtraction", "comparison", "place_value", "shapes", "pattern", "measurement", "daily_time", "number_line"]},
+            "object": {"type": "STRING", "enum": ["cookie", "apple", "block", "ball", "flower", "fish", "car", "star"]},
+            "second_object": {"type": "STRING", "enum": ["cookie", "apple", "block", "ball", "flower", "fish", "car", "star"]},
+            "count": {"type": "INTEGER"},
+            "amount": {"type": "INTEGER"},
+            "second_count": {"type": "INTEGER"},
+            "numbers": {"type": "ARRAY", "items": {"type": "INTEGER"}},
+            "target_number": {"type": "INTEGER"},
+            "shape": {"type": "STRING", "enum": ["circle", "square", "triangle", "rectangle", "sphere", "cube", "cylinder"]},
+            "shapes": {"type": "ARRAY", "items": {"type": "STRING", "enum": ["circle", "square", "triangle", "rectangle", "sphere", "cube", "cylinder"]}},
+            "sequence": {"type": "ARRAY", "items": {"type": "STRING", "enum": ["red", "blue", "yellow", "green", "circle", "square", "triangle", "star"]}},
+            "equation": {"type": "STRING"},
+        },
+        "required": ["lesson_id", "scene"],
+    },
+}, {
+    "name": "record_lesson_mastery",
+    "description": "سجلي الإتقان فقط بعد التحقق من إجابتين مستقلتين صحيحتين. أرسلي نص الإجابتين كما قالت الطفلة في evidence وعدد الإجابات الصحيحة في correct_responses. لا تستدعيها للتشجيع أو التخمين.",
+    "parameters": {
+        "type": "OBJECT",
+        "properties": {
+            "lesson_id": {"type": "STRING"},
+            "correct_responses": {"type": "INTEGER"},
+            "evidence": {"type": "ARRAY", "items": {"type": "STRING"}},
+        },
+        "required": ["lesson_id", "correct_responses", "evidence"],
+    },
+}, {
+    "name": "record_lesson_answer",
+    "description": "حدّثي الشريط ونتيجة الدرس بعد كل إجابة واضحة تم تقييمها فعلياً. أرسلي الإجابة المسموعة وحقيقتها؛ لا تخمّني ولا تسجلي غير الواضح.",
+    "parameters": {"type": "OBJECT", "properties": {
+        "lesson_id": {"type": "STRING"}, "answer": {"type": "STRING"}, "is_correct": {"type": "BOOLEAN"}, "question_number": {"type": "INTEGER"},
+    }, "required": ["lesson_id", "answer", "is_correct"]},
+}, {
+    "name": "start_next_lesson",
+    "description": "ابدئي الدرس التالي غير المتقن فقط عندما تطلب الطفلة ذلك صراحة أو توافق على عرضه. ستحدّث الأداة الصور وتعيد currentLesson وvisualState الجديدين؛ لا تبدئي الشرح قبل النتيجة.",
+    "parameters": {"type": "OBJECT", "properties": {"lesson_id": {"type": "STRING"}}, "required": ["lesson_id"]},
+}, {
+    "name": "open_parent_picker",
+    "description": "أوقفي المحادثة وافتحي إعدادات ولي الأمر لاختيار درس أو اختبار باللمس عندما تقول الطفلة إنها تريد من ماما الاختيار أو عندما يطلب المتحدث صراحةً تغيير الدرس كولي أمر. لا تحاولي التحقق من هوية الصوت.",
+    "parameters": {"type": "OBJECT", "properties": {}},
+}, {
+    "name": "record_lesson_test_result",
+    "description": "احفظي نتيجة الاختبار بعد الأسئلة الخمسة فقط. أرسلي لكل سؤال الإجابة المسموعة وتقييم صحتها في question_results؛ لا تحتسبي المحاولة أو الإجابة غير الواضحة صحيحة.",
+    "parameters": {
+        "type": "OBJECT",
+        "properties": {
+            "lesson_id": {"type": "STRING"},
+            "question_results": {"type": "ARRAY", "items": {"type": "OBJECT", "properties": {"question": {"type": "STRING"}, "answer": {"type": "STRING"}, "correct_answer": {"type": "STRING"}, "is_correct": {"type": "BOOLEAN"}}, "required": ["question", "answer", "correct_answer", "is_correct"]}},
+            "total_questions": {"type": "INTEGER"},
+        },
+        "required": ["lesson_id", "question_results", "total_questions"],
+    },
+}]
+
+
+def teacher_instructions(lesson_id, mode="lesson", already_mastered=False, excellence_count=0, teacher_settings=None):
+    teacher_settings = teacher_settings or {}
+    pace = teacher_settings.get("speechPace", "slow")
+    hint_level = teacher_settings.get("hintLevel", "gentle")
+    repeat_words = teacher_settings.get("repeatWords", True)
+    found = LESSONS.get(lesson_id)
+    is_math = bool(found and found[0].get("subject") == "math")
+    if found:
+        program, unit, lesson = found
+        lesson_context = (f"المسار الحالي: {program['title']}. الوحدة: {unit['title']}. "
+                          f"اسم الدرس: {lesson.get('title', lesson['focus'])}. "
+                          f"نوع النشاط: {lesson.get('strand', 'تأسيس')}. "
+                          f"التركيز: {lesson['focus']}. "
+                          f"الهدف: {lesson['goal']}.")
+        if not is_math:
+            lesson_context += f" الصور المتاحة: {', '.join(card[1] for card in lesson['cards'])}."
+        board_words = [token["text"] for token in lesson.get("board", {}).get("tokens", [])]
+        if board_words and not is_math:
+            lesson_context += f" الكلمات والجمل المعروضة على اللوحة الملونة: {'، '.join(board_words)}."
+    else:
+        lesson_context = "ابدئي مراجعة مرنة للطفلة، واسألي ولي الأمر عن الدرس الذي يريده."
+    if mode == "test":
+        flow_instructions = (
+            "هذه جلسة اختبار شفهي للدرس الحالي، وليست شرح الدرس. ابدئي بتمهيد مرح قصير، ثم اطرحي خمسة أسئلة فقط، سؤالاً واحداً في كل مرة وانتظري الإجابة. "
+            "قبل طرح كل سؤال حددي لنفسك الإجابة المقبولة بوضوح وتحققي من أنها تطابق هدف الدرس. استخدمي أسئلة لها إجابة محددة، ولا تعرضي الإجابة ولا تعطي تلميحاً قبل المحاولة الأولى. "
+            "في الاختبار الشفهي، إذا لمست الطفلة صورة فلا تعتبري اللمسة إجابة ولا تسجليها في النتيجة. علقي بصوتك على محاولتها فقط، انطقي الكلمة أو السؤال المرتبط بالصورة واطلبي منها الإجابة بصوتها؛ انتظري كلامها ثم قيّميه. لا تقولي إن الإجابة صحيحة لمجرد أنها لمست الصورة. بعد كل إجابة منطوقة وواضحة استدعي record_lesson_answer مرة واحدة بالإجابة التي قالتها ونتيجة التحقق ورقم السؤال؛ انتظري تحديث الشريط ثم تابعي. إذا لم تفهمي كلامها أو كان التعرف الصوتي غير مؤكد، اطلبي منها تكراره ولا تسجليه صح أو غلط حتى يتضح. "
+            "في مسائل الماث احسبي الحل بنفسك قبل تأكيد الإجابة، وعدّي العناصر واحدة واحدة؛ لا توافقي على رقم لمجرد أنه قريب أو لأنها قالت الرقم بثقة. "
+            "في النهاية قولي النتيجة بصوت مشجع، ثم استدعي record_lesson_test_result مرة واحدة مستخدمة lesson_id الحالي وtotal_questions يساوي خمسة وquestion_results فيها خمسة عناصر بالترتيب. لكل سؤال أرسلي نص السؤال كما طرحتيه، وإجابة الطفلة كما سمعتيها، والإجابة الصحيحة المحددة، وis_correct يساوي true فقط عند المطابقة الفعلية. لا تستدعي record_lesson_mastery في الاختبار ولا تغيّري تقدم الدرس. "
+            "لو حكت الطفلة شيئاً خارج السؤال، ردي باهتمام بجملة قصيرة ثم اربطيه بسؤال الاختبار بلطف. إذا بدت متضايقة أوقفي الأسئلة وطمّنيها؛ لا تضغطي عليها لإكمال الاختبار. "
+        )
+        if is_math:
+            flow_instructions += "قبل كل سؤال في اختبار الماث اعرضي مشهداً مناسباً بأداة show_math_scene من غير إظهار الناتج الصحيح؛ خلي الطفلة تعد أو تلمس أو تقارن بنفسها. "
+    else:
+        flow_instructions = (
+            "تحققي من كل إجابة بمقارنتها بهدف الدرس والإجابة المطلوبة قبل الرد. لا تقولي برافو أو صح أو ممتاز على إجابة خاطئة أو غير واضحة؛ افصلي تشجيع المحاولة عن صحة الإجابة: عند الخطأ قولي مثلاً «حلو إنك حاولتي، بس الإجابة مش كده»، ثم قدمي التصحيح بلطف وامنحيها فرصة تجريب ثانية. إذا لم تفهميها اطلبي إعادة الإجابة ولا تفترضي أنها صحيحة. "
+            "لا تعتبري ضغط الصورة أو لمس أي شيء على الشاشة إجابة، ولا تحركي شريط التقدم بسببه. عند لمس صورة، ردي فوراً بصوت لولو بجملة لطيفة تشجع المحاولة ولا تحكم على صحتها، مثل «برافو على اختيارك، حاولي تقوليها معايا». انطقي الكلمة الإنجليزية المرتبطة بالصورة من سياق الدرس، ثم انتظري إجابة الطفلة بصوتها. في الماث، اللمس وسيلة للعد أو التحريك فقط؛ بعده اطلبي منها أن تقول العدد أو الحل بصوتها. بعد كل إجابة منطوقة وواضحة، قولي الحكم بوضوح في صوتك: «إجابتك صح» إذا كانت صحيحة، أو «الإجابة مش كده» إذا كانت خاطئة، ثم استدعي record_lesson_answer مرة واحدة مستخدمة كلام الطفلة المسموع ونتيجة التحقق ورقم السؤال المتتابع، وانتظري تحديث الشريط قبل المتابعة. لا تسجلي اللمسات أو الكلام الجانبي أو الإجابة غير الواضحة كإجابة. "
+            "اجعلي الدرس قصيراً: فكرة واحدة وشرح بسيط، ثم سؤال واحد في كل مرة. أعيدي الشرح مرة واحدة فقط إذا لم تفهم. أداة record_lesson_answer تعيد في mastery.saved نتيجة الإتقان تلقائياً بعد إجابتين مستقلتين صحيحتين؛ إذا كان mastery.saved=true فلا تستدعي أداة إتقان أخرى. إذا أعادت mastery.rewardGame، قولي للطفلة جملة التوجيه الموجودة حرفياً في rewardGame.voicePrompt عن اللعبة الظاهرة، واستني لحد ما التطبيق يقول إن اللعبة انتهت قبل سؤال ماما. لا تعيدي الدرس أثناء اللعبة. إذا أعادت mastery.excellenceAwarded رقماً، افرحي بها وقولي بوضوح إنها كسبت شارة تفوق جديدة، ثم اسأليها عن ماما من غير إعادة الدرس. استدعي record_lesson_mastery فقط إذا احتجتِ تسجيل الإتقان ولم تُعد أداة الإجابة نتيجة mastery.saved. لا تكرري الشرح أو التدريب بعد تحقق الهدف. "
+            "لا تعلني الإتقان إلا إذا أعادت الأداة saved=true؛ عندها افرحي بها بجملة قصيرة وقولي حرفياً: «الدرس ده خلصناه! تحبي تخلي ماما تختارلك درس تاني؟» وانتظري اختيارها، ولا تبدئي التالي تلقائياً. إذا طلبت الطفلة الدرس التالي بنفسها، استدعي start_next_lesson ثم اتبعي بيانات الدرس والصور الجديدة. إذا لم يوجد درس تالٍ أو رفضت الطفلة الاختيار، قولي حرفياً: «ادي التليفون لماما وقوليلها: لولو قالتلي إني خلصت الدرس ده، واختاريلي درس تاني». عندما تقول الطفلة إن ماما جاهزة أو يقول المتحدث صراحة إنه ولي الأمر ويريد الاختيار، استدعي open_parent_picker لفتح قائمة ولي الأمر. لا تدّعي أنك تعرفين الأم من بصمة الصوت أو هوية المتحدث؛ اعتمدي فقط على طلب الاختيار الصريح. "
+        )
+    board_instructions = (
+        ("في اختبار الماث استخدمي العناصر المعروضة فقط، وعند الحاجة لمشهد مختلف استدعي show_math_scene وانتظري visualState؛ لا تذكري أي عنصر أو عدد حتى يظهر في الحالة. " if is_math else
+         "في الاختبار لا تعتمدي على لوحة الكلمات الملونة لأنها مخفية؛ اعتمدي على أسئلة مسموعة وصور الاختيارات فقط. ")
+        if mode == "test" else
+        ("استخدمي مساحة اللعب الظاهرة فقط؛ اللوحة الملونة وبطاقات الصور مخفية في درس الماث. اشرحي ما تراه الطفلة حرفياً، ولا تطلبي قراءة رقم أو كتابة. استجيبي للمس العنصر الظاهر نفسه. " if is_math else
+         "استخدمي لوحة الكلمات الملونة على الشاشة كوسيلة شرح: انطقي الكلمات المعروضة واحدة واحدة، واربطي لون كل جزء بدوره في الجملة بكلام بسيط، من غير أن تطلبي من الطفلة القراءة. استجيبي للنقر على كلمة بإعادة نطقها وشرحها. ")
+    )
+    subject_instruction = (
+        "أنتِ لولو، معلمة ماث للصف الأول لغات وطفلة مصرية عمرها 6 سنوات تبدأ من الصفر. اشرحي بالمصري البسيط، وقدمي المصطلح الرياضي بالإنجليزية ثم معناه بالمصري مثل more/less/add/take away. "
+        "المسار يبدأ بوحدات تأسيس العدّ والكمية والأشكال، وبعدها ينتقل تدريجياً لموضوعات الصف الأول؛ لا تقفزي إلى الجمع أو الطرح قبل تثبيت الفهم المحسوس. "
+        "استخدمي فقط العناصر التي يعرضها التطبيق فعلياً في الحالة المرئية؛ لا تخترعي مكعبات أو أشياء أو رسومات غير معروضة. سؤال واحد في كل مرة، وانتظري إجابة الطفلة. لا تعتمدي على القراءة أو الكتابة أو حفظ الرموز؛ خلي الإجابة بالعد بصوتها أو لمس عنصر ظاهر. "
+        if is_math else
+        "أنتِ لولو، معلمة إنجليزي صوتية لطفلة مصرية عمرها 6 سنوات تبدأ من الصفر. "
+    )
+    teaching_style = (
+        "في الرياضيات ابدئي بموقف محسوس قبل الرمز، واطلبي منها أن تعدّ أو تختار صورة؛ لا تحولي الدرس لمحاضرة ولا تعطي أكثر من خطوة في السؤال. ابدئي بالتفاعل مع المشهد الموجود بالفعل على الشاشة؛ لا تستدعي show_math_scene إلا إذا انتقل الدرس لنشاط بصري مختلف أو لم يوجد مشهد. اجعلي الشيء والعدد اللذين تقولينهما مطابقين تماماً لما يظهر، ولا تبدلي البسكويت بمكعبات. علقي باختصار على كل لمسة أو حركة تصل إليك، لكن لا تعتبريها إجابة أو تقدماً؛ اطلبي من الطفلة أن تقول بصوتها اسم الشكل أو العدد أو الناتج بعد أن تلمس أو تعد. في الطرح اطلبي منها لمس الأشياء التي تريد أخذها ولا تقولي كم بقي إلا بعد التفاعل، ثم اطلبي منها قول الباقي. في الجمع لا تحدثي العدد المنطوق إلا بعد ضغطها الإضافة، ثم اسأليها كم صار المجموع. إذا لم يظهر المشهد فلا تصفي أشياء غير موجودة على الشاشة. "
+        if is_math else
+        "في الجرامر، لا تشرحي قواعد مجردة؛ استخدمي أمثلة قصيرة وصوراً ومواقف. في الفونكس، انطقي الصوت الإنجليزي بوضوح واربطِيه بكلمات مألوفة؛ لا تطلبي اسم الحرف أو قراءته أو كتابته. إذا وجدتِ صعوبة، ارجعي لشرح أبسط بالعربي المصري ثم جربي مرة أخرى. "
+    )
+    replay_instructions = (
+        f"هذا الدرس متقن مسبقاً، ولديها {excellence_count} شارات تفوق. ابدئي بسؤالها بصوتك هل تريد إعادة الدرس؛ انتظري موافقة واضحة ولا تسجلي جواب نعم/لا كتقييم. إذا وافقت، قدمي مراجعة قصيرة ثم اسألي سؤالاً واحداً في كل مرة وسجلي الإجابات المنطوقة كالمعتاد. إذا لم توافق، لا تشرحي ولا تكملي الأسئلة؛ قولي لها تسلم الهاتف لماما لتختار درساً آخر. لا تعلني إتقاناً جديداً قبل إجابتين صحيحتين مستقلتين. "
+        if already_mastered and mode == "lesson" else ""
+    )
+    return (
+        subject_instruction
+        + "اسمك لولو. "
+        "صوت لولو ثابت طول الجلسة: بنت صغيرة بصوت أنثوي شاب، دافئ ومرح وواضح، بسرعة هادئة. استخدمي نفس الشخصية والنبرة في كل الردود، ولا تنتقلي لصوت رجالي أو تقلدي أصواتاً مختلفة عند تمثيل الشخصيات. "
+        "أجيبي بلهجة مصرية واضحة، واستمعي لكلام الطفلة كاملاً وافهمي المعنى من السياق حتى لو بدّلت بين العربي والإنجليزي. "
+        "استخدمي جمل مصرية قصيرة، وكلمات إنجليزية سهلة وبطيئة. الطفلة لا تقرأ أو تكتب: لا تطلبي منها القراءة أو التهجئة أو النظر إلى كلمات مكتوبة. "
+        "ابدئي الكلام فور اتصال الجلسة؛ لا تنتظري أن تتكلم الطفلة أولاً. افتحي بترحيب وشرح صوتي قصير مرتبط بالدرس والصور الظاهرة، ثم سؤال بسيط يساعدها تبدأ. اجعلي الدرس لقيمات قصيرة: فكرة واحدة، شرح من جملتين بحد أقصى، وسؤال واحد في كل مرة. أعيدي الشرح بصياغة واحدة فقط إذا احتاجت. بعد تحقق الهدف لا تكرري الدرس؛ احتفلي واسأليها إذا تحب التالي وانتظري اختيارها. "
+        "شجعي المحاولة بصدق، لكن لا تخلطي التشجيع بالحكم على صحة الإجابة. يمكنك مدح تفاعلها مع الصور بقول «حلو اختيارك» أو «برافو على المحاولة» من غير أن تقولي إن الإجابة صحيحة. كلمة «صح» أو «إجابة ممتازة» لا تقوليها إلا بعد إجابة منطوقة صحيحة ومتحققة؛ في الإجابة الخاطئة وضحي الخطأ بلطف وامنحيها فرصة ثانية. "
+        "كوني معلمة فعلية: راجعي ما سبق، اختبري الفهم شفهياً، وقدّمي تلميحاً عند الحاجة. "
+        "لو حكت شيئاً خارج الدرس، اهتمي بكلامها وردي عليه بصدق وبجملة أو جملتين، واسألي سؤال متابعة بسيطاً إذا كانت متحمسة للحكي. في الماث لا تحولي الشيء الذي تحكي عنه إلى عنصر مرئي ولا تدّعي ظهوره؛ ارجعي بلطف إلى العناصر الموجودة فعلياً في الحالة المرئية. لو استمرت في الحكي، خدي معها عدة تبادلات قصيرة ثم ادعيها برفق للنشاط الظاهر. لو بدت حزينة أو قلقة، اسمعيها وطمّنيها قبل التعليم. لا تسألي عن الاسم الكامل أو العنوان أو المدرسة أو أي بيانات شخصية، ولا تقدمي محتوى مخيفاً. "
+        "لا تقولي إنك إنسانة؛ أنتِ لولو المساعدة داخل التطبيق. تكلمي بالصوت فقط ولا تطلبي منها قراءة نص. "
+        + teaching_style
+        + board_instructions
+        + flow_instructions
+        + ("تحدثي ببطء شديد، بجمل قصيرة، واتركي وقفات واضحة بين الكلمات الإنجليزية. " if pace == "slow" else "تحدثي بإيقاع طبيعي هادئ مع جمل قصيرة. ")
+        + ("إذا تعثرت الطفلة، ابدئي بتلميح بسيط ثم مثال بصري واحد فقط قبل المحاولة الثانية. " if hint_level == "gentle" else "قدمي تلميحاً تدريجياً، ثم قسمي المطلوب لخطوات أصغر، من غير إعطاء الإجابة مباشرة. ")
+        + ("كرري نطق الكلمة الإنجليزية الجديدة مرتين بوضوح، ثم دعيها تحاول. " if repeat_words else "انطقي الكلمة الإنجليزية الجديدة مرة بوضوح ثم دعيها تحاول. ")
+        + lesson_context
+        + replay_instructions
+        + "بعد إجابة الطفلة ابدئي الرد فوراً بجملة قصيرة مرتبطة بما قالت. لا تعيدي مقدمة الدرس ولا تشرحي أكثر من خطوة واحدة قبل السؤال التالي. "
+        + "عند استدعاء start_next_lesson انتظري نتيجتها قبل بدء الشرح. بعد أن تعيد currentLesson اعتبريه الدرس الحالي فوراً وابدئي باسمه وهدفه. في الماث التزمي بـvisualState الجديد حرفياً؛ وفي الإنجليزي استخدمي الصور المعادة فقط. أوقفي شرح الدرس السابق عند التبديل. "
+        + "عند استدعاء open_parent_picker سيتوقف الصوت وتُفتح إعدادات ولي الأمر؛ قولي جملة قصيرة للطفلة تسلم فيها الهاتف لماما، ولا تواصلي الدرس بعدها. "
+        + ("مصدر الحقيقة الوحيد عن الشاشة هو الحالة المرئية الدقيقة التي يرسلها التطبيق. لا تعتمدي على بطاقات المنهج أو أمثلة تتذكرينها لتحديد ما هو ظاهر. لا تذكري أو تصفي أي عنصر أو لون أو رقم أو كمية غير موجودة في الحالة المرئية. إذا احتجتِ تغيير النشاط، استدعي show_math_scene، انتظري نتيجة الأداة، ثم تكلمي فقط عن visualState الذي أعادته. " if is_math else "")
+    )
+
+
+def live_config(lesson_id, mode="lesson", already_mastered=False, excellence_count=0, teacher_settings=None):
+    return {
+        "generationConfig": {
+            "responseModalities": ["AUDIO"],
+            "speechConfig": {"voiceConfig": {"prebuiltVoiceConfig": {"voiceName": "Leda"}}},
+        },
+        "realtimeInputConfig": {"automaticActivityDetection": {"disabled": False, "silenceDurationMs": 400}},
+        "systemInstruction": {"parts": [{"text": teacher_instructions(lesson_id, mode, already_mastered, excellence_count, teacher_settings)}]},
+        "tools": [{"functionDeclarations": TOOL_DECLARATIONS}],
+        "inputAudioTranscription": {},
+        "outputAudioTranscription": {},
+        "sessionResumption": {},
+    }
+
+
+class Handler(BaseHTTPRequestHandler):
+    def send_json(self, status, value):
+        data = json.dumps(value, ensure_ascii=False).encode()
+        self.send_response(status)
+        self.send_header("Content-Type", "application/json; charset=utf-8")
+        self.send_header("Cache-Control", "no-store")
+        self.send_header("Content-Length", str(len(data)))
+        self.end_headers()
+        self.wfile.write(data)
+
+    def do_POST(self):
+        if self.path == "/api/provider-token":
+            return self.create_provider_token()
+        if self.path == "/api/onboarding-audio":
+            return self.create_onboarding_audio()
+        return self.send_json(404, {"error": "Not found"})
+
+    def create_onboarding_audio(self):
+        if not GEMINI_API_KEY:
+            return self.send_json(503, {"error": "صوت لولو الترحيبي غير متاح حالياً."})
+        try:
+            length = int(self.headers.get("Content-Length", "0"))
+            if length > 1000:
+                return self.send_json(400, {"error": "الطلب غير صالح."})
+            body = json.loads(self.rfile.read(length) or b"{}")
+        except (ValueError, json.JSONDecodeError):
+            return self.send_json(400, {"error": "الطلب غير صالح."})
+        step = body.get("step")
+        scripts = {
+            "welcome": "أهلاً يا بطلة! أنا لولو، معلمتك وصاحبتك في رحلة التعلم. هنتعلم الإنجليزي والماث باللعب والصور، وهكلمك بالمصري وأسمع إجابتك وأساعدك خطوة خطوة. مش محتاجة تقرأي أو تكتبي، اتكلمي معايا براحتك!",
+            "howto": "هنختار درس صغير، وبعدها نضغط ابدئي مع لولو. أنا هبدأ الكلام وأشرحلك، وإنتي جاوبيني بصوتك أو المسي الصور اللي على الشاشة. لو محتاجة مساعدة هديكي تلميح، وكل ما تخلصي درس هتلاقي نجمة، وتقدري تختاري درس أو اختبار تاني من إعدادات ولي الأمر.",
+            "course": "ولي الأمر يختار الصف والمنهج المناسبين، وبعدها نبدأ من التأسيس أو الدرس التالي. تقدري ترجعي للجولة دي من زر المساعدة في أي وقت.",
+        }
+        if step not in scripts:
+            return self.send_json(400, {"error": "الخطوة غير معروفة."})
+        if step in ONBOARDING_TTS_CACHE:
+            return self.send_json(200, ONBOARDING_TTS_CACHE[step])
+        payload = {
+            "model": ONBOARDING_TTS_MODEL,
+            "input": [{"type": "user_input", "content": [{
+                "type": "text", "text": scripts[step],
+                "annotations": [{"type": "speech_metadata", "style": "warm, cheerful, gentle young female teacher speaking Egyptian Arabic clearly and naturally"}],
+            }]}],
+            "response_format": {"type": "audio"},
+            "generation_config": {"speech_config": [{"voice": "Kore"}]},
+        }
+        request = Request(
+            "https://generativelanguage.googleapis.com/v1beta/interactions",
+            data=json.dumps(payload, ensure_ascii=False).encode(),
+            headers={"x-goog-api-key": GEMINI_API_KEY, "Content-Type": "application/json"},
+            method="POST",
+        )
+        try:
+            with urlopen(request, timeout=30) as response:
+                result = json.loads(response.read())
+            audio = result.get("output_audio", {}).get("data")
+            if not audio:
+                for step_result in result.get("steps", []):
+                    if step_result.get("type") != "model_output":
+                        continue
+                    for item in step_result.get("content", []):
+                        if item.get("type") == "audio" and item.get("data"):
+                            audio = item["data"]
+            if not audio:
+                return self.send_json(502, {"error": "لولو مش قادرة تطلع الصوت الترحيبي دلوقتي."})
+            response_data = {"audio": audio, "mimeType": "audio/wav"}
+            ONBOARDING_TTS_CACHE[step] = response_data
+            self.send_json(200, response_data)
+        except HTTPError as error:
+            print("Gemini onboarding TTS rejected:", error.code)
+            self.send_json(502, {"error": "تعذر تجهيز صوت لولو الترحيبي."})
+        except (URLError, TimeoutError, json.JSONDecodeError) as error:
+            print("Gemini onboarding TTS request failed:", type(error).__name__)
+            self.send_json(502, {"error": "الاتصال تأخر في تجهيز صوت لولو."})
+
+    def create_provider_token(self):
+        try:
+            length = int(self.headers.get("Content-Length", "0"))
+            if length > 2000:
+                return self.send_json(400, {"error": "الطلب غير صالح."})
+            body = json.loads(self.rfile.read(length) or b"{}")
+        except (ValueError, json.JSONDecodeError):
+            return self.send_json(400, {"error": "الطلب غير صالح."})
+        lesson_id = body.get("lessonId", "")
+        mode = body.get("mode", "lesson")
+        already_mastered = body.get("alreadyMastered") is True
+        try:
+            excellence_count = max(0, int(body.get("excellenceCount", 0)))
+        except (TypeError, ValueError):
+            excellence_count = 0
+        provider = body.get("provider", "gemini")
+        raw_settings = body.get("teacherSettings") if isinstance(body.get("teacherSettings"), dict) else {}
+        teacher_settings = {
+            "speechPace": raw_settings.get("speechPace") if raw_settings.get("speechPace") in {"slow", "normal"} else "slow",
+            "hintLevel": raw_settings.get("hintLevel") if raw_settings.get("hintLevel") in {"gentle", "guided"} else "gentle",
+            "repeatWords": raw_settings.get("repeatWords") is not False,
+        }
+        if mode not in {"lesson", "test"}:
+            return self.send_json(400, {"error": "نوع الجلسة غير معروف."})
+        if lesson_id not in LESSONS and lesson_id != "course-complete":
+            return self.send_json(400, {"error": "الدرس غير موجود في المسار."})
+        if provider == "openai":
+            if not OPENAI_ENABLED:
+                return self.send_json(503, {"error": "OpenAI متوقف مؤقتاً."})
+            return self.create_openai_token(lesson_id, mode, already_mastered, excellence_count, teacher_settings)
+        if provider not in {"gemini", "gemini-backup"}:
+            return self.send_json(400, {"error": "مزود الصوت غير معروف."})
+        api_key = GEMINI_API_KEY if provider == "gemini" else GEMINI_BACKUP_API_KEY
+        if not api_key:
+            return self.send_json(503, {"error": "مفتاح مزود الصوت غير موجود في ملف .env."})
+        model = MODEL if provider == "gemini" else BACKUP_MODEL
+        now = datetime.now(timezone.utc)
+        config = live_config(lesson_id, mode, already_mastered, excellence_count, teacher_settings)
+        payload = {
+            "uses": 1,
+            "expireTime": (now + timedelta(minutes=25)).isoformat().replace("+00:00", "Z"),
+            # Issue the token only after microphone permission is ready in the client;
+            # still leave enough time for slow mobile networks to open the socket.
+            "newSessionExpireTime": (now + timedelta(minutes=5)).isoformat().replace("+00:00", "Z"),
+        }
+        request = Request(
+            "https://generativelanguage.googleapis.com/v1beta/auth_tokens",
+            data=json.dumps(payload).encode(),
+            headers={"x-goog-api-key": api_key, "Content-Type": "application/json"},
+            method="POST",
+        )
+        try:
+            with urlopen(request, timeout=12) as response:
+                result = json.loads(response.read())
+            token = result.get("name")
+            if not token:
+                return self.send_json(502, {"error": "Google لم يرجع رمز جلسة صوتية."})
+            self.send_json(200, {"provider": provider, "token": token, "model": model, "config": config})
+        except HTTPError as error:
+            detail = error.read(1200).decode("utf-8", errors="replace")
+            print("Gemini token rejected:", error.code, detail[:300])
+            self.send_json(502, {"error": "Google رفض المفتاح أو لم يفعّل Gemini Live للمشروع."})
+        except (URLError, TimeoutError, json.JSONDecodeError) as error:
+            print("Gemini token request failed:", type(error).__name__)
+            self.send_json(502, {"error": "تعذر الاتصال بخدمة Gemini."})
+
+    def create_openai_token(self, lesson_id, mode, already_mastered=False, excellence_count=0, teacher_settings=None):
+        if not OPENAI_ENABLED:
+            return self.send_json(503, {"error": "OpenAI متوقف مؤقتاً."})
+        if not OPENAI_API_KEY:
+            return self.send_json(503, {"error": "مفتاح OpenAI غير موجود في ملف .env."})
+        session = {
+            "session": {
+                "type": "realtime", "model": OPENAI_MODEL,
+                "instructions": teacher_instructions(lesson_id, mode, already_mastered, excellence_count, teacher_settings),
+                "audio": {
+                    "input": {"turn_detection": {"type": "server_vad", "silence_duration_ms": 400}},
+                    "output": {"voice": os.environ.get("OPENAI_REALTIME_VOICE", "shimmer")},
+                },
+                "tools": [
+                    {"type": "function", "name": "show_math_scene",
+                     "description": "اعرضي مشهداً بصرياً تفاعلياً للماث قبل الشرح، وطابقي الشيء والعدد المعروضين مع كلامك.",
+                     "parameters": {"type": "object", "properties": {
+                         "lesson_id": {"type": "string"}, "scene": {"type": "string", "enum": ["objects", "addition", "subtraction", "comparison", "place_value", "shapes", "pattern", "measurement", "daily_time", "number_line"]},
+                         "object": {"type": "string", "enum": ["cookie", "apple", "block", "ball", "flower", "fish", "car", "star"]}, "second_object": {"type": "string", "enum": ["cookie", "apple", "block", "ball", "flower", "fish", "car", "star"]},
+                         "count": {"type": "integer"}, "amount": {"type": "integer"}, "second_count": {"type": "integer"},
+                         "numbers": {"type": "array", "items": {"type": "integer"}}, "target_number": {"type": "integer"},
+                         "shape": {"type": "string", "enum": ["circle", "square", "triangle", "rectangle", "sphere", "cube", "cylinder"]},
+                         "shapes": {"type": "array", "items": {"type": "string", "enum": ["circle", "square", "triangle", "rectangle", "sphere", "cube", "cylinder"]}},
+                         "sequence": {"type": "array", "items": {"type": "string", "enum": ["red", "blue", "yellow", "green", "circle", "square", "triangle", "star"]}},
+                         "equation": {"type": "string"}}, "required": ["lesson_id", "scene"]}},
+                    {"type": "function", "name": "record_lesson_mastery",
+                     "description": "سجلي الإتقان فقط بعد التحقق من إجابتين مستقلتين صحيحتين، مع نص الإجابتين المسموعتين.",
+                     "parameters": {"type": "object", "properties": {"lesson_id": {"type": "string"}, "correct_responses": {"type": "integer"}, "evidence": {"type": "array", "items": {"type": "string"}}}, "required": ["lesson_id", "correct_responses", "evidence"]}},
+                    {"type": "function", "name": "record_lesson_answer",
+                     "description": "حدّثي شريط الدرس بعد كل إجابة واضحة تم التحقق منها؛ أرسلي الإجابة المسموعة وصحتها دون تخمين.",
+                     "parameters": {"type": "object", "properties": {"lesson_id": {"type": "string"}, "answer": {"type": "string"}, "is_correct": {"type": "boolean"}, "question_number": {"type": "integer"}}, "required": ["lesson_id", "answer", "is_correct"]}},
+                    {"type": "function", "name": "start_next_lesson",
+                     "description": "ابدئي الدرس التالي غير المتقن فقط بعد طلب الطفلة أو موافقتها؛ أعيدي visualState وبيانات الدرس الجديد قبل شرحه.",
+                     "parameters": {"type": "object", "properties": {"lesson_id": {"type": "string"}}, "required": ["lesson_id"]}},
+                    {"type": "function", "name": "open_parent_picker",
+                     "description": "أوقفي الصوت وافتحي قائمة ولي الأمر عند طلب ماما اختيار درس أو اختبار.",
+                     "parameters": {"type": "object", "properties": {}}},
+                    {"type": "function", "name": "record_lesson_test_result",
+                     "description": "احفظي نتيجة الاختبار بعد الأسئلة الخمسة مع تقييم كل إجابة على حدة.",
+                     "parameters": {"type": "object", "properties": {"lesson_id": {"type": "string"}, "question_results": {"type": "array", "items": {"type": "object", "properties": {"question": {"type": "string"}, "answer": {"type": "string"}, "correct_answer": {"type": "string"}, "is_correct": {"type": "boolean"}}, "required": ["question", "answer", "correct_answer", "is_correct"]}}, "total_questions": {"type": "integer"}}, "required": ["lesson_id", "question_results", "total_questions"]}},
+                ],
+                "tool_choice": "auto",
+            }
+        }
+        request = Request(
+            "https://api.openai.com/v1/realtime/client_secrets",
+            data=json.dumps(session).encode(),
+            headers={"Authorization": f"Bearer {OPENAI_API_KEY}", "Content-Type": "application/json"},
+            method="POST",
+        )
+        try:
+            with urlopen(request, timeout=12) as response:
+                result = json.loads(response.read())
+            token = result.get("value") or result.get("client_secret", {}).get("value")
+            if not token:
+                return self.send_json(502, {"error": "OpenAI لم يرجع مفتاح جلسة صوتية مؤقت."})
+            self.send_json(200, {"provider": "openai", "token": token, "model": OPENAI_MODEL})
+        except HTTPError as error:
+            print("OpenAI realtime token rejected:", error.code)
+            self.send_json(502, {"error": "OpenAI رفض المفتاح أو لم يفعّل Realtime لهذا الحساب."})
+        except (URLError, TimeoutError, json.JSONDecodeError) as error:
+            print("OpenAI realtime token request failed:", type(error).__name__)
+            self.send_json(502, {"error": "تعذر الاتصال بخدمة OpenAI الصوتية."})
+
+    def do_GET(self):
+        path = self.path.split("?", 1)[0]
+        if path == "/api/status":
+            return self.send_json(200, {"providers": [name for name, configured in (("gemini", GEMINI_API_KEY), ("openai", OPENAI_API_KEY and OPENAI_ENABLED), ("gemini-backup", GEMINI_BACKUP_API_KEY)) if configured]})
+        if path == "/favicon.ico":
+            self.send_response(204)
+            self.send_header("Cache-Control", "public, max-age=86400")
+            self.end_headers()
+            return
+        relative = "index.html" if path == "/" else path.lstrip("/")
+        if relative not in {"index.html", "curriculum.json", "pcm-processor.js", "app.js"}:
+            return self.send_json(404, {"error": "Not found"})
+        file = (ROOT / relative).resolve()
+        if ROOT not in file.parents or not file.is_file():
+            return self.send_json(404, {"error": "Not found"})
+        content = file.read_bytes()
+        mime = {".html": "text/html; charset=utf-8", ".json": "application/json; charset=utf-8",
+                ".js": "text/javascript; charset=utf-8"}.get(file.suffix, "application/octet-stream")
+        self.send_response(200)
+        self.send_header("Content-Type", mime)
+        self.send_header("Cache-Control", "no-store")
+        self.send_header("Content-Length", str(len(content)))
+        self.end_headers()
+        self.wfile.write(content)
+
+
+if __name__ == "__main__":
+    print(f"Lolo English is available on http://localhost:{PORT}")
+    ThreadingHTTPServer(("0.0.0.0", PORT), Handler).serve_forever()
