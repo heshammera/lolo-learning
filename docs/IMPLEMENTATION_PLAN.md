@@ -55,3 +55,5 @@ Owner/admin CMS must be a separate responsive web application, never bundled int
 Activity Library is an explicit owner CMS module: searchable, filterable catalog with runtime-derived support, versions, offline/dependency information, configuration fields, interactive examples and target compatibility. Planned entries must never appear publishable. Local prototype precedes secured administration deployment.
 
 Separate admin identity foundation added: operator-only provision, MFA enrollment, role permission contracts, durable known-account lockout, short sessions and audit. HTTP/deployment, global throttling, recovery, CMS actions and security review remain pending.
+
+Local admin web candidate: independent loopback service, MFA login, server-authorized read-only Activity Library, no student deployment. HTTPS production configuration and CMS authoring remain pending.

@@ -40,3 +40,5 @@ First-backup queue promoted at ae98c9e after run 46054696792. User approved inde
 Activity Library candidate: separate admin metadata, runtime-derived support, template drift audit, target compatibility and local-only visual prototype. Not a deployed or authenticated admin CMS. Existing activity registry CI still required before promotion.
 
 Admin identity candidate adds separate admin DB, operator enrollment with encrypted TOTP seed, replay prevention, role policy, revocable short sessions and audit. No admin HTTP surface, account provision or real deployment yet. Prior activity library CI pending.
+
+Admin identity promoted at 0ab2878 after PostgreSQL and Android checks. Separate local admin web candidate: authenticated read-only Activity Library, server-side role checks, HttpOnly cookie, origin guard, local login rate cap. Production HTTPS deployment and all CMS mutation workflows pending.

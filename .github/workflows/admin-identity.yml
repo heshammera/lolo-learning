@@ -5,6 +5,9 @@ on:
     paths:
       - 'admin-src/**'
       - 'tests/test_admin_identity.py'
+      - 'tests/test_admin_web.py'
+      - 'activity-engine.js'
+      - 'activity-pilot.js'
       - 'family_accounts.py'
       - '.github/workflows/admin-identity.yml'
 permissions:
@@ -30,5 +33,8 @@ jobs:
       LOLO_TEST_ADMIN_DATABASE_URL: postgresql://admin_test:disposable-ci-only@127.0.0.1:5432/admin_test
     steps:
       - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
       - run: python3 -m venv .venv && .venv/bin/pip install -r admin-src/requirements.txt
-      - run: .venv/bin/python -m unittest discover -s tests -p 'test_admin_identity.py' -v
+      - run: .venv/bin/python -m unittest discover -s tests -p 'test_admin*.py' -v
