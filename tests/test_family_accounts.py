@@ -107,6 +107,24 @@ class FamilyDatabaseTests(unittest.TestCase):
                 self.assertEqual(request({"action":"children"},a),(200,{"children":[child]}))
                 self.assertEqual(request({"action":"children"},b),(200,{"children":[]}))
                 self.assertEqual(request({"action":"deleteChild","childId":child["id"]},b)[0],404)
+                import uuid
+                from progress_sync import VERSION
+                read={"action":"readProgress","childId":child["id"]}
+                write={"action":"writeProgress","childId":child["id"],"baseRevision":0,"operationId":str(uuid.uuid4()),"snapshot":{"schemaVersion":1,"curriculumVersion":VERSION,"completedLessonIds":["hello-1"],"path":None}}
+                with patch.object(server,"PROGRESS_SYNC_ENABLED",False):
+                    self.assertEqual(request(read,a)[0],503)
+                    self.assertEqual(request(write,a)[0],503)
+                with patch.object(server,"PROGRESS_SYNC_ENABLED",True):
+                    self.assertEqual(request(read)[0],401)
+                    self.assertEqual(request(read,b)[0],404)
+                    self.assertEqual(request(read,a)[1]["revision"],0)
+                    status,initial=request(write,a)
+                    self.assertEqual(status,200)
+                    self.assertEqual(initial["revision"],1)
+                    self.assertEqual(request(write,a),(200,initial))
+                    self.assertEqual(request({**write,"operationId":str(uuid.uuid4())},a)[0],409)
+                    self.assertEqual(request(read,a),(200,initial))
+                    self.assertEqual(request({**write,"baseRevision":1},b)[0],404)
                 self.assertEqual(request({"action":"logout"},a)[0],200)
                 self.assertEqual(request({"action":"children"},a)[0],401)
         finally:
