@@ -3,3 +3,5 @@
 - Candidate: isolated loopback-only web login and read-only Activity Library on verification/admin-web-20261127. CI pending. No internet-facing admin server or live CMS edits.
 
 - CMS draft candidate verification/cms-drafts-20261127; local-only, no production DB changes or publication. Admin web HTTP tests succeeded; latest regression build pending.
+
+- Main 20dbc12 passed admin CI 46058400090 and Android CI 46058400081. Visual editor candidate verification/cms-visual-20261127; browser verification pending. Admin still loopback-only.

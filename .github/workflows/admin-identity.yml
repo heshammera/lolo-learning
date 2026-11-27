@@ -7,6 +7,7 @@ on:
       - 'tests/test_admin_identity.py'
       - 'tests/test_admin_web.py'
       - 'tests/test_cms_drafts.py'
+      - 'tests/admin-visual-browser.cjs'
       - 'activity-engine.js'
       - 'activity-pilot.js'
       - 'family_accounts.py'
@@ -40,3 +41,9 @@ jobs:
       - run: python3 -m venv .venv && .venv/bin/pip install -r admin-src/requirements.txt
       - run: .venv/bin/python -m unittest discover -s tests -p 'test_admin*.py' -v
       - run: .venv/bin/python -m unittest discover -s tests -p 'test_cms_drafts.py' -v
+
+      - name: Admin visual editor browser test (mock API)
+        run: |
+          npm install --prefix "$RUNNER_TEMP/lolo-admin-browser" --no-package-lock --no-save playwright@1.56.1
+          "$RUNNER_TEMP/lolo-admin-browser/node_modules/.bin/playwright" install --with-deps chromium
+          NODE_PATH="$RUNNER_TEMP/lolo-admin-browser/node_modules" node tests/admin-visual-browser.cjs

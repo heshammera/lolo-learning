@@ -1,6 +1,6 @@
 'use strict';
 const $=id=>document.getElementById(id);
-let entries=[],identity=null,generation=0,draftId=null,draftRevision=0,draftBusy=false;
+let entries=[],identity=null,generation=0,draftId=null,draftRevision=0,draftBusy=false,draftBaseline='';
 async function api(path,body){
   const options={credentials:'same-origin',cache:'no-store',redirect:'error'};
   if(body!==undefined)Object.assign(options,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
@@ -50,11 +50,31 @@ async function loadEngine(){
 }
 function clearDrafts(){
   draftId=null;draftRevision=0;$('drafts').hidden=true;$('draftNav').hidden=true;$('draftEditor').hidden=true;
-  $('draftList').replaceChildren();$('draftJson').value='';$('draftStatus').textContent='';
+  $('draftList').replaceChildren();$('draftJson').value='';draftBaseline='';$('visualEditor').replaceChildren();$('draftPreview').hidden=true;$('draftSample').replaceChildren();$('draftStatus').textContent='';
 }
+function canEditDraft(){return !!identity?.permissions.includes('curriculum:edit')&&!draftBusy;}
+function confirmDiscard(){return !$('draftJson').value||$('draftJson').value===draftBaseline||confirm('توجد تغييرات غير محفوظة. هل تريد فتح مسودة أخرى؟');}
+function renderEditor(){
+  $('draftPreview').hidden=true;$('draftSample').replaceChildren();
+  if(!$('draftJson').value){$('visualEditor').replaceChildren();return;}
+  window.LoloCmsEditor.mount($('visualEditor'),{
+    read:()=>JSON.parse($('draftJson').value),
+    write:data=>{$('draftJson').value=JSON.stringify(data,null,2);},
+    library:()=>entries,
+    editable:canEditDraft,
+    preview:a=>{
+      if(!identity?.permissions.includes('curriculum:read'))return;
+      $('draftPreview').hidden=false;
+      if(!window.LoloActivities?.render(a,$('draftSample')))$('draftSample').textContent='راجع إعدادات النشاط قبل المعاينة.';
+      $('draftPreview').scrollIntoView({block:'nearest'});
+    }
+  });
+}
+$('closeDraftPreview').onclick=()=>{$('draftPreview').hidden=true;$('draftSample').replaceChildren();};
 function setDraft(data){
   draftId=data?.id||null;draftRevision=data?.revision||0;
   $('draftJson').value=JSON.stringify(data?.content||{schemaVersion:1,subjectId:'science',gradeId:'grade-1',title:'مسودة علوم',units:[{id:'unit-1',title:'النباتات',lessons:[{id:'lesson-1',title:'احتياجات النبات',goal:'التعرف على احتياجات النبات',activities:[{id:'activity-1',type:'true-false',version:1,prompt:'النبات يحتاج الماء.',config:{answer:true}}]}]}]},null,2);
+  draftBaseline=$('draftJson').value;renderEditor();
 }
 async function loadDrafts(){
   const g=generation;
@@ -62,27 +82,27 @@ async function loadDrafts(){
   $('draftList').replaceChildren();
   for(const d of data.drafts){
     const btn=document.createElement('button');btn.textContent=d.title+' · v'+d.revision;
-    btn.onclick=async()=>{const current=generation;try{if($('draftEditor').hidden||draftBusy)return;draftBusy=true;try{const item=await api('/api/draft/read',{id:d.id});if(current===generation)setDraft(item);}finally{draftBusy=false;}}catch{$('draftStatus').textContent='تعذر فتح المسودة.';}};
+    btn.onclick=async()=>{const current=generation;try{if($('draftEditor').hidden||draftBusy||!confirmDiscard())return;draftBusy=true;try{const item=await api('/api/draft/read',{id:d.id});if(current===generation){draftBusy=false;setDraft(item);}}finally{draftBusy=false;}}catch{$('draftStatus').textContent='تعذر فتح المسودة.';}};
     $('draftList').append(btn);
   }
 }
 $('draftNav').onclick=()=>$('drafts').scrollIntoView({block:'start'});
-$('newDraft').onclick=()=>{if(draftBusy||!identity?.permissions.includes('curriculum:edit'))return;setDraft(null);$('draftStatus').textContent='مسودة جديدة غير محفوظة.';};
+$('newDraft').onclick=()=>{if(draftBusy||!identity?.permissions.includes('curriculum:edit')||!confirmDiscard())return;setDraft(null);$('draftStatus').textContent='مسودة جديدة غير محفوظة.';};
 async function draftAction(save){
   if(draftBusy||!identity?.permissions.includes('curriculum:edit'))return;
-  draftBusy=true;const g=generation;
+  draftBusy=true;$('visualEditor').disabled=true;const g=generation;
   const buttons=[$('checkDraft'),$('saveDraft'),$('newDraft')];buttons.forEach(b=>b.disabled=true);
   try{
     const content=JSON.parse($('draftJson').value);
     const result=await api(save?'/api/draft/save':'/api/draft/check',save?{id:draftId,revision:draftRevision,content}:{content});
     if(g!==generation)return;
-    if(save){draftId=result.id;draftRevision=result.revision;$('draftStatus').textContent='تم حفظ المسودة · إصدار '+draftRevision;await loadDrafts();}
+    if(save){draftId=result.id;draftRevision=result.revision;draftBaseline=$('draftJson').value;$('draftStatus').textContent='تم حفظ المسودة · إصدار '+draftRevision;await loadDrafts();}
     else $('draftStatus').textContent=result.valid?'المحتوى متوافق مع المحرك الحالي؛ لم يُنشر.':result.issues.map(i=>i.code+' — '+i.path).join('\n');
   }catch(e){
     if(g!==generation)return;
     if(e.status===401||e.status===403){await refresh();return;}
     $('draftStatus').textContent=e.status===409?'تم تعديل المسودة من حساب آخر. افتح أحدث نسخة؛ التغييرات المحلية لم تُحفظ.':e.details?.validation?.issues?.map(i=>i.code+' — '+i.path).join('\n')||'تعذر تنفيذ الطلب أو صيغة JSON غير صحيحة.';
-  }finally{draftBusy=false;buttons.forEach(b=>b.disabled=false);}
+  }finally{draftBusy=false;$('visualEditor').disabled=false;buttons.forEach(b=>b.disabled=false);}
 }
 $('checkDraft').onclick=()=>draftAction(false);$('saveDraft').onclick=()=>draftAction(true);
 async function refresh(){
@@ -95,7 +115,7 @@ async function refresh(){
     const canRead=current.permissions.includes('curriculum:read'),canEdit=current.permissions.includes('curriculum:edit');
     $('drafts').hidden=!canRead;$('draftNav').hidden=!canRead;$('draftEditor').hidden=!canRead;$('draftJson').readOnly=!canEdit;$('newDraft').hidden=!canEdit;$('checkDraft').hidden=!canEdit;$('saveDraft').hidden=!canEdit;
     if(!canRead)clearDrafts();
-    else{if(!canEdit){$('draftJson').value='';draftId=null;draftRevision=0;}else if(!$('draftJson').value)setDraft(null);await loadDrafts();if(g!==generation)return;}
+    else{if(!canEdit){$('draftJson').value='';draftBaseline='';draftId=null;draftRevision=0;renderEditor();}else if(!$('draftJson').value)setDraft(null);await loadDrafts();if(g!==generation)return;}
     const allowed=current.permissions.includes('library:read');
     $('library').hidden=!allowed;$('libraryNav').hidden=!allowed;
     if(!allowed){entries=[];$('cards').replaceChildren();$('sample').replaceChildren();return;}
@@ -105,7 +125,7 @@ async function refresh(){
     $('total').textContent=entries.length;$('implemented').textContent=entries.filter(e=>e.status==='implemented').length;$('planned').textContent=entries.filter(e=>e.status==='planned').length;
     $('category').replaceChildren(new Option('كل الأقسام',''));
     for(const [id,label] of new Map(entries.map(e=>[e.category,e.categoryLabel])))$('category').append(new Option(label,id));
-    render();
+    render();renderEditor();
   }catch(e){if(g===generation)clear(e.status===401?'سجّل الدخول للمتابعة.':'تعذر تحميل لوحة الإدارة.');}
 }
 $('loginForm').addEventListener('submit',async e=>{

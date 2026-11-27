@@ -44,3 +44,5 @@ Admin identity candidate adds separate admin DB, operator enrollment with encryp
 Admin identity promoted at 0ab2878 after PostgreSQL and Android checks. Separate local admin web candidate: authenticated read-only Activity Library, server-side role checks, HttpOnly cookie, origin guard, local login rate cap. Production HTTPS deployment and all CMS mutation workflows pending.
 
 CMS draft candidate: server-validated structured drafts, role-checked read/edit, atomic revisions, basic JSON template editor. No publication or learner delivery. Full visual editing, review/versioning, client capability compatibility and all remaining V2 requirements pending.
+
+CMS draft foundation promoted at 20dbc12 after admin and Android checks. Visual editor candidate: no-code unit/lesson/activity editing with all seven runtime configs and preview, save/check against existing backend. Publishing, taxonomy management, client delivery and remaining types pending.

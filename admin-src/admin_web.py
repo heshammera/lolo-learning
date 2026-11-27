@@ -16,7 +16,8 @@ ROOT = Path(__file__).resolve().parent
 COOKIE = "lolo_admin_session"
 ASSETS = {"/":("index.html","text/html; charset=utf-8"),
            "/admin.css":("admin.css","text/css; charset=utf-8"),
-           "/admin.js":("admin.js","text/javascript; charset=utf-8")}
+           "/admin.js":("admin.js","text/javascript; charset=utf-8"),
+           "/cms-editor.js":("cms-editor.js","text/javascript; charset=utf-8")}
 CSP = "default-src 'none'; script-src 'self'; style-src 'self'; connect-src 'self'; img-src 'self'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'; object-src 'none'"
 
 

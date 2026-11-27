@@ -1,0 +1,52 @@
+const assert=require('node:assert/strict');
+const fs=require('node:fs'),path=require('node:path');
+const {chromium}=require('playwright');
+const library=require('../admin-src/activity-library.cjs');
+const validator=require('../admin-src/cms-validate.cjs');
+(async()=>{
+ const browser=await chromium.launch({headless:true});
+ try{
+  const page=await browser.newPage({viewport:{width:1280,height:900}});const errors=[];let saved=null,revision=0;
+  page.on('pageerror',e=>errors.push(e.message));page.on('dialog',d=>d.accept());
+  await page.route('http://127.0.0.1:4180/**',async route=>{
+    const url=new URL(route.request().url()).pathname;
+    const files={'/':'admin-src/web/index.html','/admin.css':'admin-src/web/admin.css','/admin.js':'admin-src/web/admin.js','/cms-editor.js':'admin-src/web/cms-editor.js','/activity-engine.js':'activity-engine.js'};
+    if(files[url])return route.fulfill({path:path.resolve(__dirname,'..',files[url]),contentType:url==='/'?'text/html':url.endsWith('.css')?'text/css':'application/javascript'});
+    if(url==='/api/session')return route.fulfill({json:{role:'content-manager',permissions:['library:read','curriculum:read','curriculum:edit']}});
+    if(url==='/api/library')return route.fulfill({json:{activities:library.query()}});
+    if(url==='/api/drafts')return route.fulfill({json:{drafts:saved?[{id:'test-draft',revision,title:saved.title}]:[]}});
+    if(url==='/api/draft/read')return route.fulfill({json:{id:'test-draft',revision,content:saved}});
+    const body=route.request().postDataJSON();
+    if(url==='/api/draft/check')return route.fulfill({json:validator.validate(body.content)});
+    if(url==='/api/draft/save'){const result=validator.validate(body.content);assert.equal(result.valid,true,JSON.stringify(result));saved=body.content;revision++;return route.fulfill({json:{saved:true,id:'test-draft',revision}});}
+    return route.fulfill({status:404,json:{}});
+  });
+  await page.goto('http://127.0.0.1:4180/');
+  const editor=page.locator('#visualEditor');await editor.getByRole('button',{name:'إضافة النشاط',exact:true}).waitFor();
+  await editor.getByLabel('اسم المنهج',{exact:true}).fill('منهج العلوم التجريبي');
+  const picker=editor.getByLabel('إضافة نشاط من المكتبة',{exact:true}).first();
+  await page.waitForFunction(()=>document.querySelector('#visualEditor select[disabled]')===null&&Array.from(document.querySelectorAll('#visualEditor select')).some(s=>Array.from(s.options).some(o=>o.value==='choice')));
+  for(const type of ['choice','multi-choice','sequence','match','numeric','classify']){
+   await picker.selectOption(type);await editor.getByRole('button',{name:'إضافة النشاط',exact:true}).first().click();
+  }
+  assert.equal(await editor.locator('.cms-activity').count(),7);
+  const choice=editor.locator('[data-activity-type="choice"]');
+  await choice.getByLabel('السؤال أو التعليمات').fill('اختاري الماء');
+  await choice.getByRole('button',{name:'معاينة النشاط'}).click();
+  await page.locator('#draftSample').getByRole('radio',{name:'الماء',exact:true}).check();
+  await page.locator('#draftSample').getByRole('button',{name:'تحقق من الإجابة'}).click();
+  assert.match(await page.locator('#draftSample [role="status"]').textContent(),/أحسنت/);
+  await page.locator('#closeDraftPreview').click();
+  await page.locator('#checkDraft').click();await page.waitForFunction(()=>document.querySelector('#draftStatus').textContent.includes('متوافق'));
+  await page.locator('#saveDraft').click();await page.waitForFunction(()=>document.querySelector('#draftStatus').textContent.includes('تم حفظ'));
+  assert.equal(saved.title,'منهج العلوم التجريبي');assert.equal(saved.units[0].lessons[0].activities.length,7);
+  await editor.getByRole('button',{name:'إضافة وحدة',exact:true}).click();
+  assert.equal(await editor.locator('.cms-unit').count(),2);
+  await editor.locator('.cms-unit').last().getByRole('button',{name:'إضافة درس',exact:true}).click();
+  assert.equal(await editor.locator('.cms-lesson').count(),2);
+  await page.locator('#draftList button').first().click();
+  await page.waitForFunction(()=>document.querySelectorAll('#visualEditor .cms-unit').length===1);
+  assert.equal(await editor.locator('.cms-activity').count(),7);
+  assert.deepEqual(errors,[]);
+ }finally{await browser.close();}
+})().catch(e=>{console.error(e);process.exitCode=1;});
