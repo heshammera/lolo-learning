@@ -1,5 +1,4 @@
 # Current Status
-- Main: 3aa27c80b918e811798f74765b7a3c1cc7f01a53; run 46050817415 passed all unit, browser offline and Android debug build checks before promotion. Visual pilot and shared subject catalog are implemented; science is only a synthetic test. 
-- Offline baseline: 0a198c9 deployed successfully per Vercel commit status. Real Android upgrade, live voice and signing continuity still unverified.
-- Backup branches retained. Current voice safety candidate on verification/voice-safety-20261127; CI pending. See docs/VOICE_SAFETY.md.
-- Full V2 incomplete; identity, consent, durable quotas, database, CMS and universal activity strategies remain open.
+- Main: 70423f4303920d4a2bccefd0f98e0fbc50bb1711; run 46051660196 passed all existing Python/Node, browser offline and APK checks. Voice safety changes promoted; deployment still to verify.
+- Current candidate: disabled-by-default PostgreSQL family identity foundation on verification/family-backend-20261127. See docs/FAMILY_BACKEND.md. Database not connected in production, no registration UI/consent/sync.
+- Offline and scoped learning preserved. Backups unchanged. Full V2 incomplete; native phone, live voice and signing continuity unverified.

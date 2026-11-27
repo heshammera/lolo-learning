@@ -1,0 +1,41 @@
+name: Family backend verification
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'family_accounts.py'
+      - 'database/**'
+      - 'api/family.py'
+      - 'server.py'
+      - 'requirements.txt'
+      - 'tests/test_family_accounts.py'
+      - 'scripts/family_admin.py'
+      - '.github/workflows/family-backend.yml'
+permissions:
+  contents: read
+jobs:
+  postgres:
+    runs-on: ubuntu-24.04
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: lolo_test
+          POSTGRES_PASSWORD: disposable-ci-only
+          POSTGRES_DB: lolo_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U lolo_test -d lolo_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      LOLO_TEST_DATABASE_URL: postgresql://lolo_test:disposable-ci-only@127.0.0.1:5432/lolo_test
+      LOLO_FAMILY_ENABLED: 'false'
+    steps:
+      - uses: actions/checkout@v7
+      - name: Install PostgreSQL driver
+        run: python3 -m venv .venv && .venv/bin/pip install -r requirements.txt
+      - name: Test isolated family database
+        run: .venv/bin/python -m unittest discover -s tests -p 'test_family_accounts.py' -v

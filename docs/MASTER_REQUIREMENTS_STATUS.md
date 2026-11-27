@@ -22,3 +22,5 @@ Offline milestone promoted at 0a198c9 after run 46049057338 passed. Visual asses
 Subject catalog candidate: shared program/lesson enumeration, subject metadata/capability resolution, draft program exclusion, conservative fallbacks and synthetic science path tests. Not a complete universal subject engine, CMS, or published science curriculum.
 
 Visual and subject catalog promoted at 3aa27c8 after run 46050817415 passed. Voice safety candidate adds process-local aggregate limits, kill switches, validation and interruption handling; distributed quota, true authentication and provider policy verification remain open.
+
+Voice safety promoted at 70423f4. Family backend candidate: PostgreSQL schema, operator provisioning, salted password hashes, expiring/revocable sessions and parent-owned profiles. Disabled by default; no production DB, registration UI, identity/consent or progress migration yet.

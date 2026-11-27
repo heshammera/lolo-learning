@@ -1,2 +1,2 @@
 # Next Action
-Verify voice safety candidate CI and promote only after successful checks. Continue server-side identity/consent and durable quotas before commercial rollout. Native phone testing, signing continuity and live provider validation remain open.
+Verify isolated PostgreSQL integration and Android/browser CI; keep family service disabled in production. Next implement staging parent UI, verified identity/consent and durable throttling, then per-child progress and synchronization. Existing offline/device mode remains independent.

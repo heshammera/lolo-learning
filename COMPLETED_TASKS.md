@@ -20,3 +20,5 @@
 - Offline milestone promoted at 0a198c9; workflow 46049057338 passed unit, browser offline and APK build. Native phone verification remains open.
 
 - Visual comprehension pilot and subject catalog promoted to main at 3aa27c8; run 46050817415 passed. Content remains draft; no published Science course.
+
+- Voice safety milestone promoted at 70423f4 after run 46051660196 passed. Distributed quotas and account authorization remain open.

@@ -12,6 +12,7 @@ from time import monotonic
 import json
 import os
 import secrets
+from family_accounts import FamilyStore, FamilyError
 
 ROOT = Path(__file__).resolve().parent
 PORT = int(os.environ.get("PORT", "4173"))
@@ -77,6 +78,9 @@ def service_enabled(name):
 
 OPENAI_ENABLED = service_enabled("OPENAI_ENABLED")
 VOICE_ENABLED = service_enabled("LOLO_VOICE_ENABLED")
+FAMILY_ENABLED = os.environ.get('LOLO_FAMILY_ENABLED', 'false').strip().lower() in {'1','true','yes','on'}
+FAMILY_RATE_LIMITER = SlidingWindowRateLimiter()
+FAMILY_GLOBAL_LIMITER = SlidingWindowRateLimiter(max_keys=8)
 TTS_ENABLED = service_enabled("LOLO_TTS_ENABLED")
 GEMINI_ENABLED = service_enabled("GEMINI_ENABLED")
 GEMINI_BACKUP_ENABLED = service_enabled("GEMINI_BACKUP_ENABLED")
@@ -298,6 +302,8 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_POST(self):
         route = self.path.split("?", 1)[0]
+        if self.path == "/api/family":
+            return self.family_request()
         if route not in self.API_LIMITS or self.path != route:
             return self.send_json(404, {"error": "Not found"})
         if self.headers.get("Content-Type", "").split(";", 1)[0].strip().lower() != "application/json":
@@ -330,6 +336,50 @@ class Handler(BaseHTTPRequestHandler):
             return self.create_onboarding_audio()
         if route == "/api/challenge-audio":
             return self.create_challenge_audio()
+
+    def family_request(self):
+        if not FAMILY_ENABLED:
+            return self.send_json(503, {"error": "خدمة الحسابات غير متاحة حاليًا."})
+        if self.headers.get("Sec-Fetch-Site", "").lower() == "cross-site":
+            return self.send_json(403, {"error": "الطلب غير مسموح."})
+        if self.headers.get("Content-Type", "").split(";",1)[0].strip().lower() != "application/json":
+            return self.send_json(415, {"error": "نوع الطلب غير مدعوم."})
+        body,error = self.read_json_object(4096)
+        if error:
+            return self.send_json(400, {"error": error})
+        action = body.get("action")
+        if not isinstance(action,str) or action not in ("login","children","createChild","deleteChild","logout"):
+            return self.send_json(400, {"error": "العملية غير متاحة."})
+        ip = (self.headers.get("x-real-ip") if os.environ.get("VERCEL") else None) or self.client_address[0]
+        key = hmac_new(_RATE_LIMIT_SECRET,ip.encode(),"sha256").hexdigest()
+        allowed,retry = FAMILY_RATE_LIMITER.check((key,"login" if action=="login" else "manage"), 5 if action=="login" else 60, 60)
+        if not allowed:
+            return self.send_rate_limit(retry)
+        if action == "login":
+            allowed,retry = FAMILY_GLOBAL_LIMITER.check("login",30,60)
+            if not allowed:
+                return self.send_rate_limit(retry)
+        auth = self.headers.get("Authorization","")
+        token = auth[7:] if auth.startswith("Bearer ") else ""
+        try:
+            store = FamilyStore(os.environ.get("LOLO_DATABASE_URL"))
+            if action == "login":
+                return self.send_json(200,store.login(body.get("email"),body.get("password")))
+            if action == "children":
+                return self.send_json(200,{"children":store.children(token)})
+            if action == "createChild":
+                return self.send_json(201,store.create_child(token,body.get("nickname"),body.get("ageBand","unspecified")))
+            if action == "deleteChild":
+                store.delete_child(token,body.get("childId"))
+            else:
+                store.logout(token)
+            return self.send_json(200,{"ok":True})
+        except FamilyError as exc:
+            return self.send_json(exc.status,{"error":str(exc)})
+        except Exception as exc:
+            # No DSN, request bodies, tokens, passwords or child identifiers in logs.
+            print("Family operation failed:",type(exc).__name__)
+            return self.send_json(503,{"error":"خدمة الحسابات غير متاحة حاليًا."})
 
     def read_json_object(self, maximum_bytes):
         raw_length = self.headers.get("Content-Length", "0")

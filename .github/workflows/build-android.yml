@@ -24,6 +24,10 @@ on:
       - 'scripts/**'
       - 'index.html'
       - 'server.py'
+      - 'family_accounts.py'
+      - 'api/family.py'
+      - 'database/**'
+      - 'requirements.txt'
       - 'tests/**'
       - '.github/workflows/build-android.yml'
 
