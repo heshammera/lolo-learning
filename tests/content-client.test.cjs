@@ -1,0 +1,22 @@
+const {test}=require('node:test');
+const assert=require('node:assert/strict');
+const {webcrypto}=require('node:crypto');
+const client=require('../content-client.js');
+test('download verifies signed metadata, rejects stale manifest and untrusted content',async()=>{
+ const subtle=webcrypto.subtle,key=await subtle.generateKey({name:'ECDSA',namedCurve:'P-256'},true,['sign','verify']);
+ const trustedKeys={fixture:await subtle.exportKey('jwk',key.publicKey)};
+ const draftId='11111111-1111-4111-8111-111111111111',releaseId='22222222-2222-4222-8222-222222222222';
+ const meta={draftId,releaseId,version:1,sequence:2,title:'Science',keyId:'fixture'};
+ const content={schemaVersion:1,subjectId:'science',gradeId:'grade-1',title:'Science',units:[{id:'u',title:'Plants',lessons:[{id:'l',title:'Water',goal:'Water',activities:[{id:'a',type:'true-false',version:1,prompt:'Plants need water',config:{answer:true}}]}]}]};
+ const payload=Buffer.from(JSON.stringify({format:1,draftId,releaseId,version:1,sequence:2,content}));
+ const envelope={keyId:'fixture',payload:payload.toString('base64url'),signature:Buffer.from(await subtle.sign({name:'ECDSA',hash:'SHA-256'},key.privateKey,payload)).toString('base64url')};
+ let response={packages:[meta]},last;
+ const c=client.create({trustedKeys,subtle,request:async(path,options)=>{assert.equal(path,'/api/content');last=JSON.parse(options.body);return {ok:true,json:async()=>response};}});
+ assert.deepEqual((await c.list()).items,[meta]);assert.deepEqual(last,{action:'list'});
+ response={envelope};assert.equal((await c.download(meta)).valid,true);
+ assert.deepEqual(last,{action:'download',draftId,sequence:2});
+ assert.equal((await c.download({...meta,title:'Different'})).code,'CATALOG_CHANGED');
+ assert.equal((await c.download({...meta,sequence:3})).code,'STALE_PACKAGE');
+ assert.equal((await c.download({...meta,keyId:'unknown'})).code,'INVALID_SELECTION');
+ response={packages:[meta,meta]};assert.equal((await c.list()).code,'INVALID_CATALOG');
+});

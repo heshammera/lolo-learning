@@ -3160,11 +3160,14 @@ window.addEventListener('online',()=>{if(parentGate.isUnlocked())renderCloudFami
 // Additional signed curricula remain separate from existing learning paths and mastery.
 const extraStore=window.LoloContentInstall.create({trustedKeys:window.LoloContentTrust});
 const extraProgress=window.LoloContentProgress.create(storage);
+const extraClient=window.LoloContentClient.create({request:(...args)=>apiFetch(...args),trustedKeys:window.LoloContentTrust});
+let extraRemoteItems=[],extraRemoteController=null;
 let extraGeneration=0,extraPackage=null,extraSession=null,extraBusy=false,extraContext=null,extraSaved=false;
 const extraAllowed=()=>parentGate.isUnlocked()&&$('#parentSheet').classList.contains('open')&&storage.profiles.activeId&&storage.profiles.selectedId()===storage.profiles.activeId;
 const extraTrusted=()=>Object.keys(window.LoloContentTrust).length>0;
 function clearExtraParent(){
   extraGeneration++;extraPackage=null;$('#extraContentFile').value='';
+  extraRemoteController?.abort();extraRemoteItems=[];$('#extraRemoteSelect').replaceChildren();$('#extraRemoteStatus').textContent='';$('#extraDownload').disabled=true;$('#extraRefreshRemote').disabled=true;
   for(const id of ['extraContentSelect','extraUnit','extraLesson'])$('#'+id).replaceChildren();
   $('#extraStart').disabled=true;$('#extraContentStatus').textContent='';
 }
@@ -3184,6 +3187,7 @@ async function refreshExtraContent(){
   if(!extraAllowed())return;
   const generation=++extraGeneration;extraPackage=null;$('#extraStart').disabled=true;
   $('#extraImport').disabled=!extraTrusted()||extraBusy;$('#extraContentFile').disabled=!extraTrusted()||extraBusy;
+  $('#extraRefreshRemote').disabled=!extraTrusted()||extraBusy||navigator.onLine===false;$('#extraDownload').disabled=true;
   if(!extraTrusted()){$('#extraContentStatus').textContent='إضافة المناهج غير مفعّلة: لا توجد مفاتيح نشر موثوقة في هذا الإصدار.';return;}
   const result=await extraStore.list();
   if(generation!==extraGeneration||!extraAllowed())return;
@@ -3191,6 +3195,48 @@ async function refreshExtraContent(){
   $('#extraContentStatus').textContent=result.valid?(result.items.length?'اختاري منهجًا للتدريب.':'لا توجد مناهج إضافية مثبتة.'):'تعذر قراءة المناهج المحفوظة.';
   extraOptions($('#extraUnit'),[],'اختاري الوحدة');renderExtraScope();
 }
+function updateRemoteButtons(){
+  const enabled=extraAllowed()&&extraTrusted()&&!extraBusy&&navigator.onLine!==false;
+  $('#extraRefreshRemote').disabled=!enabled;$('#extraDownload').disabled=!enabled||!extraRemoteItems.some(m=>m.draftId===$('#extraRemoteSelect').value);
+  $('#extraImport').disabled=!extraAllowed()||!extraTrusted()||extraBusy;
+}
+$('#extraRemoteSelect').onchange=updateRemoteButtons;
+window.addEventListener('online',updateRemoteButtons);
+window.addEventListener('offline',()=>{extraRemoteController?.abort();updateRemoteButtons();});
+$('#extraRefreshRemote').onclick=async()=>{
+  if(!extraAllowed()||!extraTrusted()||extraBusy||navigator.onLine===false)return;
+  const g=extraGeneration;extraBusy=true;updateRemoteButtons();renderExtraScope();
+  const controller=new AbortController();extraRemoteController=controller;
+  try{
+    const result=await extraClient.list(controller.signal);
+    if(g!==extraGeneration||!extraAllowed()||controller.signal.aborted)return;
+    const local=await extraStore.list();
+    if(g!==extraGeneration||!extraAllowed()||controller.signal.aborted)return;
+    extraRemoteItems=result.valid?result.items:[];
+    extraOptions($('#extraRemoteSelect'),extraRemoteItems.map(m=>{
+      const current=local.items?.find(x=>x.draftId===m.draftId);
+      return {id:m.draftId,title:m.title+' · v'+m.version+(current?(m.sequence>current.sequence?' · تحديث متاح':' · مثبت أو أحدث'):' · جديد')};
+    }),'اختاري منهجًا');
+    $('#extraRemoteStatus').textContent=result.valid?(extraRemoteItems.length?'القائمة متاحة؛ يتم التحقق من التوقيع قبل التثبيت.':'لا توجد مناهج متاحة بمفتاح موثوق.'):'خدمة التنزيل غير متاحة؛ المناهج المثبتة تعمل بدون إنترنت.';
+  }finally{extraBusy=false;extraRemoteController=null;if(extraAllowed()){updateRemoteButtons();renderExtraScope();}}
+};
+$('#extraDownload').onclick=async()=>{
+  if(!extraAllowed()||!extraTrusted()||extraBusy||navigator.onLine===false)return;
+  const meta=extraRemoteItems.find(m=>m.draftId===$('#extraRemoteSelect').value);if(!meta)return;
+  const g=extraGeneration;extraBusy=true;updateRemoteButtons();renderExtraScope();
+  const controller=new AbortController();extraRemoteController=controller;
+  try{
+    const checked=await extraClient.download(meta,controller.signal);
+    if(g!==extraGeneration||!extraAllowed()||controller.signal.aborted)return;
+    if(!checked.valid){$('#extraRemoteStatus').textContent='تعذر التحقق من التنزيل: '+checked.code;return;}
+    if(!confirm('تثبيت المنهج المعتمد: '+checked.package.content.title+' — إصدار '+checked.package.version+'؟'))return;
+    if(g!==extraGeneration||!extraAllowed()||controller.signal.aborted)return;
+    const result=await extraStore.install(checked.envelope,meta.draftId);
+    if(g!==extraGeneration||!extraAllowed())return;
+    $('#extraRemoteStatus').textContent=result.valid?'تم التثبيت على الجهاز.':'تعذر التثبيت: '+result.code;
+    if(result.valid){extraBusy=false;await refreshExtraContent();}
+  }finally{extraBusy=false;extraRemoteController=null;if(extraAllowed()){updateRemoteButtons();renderExtraScope();}}
+};
 $('#extraImport').onclick=async()=>{
   if(!extraAllowed()||!extraTrusted()||extraBusy)return;
   const file=$('#extraContentFile').files[0];if(!file||file.size>360000){$('#extraContentStatus').textContent='اختاري ملف JSON صالحًا بحجم مناسب.';return;}

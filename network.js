@@ -1,6 +1,6 @@
 (() => {
   const API_ROOT='https://lolo-learning.vercel.app';
-  const ROUTES=new Set(['/api/status','/api/provider-token','/api/challenge-audio','/api/onboarding-audio','/api/family']);
+  const ROUTES=new Set(['/api/status','/api/provider-token','/api/challenge-audio','/api/onboarding-audio','/api/family','/api/content']);
   function create({isOnline=()=>navigator.onLine!==false,fetchImpl=(...a)=>fetch(...a),nativeRequest=null,onState=()=>{},timeoutMs=20000}={}){
     let state=isOnline()?'online':'offline';
     function set(next){if(state!==next){state=next;onState(next);}return state;}

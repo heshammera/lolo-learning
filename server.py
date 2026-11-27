@@ -81,6 +81,9 @@ VOICE_ENABLED = service_enabled("LOLO_VOICE_ENABLED")
 FAMILY_ENABLED = os.environ.get('LOLO_FAMILY_ENABLED', 'false').strip().lower() in {'1','true','yes','on'}
 PROGRESS_SYNC_ENABLED = os.environ.get('LOLO_PROGRESS_SYNC_ENABLED','false').strip().lower() in {'1','true','yes','on'}
 PARENT_CLOUD_UI_ENABLED = os.environ.get('LOLO_PARENT_CLOUD_UI_ENABLED','false').strip().lower() in {'1','true','yes','on'}
+CONTENT_DELIVERY_ENABLED = os.environ.get('LOLO_CONTENT_DELIVERY_ENABLED','false').strip().lower() in {'1','true','yes','on'}
+CONTENT_DELIVERY_LIMITER = SlidingWindowRateLimiter()
+CONTENT_DELIVERY_GLOBAL = SlidingWindowRateLimiter(max_keys=8)
 FAMILY_RATE_LIMITER = SlidingWindowRateLimiter()
 FAMILY_GLOBAL_LIMITER = SlidingWindowRateLimiter(max_keys=8)
 TTS_ENABLED = service_enabled("LOLO_TTS_ENABLED")
@@ -306,6 +309,8 @@ class Handler(BaseHTTPRequestHandler):
         route = self.path.split("?", 1)[0]
         if self.path == "/api/family":
             return self.family_request()
+        if self.path == "/api/content":
+            return self.content_request()
         if route not in self.API_LIMITS or self.path != route:
             return self.send_json(404, {"error": "Not found"})
         if self.headers.get("Content-Type", "").split(";", 1)[0].strip().lower() != "application/json":
@@ -338,6 +343,35 @@ class Handler(BaseHTTPRequestHandler):
             return self.create_onboarding_audio()
         if route == "/api/challenge-audio":
             return self.create_challenge_audio()
+
+    def content_request(self):
+        if not CONTENT_DELIVERY_ENABLED:
+            return self.send_json(503,{"error":"خدمة تنزيل المناهج غير مفعلة."})
+        if self.headers.get("Sec-Fetch-Site","").lower()=="cross-site":
+            return self.send_json(403,{"error":"الطلب غير مسموح."})
+        if self.headers.get("Content-Type","").split(";",1)[0].strip().lower()!="application/json":
+            return self.send_json(415,{"error":"نوع الطلب غير مدعوم."})
+        body,error=self.read_json_object(2048)
+        if error:return self.send_json(400,{"error":error})
+        from content_delivery import load_catalog,UUID
+        action=body.get("action")
+        if action=="list" and set(body)=={"action"}:pass
+        elif action=="download" and set(body)=={"action","draftId","sequence"} and isinstance(body["draftId"],str) and UUID.fullmatch(body["draftId"]) and type(body["sequence"]) is int and 1<=body["sequence"]<=9007199254740991:pass
+        else:return self.send_json(400,{"error":"طلب منهج غير صالح."})
+        ip=(self.headers.get("x-real-ip") if os.environ.get("VERCEL") else None) or self.client_address[0]
+        key=hmac_new(_RATE_LIMIT_SECRET,ip.encode(),"sha256").hexdigest()
+        allowed,retry=CONTENT_DELIVERY_LIMITER.check(key,20,60)
+        if not allowed:return self.send_rate_limit(retry)
+        allowed,retry=CONTENT_DELIVERY_GLOBAL.check("content",120,60)
+        if not allowed:return self.send_rate_limit(retry)
+        try:entries=load_catalog(os.environ.get("LOLO_CONTENT_CATALOG_FILE"))
+        except (OSError,ValueError,TypeError,RecursionError):
+            return self.send_json(503,{"error":"قائمة المناهج غير متاحة."})
+        if action=="list":return self.send_json(200,{"packages":[item[0] for item in entries.values()]})
+        item=entries.get(body["draftId"])
+        if not item:return self.send_json(404,{"error":"المنهج غير متاح."})
+        if item[0]["sequence"]!=body["sequence"]:return self.send_json(409,{"error":"تم تحديث المنهج. حدّث القائمة."})
+        return self.send_json(200,{"envelope":item[1]})
 
     def family_request(self):
         if not FAMILY_ENABLED:
@@ -657,7 +691,7 @@ class Handler(BaseHTTPRequestHandler):
         if path == "/api/status":
             return self.send_json(200, {"providers": [name for name, configured in (("gemini", GEMINI_API_KEY and GEMINI_ENABLED), ("openai", OPENAI_API_KEY and OPENAI_ENABLED), ("gemini-backup", GEMINI_BACKUP_API_KEY and GEMINI_BACKUP_ENABLED)) if VOICE_ENABLED and configured], "ttsEnabled": bool(TTS_ENABLED and GEMINI_API_KEY), "familyUiEnabled": bool(FAMILY_ENABLED and PARENT_CLOUD_UI_ENABLED), "progressSyncEnabled": bool(FAMILY_ENABLED and PARENT_CLOUD_UI_ENABLED and PROGRESS_SYNC_ENABLED)})
         relative = "index.html" if path == "/" else path.lstrip("/")
-        allowed_files = {"index.html", "curriculum.json", "pcm-processor.js", "app.js", "storage.js", "assessment-engine.js", "subject-catalog.js", "visual-question-bank.js", "visual-assessment-engine.js", "curriculum-engine.js", "learning-engine.js", "learning-path-engine.js", "network.js", "family-client.js", "activity-engine.js", "activity-pilot.js", "content-schema.js", "content-package.js", "content-install.js", "content-trust.js", "content-runtime.js", "content-progress.js", "offline-assets.js", "sw.js", "offline.html", "parent-gate.js", "session-timers.js", "brand.js", "favicon.ico", "favicon-16x16.png", "favicon-32x32.png", "favicon-48x48.png", "apple-touch-icon.png", "site.webmanifest"}
+        allowed_files = {"index.html", "curriculum.json", "pcm-processor.js", "app.js", "storage.js", "assessment-engine.js", "subject-catalog.js", "visual-question-bank.js", "visual-assessment-engine.js", "curriculum-engine.js", "learning-engine.js", "learning-path-engine.js", "network.js", "family-client.js", "activity-engine.js", "activity-pilot.js", "content-schema.js", "content-package.js", "content-install.js", "content-trust.js", "content-runtime.js", "content-progress.js", "content-client.js", "offline-assets.js", "sw.js", "offline.html", "parent-gate.js", "session-timers.js", "brand.js", "favicon.ico", "favicon-16x16.png", "favicon-32x32.png", "favicon-48x48.png", "apple-touch-icon.png", "site.webmanifest"}
         is_brand_asset = relative.startswith("assets/branding/") and Path(relative).suffix.lower() in {".png", ".webp", ".json"}
         if relative not in allowed_files and not is_brand_asset:
             return self.send_json(404, {"error": "Not found"})
