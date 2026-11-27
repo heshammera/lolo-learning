@@ -25,14 +25,7 @@ key_digest="$(sha256sum "$tmp/cert.der" | cut -d' ' -f1)"
 verification="$("$tools/apksigner" verify --min-sdk-version 24 --print-certs "$tmp/signed.apk")"
 # Normalize only whitespace and separators; do not weaken the pinned certificate check.
 digests="$(printf '%s\n' "$verification" | sed -nE 's/^[[:space:]]*Signer #[0-9]+ certificate SHA-256 digest:[[:space:]]*([[:xdigit:]:]+)[[:space:]]*$/\1/p')"
-[[ -n "$digests" && "$digests" != *"$tools/zipalign" -c -P 16 4 "$tmp/signed.apk"
-badging="$("$tools/aapt" dump badging "$tmp/signed.apk")"
-grep -Fq "package: name='com.heshammera.lolo' versionCode='${LOLO_ANDROID_VERSION_CODE:?Version required}'" <<< "$badging"
-grep -Fxq "sdkVersion:'24'" <<< "$badging"
-if grep -q '^application-debuggable' <<< "$badging"; then echo 'Debuggable release rejected' >&2; exit 3; fi
-cp "$tmp/signed.apk" "$2"
-echo "Verified signed release certificate: $actual"
-\n'* ]] || { echo 'Expected exactly one signer certificate digest'; printf '%s\n' "$verification"; exit 3; }
+[[ -n "$digests" && "$(printf '%s\n' "$digests" | wc -l)" -eq 1 ]] || { echo 'Expected exactly one signer certificate digest'; printf '%s\n' "$verification"; exit 3; }
 actual="$(printf '%s' "$digests" | tr -d ':' | tr '[:upper:]' '[:lower:]')"
 [[ "$actual" == "$expected" ]] || { echo "Release signer does not match pinned certificate: actual=$actual expected=$expected" >&2; exit 3; }
 "$tools/zipalign" -c -P 16 4 "$tmp/signed.apk"
