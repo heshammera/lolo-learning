@@ -97,10 +97,14 @@ class ApiInputTests(unittest.TestCase):
         error.exception.close()
         with urlopen(self.base_url + "/assets/branding/icons/lolo-icon.webp") as icon:
             self.assertEqual(icon.headers.get("Content-Type"), "image/webp")
-        for filename in ("storage.js", "assessment-engine.js", "curriculum-engine.js", "learning-engine.js", "parent-gate.js", "session-timers.js"):
+        for filename in ("storage.js", "assessment-engine.js", "curriculum-engine.js", "learning-engine.js", "learning-path-engine.js", "parent-gate.js", "session-timers.js"):
             with urlopen(self.base_url + "/" + filename) as script:
                 self.assertEqual(script.status, 200)
                 self.assertIn("javascript", script.headers.get("Content-Type", ""))
+
+    def test_invalid_mode_and_teacher_settings_do_not_raise(self):
+        self.assertEqual(self.post_status("/api/provider-token", {"lessonId": "hello-1", "mode": []})[0], 400)
+        self.assertEqual(self.post_status("/api/provider-token", {"lessonId": "missing-lesson", "teacherSettings": {"speechPace": [], "hintLevel": {}, "learningScope": []}})[0], 400)
 
     def test_provider_route_throttles_repeated_requests(self):
         old_limits = server.Handler.API_LIMITS

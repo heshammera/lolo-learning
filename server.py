@@ -132,6 +132,10 @@ TOOL_DECLARATIONS = [{
     "description": "الانتقال يديره التطبيق فقط. لا تستدعي هذه الأداة لبدء درس آخر.",
     "parameters": {"type": "OBJECT", "properties": {"lesson_id": {"type": "STRING"}}, "required": ["lesson_id"]},
 }, {
+    "name": "request_learning_break",
+    "description": "أوقفي الجلسة واحفظي موضع الخطة عند طلب الطفلة التوقف أو الراحة.",
+    "parameters": {"type": "OBJECT", "properties": {}},
+}, {
     "name": "open_parent_picker",
     "description": "أوقفي المحادثة وافتحي إعدادات ولي الأمر لاختيار درس أو اختبار باللمس عندما تقول الطفلة إنها تريد من ماما الاختيار أو عندما يطلب المتحدث صراحةً تغيير الدرس كولي أمر. لا تحاولي التحقق من هوية الصوت.",
     "parameters": {"type": "OBJECT", "properties": {}},
@@ -181,7 +185,7 @@ def teacher_instructions(lesson_id, mode="lesson", already_mastered=False, excel
             "تحققي من كل إجابة بمقارنتها بهدف الدرس والإجابة المطلوبة قبل الرد. لا تقولي برافو أو صح أو ممتاز على إجابة خاطئة أو غير واضحة؛ افصلي تشجيع المحاولة عن صحة الإجابة: عند الخطأ قولي مثلاً «حلو إنك حاولتي، بس الإجابة مش كده»، ثم قدمي التصحيح بلطف وامنحيها فرصة تجريب ثانية. إذا لم تفهميها اطلبي إعادة الإجابة ولا تفترضي أنها صحيحة. "
             "لا تعتبري ضغط الصورة أو لمس أي شيء على الشاشة إجابة، ولا تحركي شريط التقدم بسببه. عند لمس صورة، ردي فوراً بصوت لولو بجملة لطيفة تشجع المحاولة ولا تحكم على صحتها، مثل «برافو على اختيارك، حاولي تقوليها معايا». انطقي الكلمة الإنجليزية المرتبطة بالصورة من سياق الدرس، ثم انتظري إجابة الطفلة بصوتها. في الماث، اللمس وسيلة للعد أو التحريك فقط؛ بعده اطلبي منها أن تقول العدد أو الحل بصوتها. بعد كل إجابة منطوقة وواضحة، قولي الحكم بوضوح في صوتك: «إجابتك صح» إذا كانت صحيحة، أو «الإجابة مش كده» إذا كانت خاطئة، ثم استدعي record_lesson_answer مرة واحدة مستخدمة كلام الطفلة المسموع ونتيجة التحقق ورقم السؤال المتتابع، وانتظري تحديث الشريط قبل المتابعة. لا تسجلي اللمسات أو الكلام الجانبي أو الإجابة غير الواضحة كإجابة. "
             "اجعلي الدرس قصيراً: فكرة واحدة وشرح بسيط، ثم سؤال واحد في كل مرة. أعيدي الشرح مرة واحدة فقط إذا لم تفهم. أداة record_lesson_answer تعيد في mastery.saved نتيجة الإتقان تلقائياً بعد إجابتين مستقلتين صحيحتين؛ إذا كان mastery.saved=true فلا تستدعي أداة إتقان أخرى. إذا أعادت mastery.rewardGame، قولي للطفلة جملة التوجيه الموجودة حرفياً في rewardGame.voicePrompt عن اللعبة الظاهرة، واستني لحد ما التطبيق يقول إن اللعبة انتهت. لا تعيدي الدرس أثناء اللعبة. إذا أعادت mastery.excellenceAwarded رقماً، افرحي بها وقولي بوضوح إنها كسبت شارة تفوق جديدة، ثم انتظري خطوة التطبيق من غير إعادة الدرس. استدعي record_lesson_mastery فقط إذا احتجتِ تسجيل الإتقان ولم تُعد أداة الإجابة نتيجة mastery.saved. لا تكرري الشرح أو التدريب بعد تحقق الهدف. "
-            "لا تعلني اكتمال الدرس إلا إذا أعادت الأداة saved=true. احتفلي بجملة قصيرة فقط، أو اتبعي تعليمات لعبة المكافأة. لا تطرحي سؤالاً جديداً ولا تطلبي اختيار درس آخر بعد كل درس؛ التطبيق وحده يدير الانتقال داخل خطة ولي الأمر. إذا كانت pathComplete=true قولي إن الخطة خلصت. لا تستدعي start_next_lesson. إذا طلبت الطفلة الراحة أو التوقف، احترمي طلبها وقولي لها تضغط زر الإيقاف. عند طلب تغيير خطة التعلم استدعي open_parent_picker، ولا تدّعي أنك تعرفين هوية المتحدث. "
+            "لا تعلني اكتمال الدرس إلا إذا أعادت الأداة saved=true. احتفلي بجملة قصيرة فقط، أو اتبعي تعليمات لعبة المكافأة. لا تطرحي سؤالاً جديداً ولا تطلبي اختيار درس آخر بعد كل درس؛ التطبيق وحده يدير الانتقال داخل خطة ولي الأمر. إذا كانت pathComplete=true قولي إن الخطة خلصت. لا تستدعي start_next_lesson. إذا طلبت الطفلة الراحة أو التوقف، استدعي request_learning_break فوراً. لا تحاولي إقناعها بالاستمرار. عند طلب تغيير خطة التعلم استدعي open_parent_picker، ولا تدّعي أنك تعرفين هوية المتحدث. "
         )
     board_instructions = (
         ("في الاختبار الشفهي استخدمي فقط السؤال الحالي الذي يرسله التطبيق. لا تعرضي مشهداً أو أرقاماً أخرى ولا تحسبي أو تقيّمي الإجابة من نفسك. " if is_math else
@@ -203,7 +207,7 @@ def teacher_instructions(lesson_id, mode="lesson", already_mastered=False, excel
         "في الجرامر، لا تشرحي قواعد مجردة؛ استخدمي أمثلة قصيرة وصوراً ومواقف. في الفونكس، انطقي الصوت الإنجليزي بوضوح واربطِيه بكلمات مألوفة؛ لا تطلبي اسم الحرف أو قراءته أو كتابته. إذا وجدتِ صعوبة، ارجعي لشرح أبسط بالعربي المصري ثم جربي مرة أخرى. "
     )
     replay_instructions = (
-        f"هذا الدرس متقن مسبقاً، ولديها {excellence_count} شارات تفوق. ابدئي بسؤالها بصوتك هل تريد إعادة الدرس؛ انتظري موافقة واضحة ولا تسجلي جواب نعم/لا كتقييم. إذا وافقت، قدمي مراجعة قصيرة ثم اسألي سؤالاً واحداً في كل مرة وسجلي الإجابات المنطوقة كالمعتاد. إذا لم توافق، لا تشرحي ولا تكملي الأسئلة؛ قولي لها تسلم الهاتف لماما لتختار درساً آخر. لا تعلني إتقاناً جديداً قبل إجابتين صحيحتين مستقلتين. "
+        f"هذا الدرس مسجل كمكتمل سابقاً، ولديها {excellence_count} شارات تفوق. اختاره ولي الأمر للمراجعة؛ ابدئي مراجعة قصيرة ثم سؤالاً واحداً في كل مرة. لا تحسبي جواب نعم أو لا كتقييم. إذا طلبت الطفلة التوقف أو الراحة استدعي request_learning_break فوراً. لا تعلني إتقاناً جديداً قبل إجابتين مستقلتين صحيحتين. "
         if already_mastered and mode == "lesson" else ""
     )
     return (
@@ -437,12 +441,12 @@ class Handler(BaseHTTPRequestHandler):
         excellence_count = min(excellence_count, 1000)
         raw_settings = body.get("teacherSettings") if isinstance(body.get("teacherSettings"), dict) else {}
         teacher_settings = {
-            "speechPace": raw_settings.get("speechPace") if raw_settings.get("speechPace") in {"slow", "normal"} else "slow",
-            "hintLevel": raw_settings.get("hintLevel") if raw_settings.get("hintLevel") in {"gentle", "guided"} else "gentle",
+            "speechPace": raw_settings.get("speechPace") if raw_settings.get("speechPace") in ("slow", "normal") else "slow",
+            "hintLevel": raw_settings.get("hintLevel") if raw_settings.get("hintLevel") in ("gentle", "guided") else "gentle",
             "repeatWords": raw_settings.get("repeatWords") is not False,
             "learningScope": raw_settings.get("learningScope") if raw_settings.get("learningScope") in ("lesson", "unit", "curriculum") else "lesson",
         }
-        if mode not in {"lesson", "test"}:
+        if mode not in ("lesson", "test"):
             return self.send_json(400, {"error": "نوع الجلسة غير معروف."})
         if lesson_id not in LESSONS and lesson_id != "course-complete":
             return self.send_json(400, {"error": "الدرس غير موجود في المسار."})
@@ -522,6 +526,9 @@ class Handler(BaseHTTPRequestHandler):
                     {"type": "function", "name": "start_next_lesson",
                      "description": "الانتقال يديره التطبيق فقط. لا تستدعي هذه الأداة لبدء درس آخر.",
                      "parameters": {"type": "object", "properties": {"lesson_id": {"type": "string"}}, "required": ["lesson_id"]}},
+                    {"type": "function", "name": "request_learning_break",
+                     "description": "أوقفي الجلسة عند طلب التوقف أو الراحة.",
+                     "parameters": {"type": "object", "properties": {}}},
                     {"type": "function", "name": "open_parent_picker",
                      "description": "أوقفي الصوت وافتحي قائمة ولي الأمر عند طلب ماما اختيار درس أو اختبار.",
                      "parameters": {"type": "object", "properties": {}}},

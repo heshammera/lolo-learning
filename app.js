@@ -98,19 +98,6 @@ function nextLesson() {
   return null;
 }
 
-function lessonAfterCurrent() {
-  const lessons = allLessons().filter(lesson => lesson.programId === currentLesson?.programId);
-  const currentIndex = lessons.findIndex(lesson => lesson.id === currentLesson?.id);
-  if (currentIndex < 0) return lessons.find(lesson => !mastered.has(lesson.id)) || null;
-  const next = lessons.slice(currentIndex + 1).find(lesson => !mastered.has(lesson.id));
-  if (next) return next;
-  if (parentSettings.learningPath === 'foundation-first' && currentLesson?.programId === 'foundation') {
-    const selectedProgram = storage.get('lolo-path-program') || storage.get('lolo-selected-program');
-    return allLessons().find(lesson => lesson.programId === selectedProgram && !mastered.has(lesson.id)) || null;
-  }
-  return null;
-}
-
 function programList() {
   return [
     {id: 'foundation', title: 'تأسيس من الصفر', curriculumLabel: 'تأسيس من الصفر', gradeId: 'foundation', gradeLabel: 'مرحلة التأسيس', units: course?.units || []},
@@ -1155,7 +1142,9 @@ function renderPathStatus() {
   const el = $('#pathStatus');
   if (invalidPath) { el.textContent = 'الخطة المحفوظة تحتاج مراجعة ولي الأمر.'; return; }
   if (!activePath) { el.textContent = ''; return; }
-  const label = {lesson:'درس واحد',unit:'وحدة كاملة',curriculum:'المنهج بالكامل'}[activePath.scope];
+  const program = programList().find(p=>p.id===activePath.programId);
+  const unit = program?.units.find(u=>u.id===activePath.unitId);
+  const label = activePath.scope==='unit' ? (unit?.title || 'الوحدة') : activePath.scope==='curriculum' ? (program?.title || 'المنهج بالكامل') : 'درس واحد';
   const total = activePath.lessonIds.length;
   el.textContent = activePath.status === 'completed'
     ? `${label} · اكتملت الخطة (${total} من ${total})`
@@ -2145,6 +2134,12 @@ function startNextLesson(lessonId) {
   return {started:false, reason:'التطبيق وحده ينقل الدرس حسب خطة ولي الأمر بعد انتهاء التفاعل والمكافأة.', pathComplete:activePath?.status==='completed'};
 }
 
+function requestLearningBreak() {
+  stopSession();
+  setStatus('وقت راحة. تقدري تكملي الخطة لما تكوني جاهزة.');
+  return {paused:true};
+}
+
 function openParentPickerFromTutor() {
   if (isActive || isStarting) stopSession();
   openParentSettings('lessons');
@@ -2169,6 +2164,9 @@ function handleToolCall(toolCall) {
       functionResponses.push({name: call.name, id: call.id, response: {result}});
     } else if (call.name === 'start_next_lesson') {
       functionResponses.push({name: call.name, id: call.id, response: {result: startNextLesson(call.args?.lesson_id)}});
+    } else if (call.name === 'request_learning_break') {
+      functionResponses.push({name:call.name,id:call.id,response:{result:requestLearningBreak()}});
+      break;
     } else if (call.name === 'open_parent_picker') {
       functionResponses.push({name: call.name, id: call.id, response: {result: openParentPickerFromTutor()}});
     } else if (call.name === 'record_lesson_test_result') {
@@ -2192,6 +2190,8 @@ function handleOpenAIToolCall(name, args, callId) {
       ? recordLessonAnswer(args?.lesson_id || currentLesson?.id, args?.answer, args?.is_correct, args?.question_number)
     : name === 'start_next_lesson'
       ? startNextLesson(args?.lesson_id)
+    : name === 'request_learning_break'
+      ? requestLearningBreak()
     : name === 'open_parent_picker'
       ? openParentPickerFromTutor()
     : name === 'record_lesson_test_result'
@@ -2565,7 +2565,7 @@ async function startSession(continuing = false) {
     const visibleCards = (currentLesson?.cards || []).map(card => card[1]).filter(Boolean).join('، ');
     const lessonTitle = currentLesson?.title || currentLesson?.focus || 'درسنا النهارده';
     const replayOpening = lessonWasMasteredAtStart
-      ? `الدرس ${lessonTitle} متقن من قبل. ابدئي بسؤالها بصوتك: «إحنا خلصنا الدرس ده قبل كده يا بطلة؛ تحبي نعيده سوا؟» لا تعيدي الشرح ولا تطرحي أسئلة تقييمية ولا تسجلي أي إجابة قبل أن توافق بوضوح. إذا وافقت، ابدئي مراجعة قصيرة لهذا الدرس واسألي سؤالاً واحداً في كل مرة. إذا لم توافق، قولي لها تسلم الهاتف لماما لتختار درساً آخر.`
+      ? `الدرس ${lessonTitle} متقن من قبل ومختار للمراجعة ضمن خطة ولي الأمر. ابدئي بمراجعة قصيرة واسألي سؤالاً واحداً في كل مرة. لو الطفلة طلبت الراحة أو التوقف، احترمي طلبها واستدعي request_learning_break.`
       : null;
     const firstAssessmentQuestion = activeSpeakingAssessment?.questions[0];
     const opening = replayOpening || (sessionMode === 'test'
@@ -2797,7 +2797,9 @@ function showParentSettingsUnlocked(tab = 'settings') {
   $('#parentClose').focus();
   syncParentSettingsUI();
   renderParentReport();
-  $('#parentProgress').textContent = `${parentProgressSummary()} تقدري تختاري أي درس أو تعيدي دروس سابقة في أي وقت.`;
+  $('#parentProgress').textContent = `${parentProgressSummary()} تقدري تختاري درسًا أو وحدة أو منهجًا بالكامل.`;
+  $('#pathScope').value = activePath?.scope || 'lesson';
+  renderPathChoice();
   scheduleParentAutoLock();
   fetch('/api/status').then(response => response.json()).then(status => {
     const labels = {gemini: 'Gemini الأساسي', openai: 'OpenAI', 'gemini-backup': 'Gemini الاحتياطي'};
