@@ -1,2 +1,2 @@
 # Next Action
-Verify active export/IndexedDB CI. Next explicit trusted key deployment, signed package import/download UI gated by parent, generic learner lesson/path runtime isolated from existing progress, delivery manifest and remaining V2. Production admin still local-only.
+Verify generic scope runtime and student UI CI. Add signed fixture browser E2E, persistent isolated progress, delivery manifest/HTTPS and operator-approved trust setup, then broaden Activity Library and remaining V2. No live publishing or production keys yet.

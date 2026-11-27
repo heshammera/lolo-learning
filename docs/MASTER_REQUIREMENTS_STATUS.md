@@ -52,3 +52,5 @@ Visual editor first CI failed browser locator; accessible select labels fixed in
 Visual editor promoted at 3e33a65 after passing browser and Android CI. Review tests failed during fixture cleanup; fixed in 11324ce, rerun pending. Content package candidate adds shared schema, pinned-key verification and P-256 signing primitive; no delivery or production key configured.
 
 CMS review and signed package verified/promoted at 829bc63. Candidate active release export with server permission, persistent sequence and IndexedDB signed package staging, no production key or learner activation. Real download/UI/subject catalog and remaining activities pending.
+
+Content export/install promoted at d7e5747 after all three CI workflows. Additional curriculum runtime candidate: parent-gated signed file import, verified installed list, explicit scope and offline session practice. Empty pinned keys disable production; no network download, saved new curriculum progress or real device test. Prior V2 requirements remain.

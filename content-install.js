@@ -73,7 +73,22 @@
       }catch{return {valid:false,code:'STORAGE_UNAVAILABLE'};}
       finally{db?.close();}
     }
-    return Object.freeze({read,install});
+    async function list(){
+      let db;
+      try{
+        db=await open(indexedDB);
+        const ids=await transaction(db,'readonly',(store,done)=>{const req=store.getAllKeys(null,101);req.onsuccess=()=>done(req.result);});
+        if(ids.length>100)return {valid:false,code:'TOO_MANY_PACKAGES'};
+        const items=[];
+        for(const id of ids){
+          const result=await read(id);
+          if(result.valid){const p=result.package;items.push({draftId:p.draftId,version:p.version,sequence:p.sequence,title:p.content.title});}
+        }
+        return {valid:true,items};
+      }catch{return {valid:false,code:'STORAGE_UNAVAILABLE'};}
+      finally{db?.close();}
+    }
+    return Object.freeze({read,install,list});
   }
   const api=Object.freeze({create});
   if(typeof module!=='undefined'&&module.exports)module.exports=api;

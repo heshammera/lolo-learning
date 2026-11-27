@@ -2962,6 +2962,7 @@ function closeParentGateModal(restoreFocus = true) {
 }
 
 function closeParentSettings() {
+  clearExtraParent();
   resetCloudFamily();
   clearTimeout(parentGateAutoLockTimer);
   parentGateAutoLockTimer = null;
@@ -3156,6 +3157,95 @@ $('#cloudRestore').onclick=()=>{
 };
 window.addEventListener('offline',resetCloudFamily);
 window.addEventListener('online',()=>{if(parentGate.isUnlocked())renderCloudFamily();});
+// Additional signed curricula remain separate from existing learning paths and mastery.
+const extraStore=window.LoloContentInstall.create({trustedKeys:window.LoloContentTrust});
+let extraGeneration=0,extraPackage=null,extraSession=null,extraBusy=false;
+const extraAllowed=()=>parentGate.isUnlocked()&&$('#parentSheet').classList.contains('open')&&storage.profiles.activeId&&storage.profiles.selectedId()===storage.profiles.activeId;
+const extraTrusted=()=>Object.keys(window.LoloContentTrust).length>0;
+function clearExtraParent(){
+  extraGeneration++;extraPackage=null;$('#extraContentFile').value='';
+  for(const id of ['extraContentSelect','extraUnit','extraLesson'])$('#'+id).replaceChildren();
+  $('#extraStart').disabled=true;$('#extraContentStatus').textContent='';
+}
+function extraOptions(select,items,label){
+  select.replaceChildren(new Option(label,''));
+  for(const item of items)select.append(new Option(item.title,item.id));
+}
+function renderExtraScope(){
+  const scope=$('#extraScope').value,unit=extraPackage?.content.units.find(u=>u.id===$('#extraUnit').value);
+  const prior=$('#extraLesson').value;
+  extraOptions($('#extraLesson'),unit?.lessons||[],'اختاري الدرس');
+  if(unit?.lessons.some(l=>l.id===prior))$('#extraLesson').value=prior;
+  $('#extraUnit').disabled=scope==='curriculum';$('#extraLesson').disabled=scope!=='lesson';
+  $('#extraStart').disabled=!extraAllowed()||extraBusy||!extraPackage||!(scope==='curriculum'||scope==='unit'&&unit||scope==='lesson'&&unit?.lessons.some(l=>l.id===$('#extraLesson').value));
+}
+async function refreshExtraContent(){
+  if(!extraAllowed())return;
+  const generation=++extraGeneration;extraPackage=null;$('#extraStart').disabled=true;
+  $('#extraImport').disabled=!extraTrusted()||extraBusy;$('#extraContentFile').disabled=!extraTrusted()||extraBusy;
+  if(!extraTrusted()){$('#extraContentStatus').textContent='إضافة المناهج غير مفعّلة: لا توجد مفاتيح نشر موثوقة في هذا الإصدار.';return;}
+  const result=await extraStore.list();
+  if(generation!==extraGeneration||!extraAllowed())return;
+  extraOptions($('#extraContentSelect'),(result.items||[]).map(x=>({id:x.draftId,title:x.title+' · v'+x.version})),'اختاري منهجًا مثبتًا');
+  $('#extraContentStatus').textContent=result.valid?(result.items.length?'اختاري منهجًا للتدريب.':'لا توجد مناهج إضافية مثبتة.'):'تعذر قراءة المناهج المحفوظة.';
+  extraOptions($('#extraUnit'),[],'اختاري الوحدة');renderExtraScope();
+}
+$('#extraImport').onclick=async()=>{
+  if(!extraAllowed()||!extraTrusted()||extraBusy)return;
+  const file=$('#extraContentFile').files[0];if(!file||file.size>360000){$('#extraContentStatus').textContent='اختاري ملف JSON صالحًا بحجم مناسب.';return;}
+  const generation=extraGeneration;extraBusy=true;$('#extraImport').disabled=true;$('#extraStart').disabled=true;
+  try{
+    const envelope=JSON.parse(await file.text());
+    const checked=await window.LoloContentPackage.verify(envelope,window.LoloContentTrust);
+    if(generation!==extraGeneration||!extraAllowed())return;
+    if(!checked.valid){$('#extraContentStatus').textContent='الحزمة غير موثوقة أو غير متوافقة: '+checked.code;return;}
+    const p=checked.package;
+    if(!confirm('تثبيت المنهج: '+p.content.title+' — إصدار '+p.version+'؟'))return;
+    if(generation!==extraGeneration||!extraAllowed())return;
+    const result=await extraStore.install(envelope,p.draftId);
+    if(generation!==extraGeneration||!extraAllowed())return;
+    if(result.valid){extraBusy=false;await refreshExtraContent();}
+    else $('#extraContentStatus').textContent='تعذر التثبيت: '+result.code;
+  }catch{if(generation===extraGeneration&&extraAllowed())$('#extraContentStatus').textContent='تعذر قراءة الحزمة.';}
+  finally{extraBusy=false;if(extraAllowed()){$('#extraImport').disabled=!extraTrusted();renderExtraScope();}}
+};
+$('#extraContentSelect').onchange=async()=>{
+  if(!extraAllowed()||extraBusy)return;
+  const generation=++extraGeneration,id=$('#extraContentSelect').value;extraPackage=null;$('#extraStart').disabled=true;
+  extraOptions($('#extraUnit'),[],'اختاري الوحدة');renderExtraScope();if(!id)return;
+  const result=await extraStore.read(id);
+  if(generation!==extraGeneration||!extraAllowed())return;
+  if(!result.valid){$('#extraContentStatus').textContent='تعذر التحقق من المنهج المثبت.';return;}
+  extraPackage=result.package;extraOptions($('#extraUnit'),extraPackage.content.units,'اختاري الوحدة');renderExtraScope();
+};
+$('#extraUnit').onchange=()=>renderExtraScope();$('#extraScope').onchange=()=>renderExtraScope();$('#extraLesson').onchange=()=>renderExtraScope();
+function renderExtraPractice(){
+  const session=extraSession;if(!session)return;
+  const state=session.state(),step=session.current(),body=$('#extraPracticeBody');
+  body.replaceChildren();$('#extraPracticeNext').hidden=true;
+  if(state.done){$('#extraPracticeProgress').textContent='انتهى التدريب';$('#extraPracticeGoal').textContent='أجبت بشكل صحيح على '+state.correct+' من '+state.attempted+' نشاط. النتيجة تدريبية فقط وغير محفوظة.';return;}
+  if(!step)return;
+  $('#extraPracticeTitle').textContent=step.lessonTitle;$('#extraPracticeGoal').textContent=step.goal;
+  $('#extraPracticeProgress').textContent='النشاط '+(state.index+1)+' من '+state.total;
+  window.LoloActivities.render(step.activity,body,result=>{
+    if(extraSession!==session||!session.record(step.activity.id,result))return;
+    $('#extraPracticeNext').hidden=false;
+  });
+}
+$('#extraStart').onclick=async()=>{
+  if(!extraAllowed()||extraBusy||!extraPackage||$('#extraStart').disabled)return;
+  const generation=extraGeneration,id=extraPackage.draftId,scope=$('#extraScope').value,unit=$('#extraUnit').value,lesson=$('#extraLesson').value;
+  const latest=await extraStore.read(id);
+  if(generation!==extraGeneration||!extraAllowed()||!latest.valid||latest.package.sequence!==extraPackage?.sequence){if(extraAllowed())$('#extraContentStatus').textContent='المنهج تغيّر أو تعذر التحقق منه. اختاريه مرة أخرى.';return;}
+  const session=window.LoloContentRuntime.create(latest.package,scope,unit,lesson);
+  if(!session)return;
+  if(isActive||isStarting)stopSession();
+  closeParentSettings();extraSession=session;renderExtraPractice();$('#extraPractice').showModal();
+};
+$('#extraPracticeNext').onclick=()=>{if(extraSession?.advance())renderExtraPractice();};
+$('#extraPracticeClose').onclick=$('#extraPracticeBack').onclick=()=>$('#extraPractice').close();
+$('#extraPractice').addEventListener('close',()=>{extraSession?.stop();extraSession=null;$('#extraPracticeBody').replaceChildren();});
+window.addEventListener('pagehide',()=>{extraSession?.stop();extraSession=null;});
 function renderActivityPreview(){
   if(!parentGate.isUnlocked())return;
   const engine=window.LoloActivities,pilot=window.LoloActivityPilot;
@@ -3178,6 +3268,7 @@ function showParentSettingsUnlocked(tab = 'settings') {
   syncParentSettingsUI();
   renderLocalProfiles();
   renderActivityPreview();
+  refreshExtraContent();
   renderParentReport();
   $('#parentProgress').textContent = `${parentProgressSummary()} تقدري تختاري درسًا أو وحدة أو منهجًا بالكامل.`;
   $('#pathScope').value = activePath?.scope || 'lesson';
