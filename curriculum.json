@@ -6343,7 +6343,7 @@
     }
   ],
   "schemaVersion": 2,
-  "curriculumVersion": "2.0.0",
+  "curriculumVersion": "2.1.0",
   "subjects": [
     {
       "id": "english",
@@ -6357,1263 +6357,1403 @@
   "skills": [
     {
       "id": "foundation:hello-1",
-      "title": "Hello, bye",
+      "title": "ترديد محتوى اللوحة: Hello, bye",
       "subjectId": "english",
       "lessonIds": [
         "hello-1"
       ],
-      "prerequisiteSkillIds": []
+      "prerequisiteSkillIds": [],
+      "evidenceType": "recognized_token_match"
     },
     {
       "id": "foundation:hello-2",
-      "title": "How are you? I am happy / fine",
+      "title": "ترديد محتوى اللوحة: How are you? I am happy / fine",
       "subjectId": "english",
       "lessonIds": [
         "hello-2"
       ],
-      "prerequisiteSkillIds": []
+      "prerequisiteSkillIds": [],
+      "evidenceType": "recognized_token_match"
     },
     {
       "id": "foundation:hello-3",
-      "title": "Please, thank you",
+      "title": "ترديد محتوى اللوحة: Please, thank you",
       "subjectId": "english",
       "lessonIds": [
         "hello-3"
       ],
-      "prerequisiteSkillIds": []
+      "prerequisiteSkillIds": [],
+      "evidenceType": "recognized_token_match"
     },
     {
       "id": "foundation:hello-4",
-      "title": "Yes, no, I don't know",
+      "title": "ترديد محتوى اللوحة: Yes, no, I don't know",
       "subjectId": "english",
       "lessonIds": [
         "hello-4"
       ],
-      "prerequisiteSkillIds": []
+      "prerequisiteSkillIds": [],
+      "evidenceType": "recognized_token_match"
     },
     {
       "id": "foundation:class-1",
-      "title": "Listen, look, repeat",
+      "title": "ترديد محتوى اللوحة: Listen, look, repeat",
       "subjectId": "english",
       "lessonIds": [
         "class-1"
       ],
-      "prerequisiteSkillIds": []
+      "prerequisiteSkillIds": [],
+      "evidenceType": "recognized_token_match"
     },
     {
       "id": "foundation:class-2",
-      "title": "Stand up, sit down",
+      "title": "ترديد محتوى اللوحة: Stand up, sit down",
       "subjectId": "english",
       "lessonIds": [
         "class-2"
       ],
-      "prerequisiteSkillIds": []
+      "prerequisiteSkillIds": [],
+      "evidenceType": "recognized_token_match"
     },
     {
       "id": "foundation:class-3",
-      "title": "Show me, give me",
+      "title": "ترديد محتوى اللوحة: Show me, give me",
       "subjectId": "english",
       "lessonIds": [
         "class-3"
       ],
-      "prerequisiteSkillIds": []
+      "prerequisiteSkillIds": [],
+      "evidenceType": "recognized_token_match"
     },
     {
       "id": "foundation:class-4",
-      "title": "Open, close",
+      "title": "ترديد محتوى اللوحة: Open, close",
       "subjectId": "english",
       "lessonIds": [
         "class-4"
       ],
-      "prerequisiteSkillIds": []
+      "prerequisiteSkillIds": [],
+      "evidenceType": "recognized_token_match"
     },
     {
       "id": "foundation:color-1",
-      "title": "red, blue, yellow",
+      "title": "ترديد محتوى اللوحة: red, blue, yellow",
       "subjectId": "english",
       "lessonIds": [
         "color-1"
       ],
-      "prerequisiteSkillIds": []
+      "prerequisiteSkillIds": [],
+      "evidenceType": "recognized_token_match"
     },
     {
       "id": "foundation:color-2",
-      "title": "green, black, white",
+      "title": "ترديد محتوى اللوحة: green, black, white",
       "subjectId": "english",
       "lessonIds": [
         "color-2"
       ],
-      "prerequisiteSkillIds": []
+      "prerequisiteSkillIds": [],
+      "evidenceType": "recognized_token_match"
     },
     {
       "id": "foundation:color-3",
-      "title": "circle, square, star",
+      "title": "ترديد محتوى اللوحة: circle, square, star",
       "subjectId": "english",
       "lessonIds": [
         "color-3"
       ],
-      "prerequisiteSkillIds": []
+      "prerequisiteSkillIds": [],
+      "evidenceType": "recognized_token_match"
     },
     {
       "id": "foundation:color-4",
-      "title": "What color is it? It is...",
+      "title": "ترديد محتوى اللوحة: What color is it? It is...",
       "subjectId": "english",
       "lessonIds": [
         "color-4"
       ],
-      "prerequisiteSkillIds": []
+      "prerequisiteSkillIds": [],
+      "evidenceType": "recognized_token_match"
     },
     {
       "id": "foundation:num-1",
-      "title": "one, two, three",
+      "title": "ترديد محتوى اللوحة: one, two, three",
       "subjectId": "english",
       "lessonIds": [
         "num-1"
       ],
-      "prerequisiteSkillIds": []
+      "prerequisiteSkillIds": [],
+      "evidenceType": "recognized_token_match"
     },
     {
       "id": "foundation:num-2",
-      "title": "four, five",
+      "title": "ترديد محتوى اللوحة: four, five",
       "subjectId": "english",
       "lessonIds": [
         "num-2"
       ],
-      "prerequisiteSkillIds": []
+      "prerequisiteSkillIds": [],
+      "evidenceType": "recognized_token_match"
     },
     {
       "id": "foundation:num-3",
-      "title": "six, seven, eight",
+      "title": "ترديد محتوى اللوحة: six, seven, eight",
       "subjectId": "english",
       "lessonIds": [
         "num-3"
       ],
-      "prerequisiteSkillIds": []
+      "prerequisiteSkillIds": [],
+      "evidenceType": "recognized_token_match"
     },
     {
       "id": "foundation:num-4",
-      "title": "nine, ten; how many?",
+      "title": "ترديد محتوى اللوحة: nine, ten; how many?",
       "subjectId": "english",
       "lessonIds": [
         "num-4"
       ],
-      "prerequisiteSkillIds": []
+      "prerequisiteSkillIds": [],
+      "evidenceType": "recognized_token_match"
     },
     {
       "id": "foundation:people-1",
-      "title": "mother, father, sister, brother",
+      "title": "ترديد محتوى اللوحة: mother, father, sister, brother",
       "subjectId": "english",
       "lessonIds": [
         "people-1"
       ],
-      "prerequisiteSkillIds": []
+      "prerequisiteSkillIds": [],
+      "evidenceType": "recognized_token_match"
     },
     {
       "id": "foundation:people-2",
-      "title": "baby, friend, teacher",
+      "title": "ترديد محتوى اللوحة: baby, friend, teacher",
       "subjectId": "english",
       "lessonIds": [
         "people-2"
       ],
-      "prerequisiteSkillIds": []
+      "prerequisiteSkillIds": [],
+      "evidenceType": "recognized_token_match"
     },
     {
       "id": "foundation:people-3",
-      "title": "This is my...",
+      "title": "ترديد محتوى اللوحة: This is my...",
       "subjectId": "english",
       "lessonIds": [
         "people-3"
       ],
-      "prerequisiteSkillIds": []
+      "prerequisiteSkillIds": [],
+      "evidenceType": "recognized_token_match"
     },
     {
       "id": "foundation:people-4",
-      "title": "he, she; who is this?",
+      "title": "ترديد محتوى اللوحة: he, she; who is this?",
       "subjectId": "english",
       "lessonIds": [
         "people-4"
       ],
-      "prerequisiteSkillIds": []
+      "prerequisiteSkillIds": [],
+      "evidenceType": "recognized_token_match"
     },
     {
       "id": "foundation:body-1",
-      "title": "head, eyes, ears, nose, mouth",
+      "title": "ترديد محتوى اللوحة: head, eyes, ears, nose, mouth",
       "subjectId": "english",
       "lessonIds": [
         "body-1"
       ],
-      "prerequisiteSkillIds": []
+      "prerequisiteSkillIds": [],
+      "evidenceType": "recognized_token_match"
     },
     {
       "id": "foundation:body-2",
-      "title": "hands, arms, legs, feet",
+      "title": "ترديد محتوى اللوحة: hands, arms, legs, feet",
       "subjectId": "english",
       "lessonIds": [
         "body-2"
       ],
-      "prerequisiteSkillIds": []
+      "prerequisiteSkillIds": [],
+      "evidenceType": "recognized_token_match"
     },
     {
       "id": "foundation:body-3",
-      "title": "clap, jump, walk, stop",
+      "title": "ترديد محتوى اللوحة: clap, jump, walk, stop",
       "subjectId": "english",
       "lessonIds": [
         "body-3"
       ],
-      "prerequisiteSkillIds": []
+      "prerequisiteSkillIds": [],
+      "evidenceType": "recognized_token_match"
     },
     {
       "id": "foundation:body-4",
-      "title": "I can...",
+      "title": "ترديد محتوى اللوحة: I can...",
       "subjectId": "english",
       "lessonIds": [
         "body-4"
       ],
-      "prerequisiteSkillIds": []
+      "prerequisiteSkillIds": [],
+      "evidenceType": "recognized_token_match"
     },
     {
       "id": "foundation:animal-1",
-      "title": "cat, dog, bird",
+      "title": "ترديد محتوى اللوحة: cat, dog, bird",
       "subjectId": "english",
       "lessonIds": [
         "animal-1"
       ],
-      "prerequisiteSkillIds": []
+      "prerequisiteSkillIds": [],
+      "evidenceType": "recognized_token_match"
     },
     {
       "id": "foundation:animal-2",
-      "title": "fish, rabbit, duck",
+      "title": "ترديد محتوى اللوحة: fish, rabbit, duck",
       "subjectId": "english",
       "lessonIds": [
         "animal-2"
       ],
-      "prerequisiteSkillIds": []
+      "prerequisiteSkillIds": [],
+      "evidenceType": "recognized_token_match"
     },
     {
       "id": "foundation:animal-3",
-      "title": "lion, elephant, monkey",
+      "title": "ترديد محتوى اللوحة: lion, elephant, monkey",
       "subjectId": "english",
       "lessonIds": [
         "animal-3"
       ],
-      "prerequisiteSkillIds": []
+      "prerequisiteSkillIds": [],
+      "evidenceType": "recognized_token_match"
     },
     {
       "id": "foundation:animal-4",
-      "title": "big, small; it is a...",
+      "title": "ترديد محتوى اللوحة: big, small; it is a...",
       "subjectId": "english",
       "lessonIds": [
         "animal-4"
       ],
-      "prerequisiteSkillIds": []
+      "prerequisiteSkillIds": [],
+      "evidenceType": "recognized_token_match"
     },
     {
       "id": "foundation:food-1",
-      "title": "apple, banana, orange",
+      "title": "ترديد محتوى اللوحة: apple, banana, orange",
       "subjectId": "english",
       "lessonIds": [
         "food-1"
       ],
-      "prerequisiteSkillIds": []
+      "prerequisiteSkillIds": [],
+      "evidenceType": "recognized_token_match"
     },
     {
       "id": "foundation:food-2",
-      "title": "bread, cheese, milk",
+      "title": "ترديد محتوى اللوحة: bread, cheese, milk",
       "subjectId": "english",
       "lessonIds": [
         "food-2"
       ],
-      "prerequisiteSkillIds": []
+      "prerequisiteSkillIds": [],
+      "evidenceType": "recognized_token_match"
     },
     {
       "id": "foundation:food-3",
-      "title": "I like..., I don't like...",
+      "title": "ترديد محتوى اللوحة: I like..., I don't like...",
       "subjectId": "english",
       "lessonIds": [
         "food-3"
       ],
-      "prerequisiteSkillIds": []
+      "prerequisiteSkillIds": [],
+      "evidenceType": "recognized_token_match"
     },
     {
       "id": "foundation:food-4",
-      "title": "I am hungry/thirsty; please",
+      "title": "ترديد محتوى اللوحة: I am hungry/thirsty; please",
       "subjectId": "english",
       "lessonIds": [
         "food-4"
       ],
-      "prerequisiteSkillIds": []
+      "prerequisiteSkillIds": [],
+      "evidenceType": "recognized_token_match"
     },
     {
       "id": "foundation:alpha-1",
-      "title": "letter sounds A-F with familiar words",
+      "title": "ترديد محتوى اللوحة: letter sounds A-F with familiar words",
       "subjectId": "english",
       "lessonIds": [
         "alpha-1"
       ],
-      "prerequisiteSkillIds": []
+      "prerequisiteSkillIds": [],
+      "evidenceType": "recognized_token_match"
     },
     {
       "id": "foundation:alpha-2",
-      "title": "letter sounds G-L with familiar words",
+      "title": "ترديد محتوى اللوحة: letter sounds G-L with familiar words",
       "subjectId": "english",
       "lessonIds": [
         "alpha-2"
       ],
-      "prerequisiteSkillIds": []
+      "prerequisiteSkillIds": [],
+      "evidenceType": "recognized_token_match"
     },
     {
       "id": "foundation:alpha-3",
-      "title": "letter sounds M-R with familiar words",
+      "title": "ترديد محتوى اللوحة: letter sounds M-R with familiar words",
       "subjectId": "english",
       "lessonIds": [
         "alpha-3"
       ],
-      "prerequisiteSkillIds": []
+      "prerequisiteSkillIds": [],
+      "evidenceType": "recognized_token_match"
     },
     {
       "id": "foundation:alpha-4",
-      "title": "letter sounds S-Z with familiar words",
+      "title": "ترديد محتوى اللوحة: letter sounds S-Z with familiar words",
       "subjectId": "english",
       "lessonIds": [
         "alpha-4"
       ],
-      "prerequisiteSkillIds": []
+      "prerequisiteSkillIds": [],
+      "evidenceType": "recognized_token_match"
     },
     {
       "id": "foundation:sound-1",
-      "title": "same and different beginning sounds",
+      "title": "ترديد محتوى اللوحة: same and different beginning sounds",
       "subjectId": "english",
       "lessonIds": [
         "sound-1"
       ],
-      "prerequisiteSkillIds": []
+      "prerequisiteSkillIds": [],
+      "evidenceType": "recognized_token_match"
     },
     {
       "id": "foundation:sound-2",
-      "title": "rhymes: cat/hat, sun/fun",
+      "title": "ترديد محتوى اللوحة: rhymes: cat/hat, sun/fun",
       "subjectId": "english",
       "lessonIds": [
         "sound-2"
       ],
-      "prerequisiteSkillIds": []
+      "prerequisiteSkillIds": [],
+      "evidenceType": "recognized_token_match"
     },
     {
       "id": "foundation:sound-3",
-      "title": "hear the first sound in a word",
+      "title": "ترديد محتوى اللوحة: hear the first sound in a word",
       "subjectId": "english",
       "lessonIds": [
         "sound-3"
       ],
-      "prerequisiteSkillIds": []
+      "prerequisiteSkillIds": [],
+      "evidenceType": "recognized_token_match"
     },
     {
       "id": "foundation:sound-4",
-      "title": "blend two and three sounds orally",
+      "title": "ترديد محتوى اللوحة: blend two and three sounds orally",
       "subjectId": "english",
       "lessonIds": [
         "sound-4"
       ],
-      "prerequisiteSkillIds": []
+      "prerequisiteSkillIds": [],
+      "evidenceType": "recognized_token_match"
     },
     {
       "id": "foundation:first-1",
-      "title": "oral blending of simple CVC words: cat, dog, sun",
+      "title": "ترديد محتوى اللوحة: oral blending of simple CVC words: cat, dog, sun",
       "subjectId": "english",
       "lessonIds": [
         "first-1"
       ],
-      "prerequisiteSkillIds": []
+      "prerequisiteSkillIds": [],
+      "evidenceType": "recognized_token_match"
     },
     {
       "id": "foundation:first-2",
-      "title": "CVC words with short a: cat, hat, map",
+      "title": "ترديد محتوى اللوحة: CVC words with short a: cat, hat, map",
       "subjectId": "english",
       "lessonIds": [
         "first-2"
       ],
-      "prerequisiteSkillIds": []
+      "prerequisiteSkillIds": [],
+      "evidenceType": "recognized_token_match"
     },
     {
       "id": "foundation:first-3",
-      "title": "CVC words with short i/o: sit, pin, dog, pot",
+      "title": "ترديد محتوى اللوحة: CVC words with short i/o: sit, pin, dog, pot",
       "subjectId": "english",
       "lessonIds": [
         "first-3"
       ],
-      "prerequisiteSkillIds": []
+      "prerequisiteSkillIds": [],
+      "evidenceType": "recognized_token_match"
     },
     {
       "id": "foundation:first-4",
-      "title": "simple spoken chunks: I see..., It is a...",
+      "title": "ترديد محتوى اللوحة: simple spoken chunks: I see..., It is a...",
       "subjectId": "english",
       "lessonIds": [
         "first-4"
       ],
-      "prerequisiteSkillIds": []
+      "prerequisiteSkillIds": [],
+      "evidenceType": "recognized_token_match"
     },
     {
       "id": "foundation:home-1",
-      "title": "bed, door, chair",
+      "title": "ترديد محتوى اللوحة: bed, door, chair",
       "subjectId": "english",
       "lessonIds": [
         "home-1"
       ],
-      "prerequisiteSkillIds": []
+      "prerequisiteSkillIds": [],
+      "evidenceType": "recognized_token_match"
     },
     {
       "id": "foundation:home-2",
-      "title": "shirt, shoes, hat",
+      "title": "ترديد محتوى اللوحة: shirt, shoes, hat",
       "subjectId": "english",
       "lessonIds": [
         "home-2"
       ],
-      "prerequisiteSkillIds": []
+      "prerequisiteSkillIds": [],
+      "evidenceType": "recognized_token_match"
     },
     {
       "id": "foundation:home-3",
-      "title": "sunny, rainy, hot, cold",
+      "title": "ترديد محتوى اللوحة: sunny, rainy, hot, cold",
       "subjectId": "english",
       "lessonIds": [
         "home-3"
       ],
-      "prerequisiteSkillIds": []
+      "prerequisiteSkillIds": [],
+      "evidenceType": "recognized_token_match"
     },
     {
       "id": "foundation:home-4",
-      "title": "Where is...? Here it is!",
+      "title": "ترديد محتوى اللوحة: Where is...? Here it is!",
       "subjectId": "english",
       "lessonIds": [
         "home-4"
       ],
-      "prerequisiteSkillIds": []
+      "prerequisiteSkillIds": [],
+      "evidenceType": "recognized_token_match"
     },
     {
       "id": "connect-plus-1:cp1-me-1",
-      "title": "التحية والتعارف",
+      "title": "ترديد محتوى اللوحة: التحية والتعارف",
       "subjectId": "english",
       "lessonIds": [
         "cp1-me-1"
       ],
-      "prerequisiteSkillIds": []
+      "prerequisiteSkillIds": [],
+      "evidenceType": "recognized_token_match"
     },
     {
       "id": "connect-plus-1:cp1-me-2",
-      "title": "أنا عندي كام سنة؟",
+      "title": "ترديد محتوى اللوحة: أنا عندي كام سنة؟",
       "subjectId": "english",
       "lessonIds": [
         "cp1-me-2"
       ],
-      "prerequisiteSkillIds": []
+      "prerequisiteSkillIds": [],
+      "evidenceType": "recognized_token_match"
     },
     {
       "id": "connect-plus-1:cp1-me-3",
-      "title": "أجزاء الجسم وأصواتها",
+      "title": "ترديد محتوى اللوحة: أجزاء الجسم وأصواتها",
       "subjectId": "english",
       "lessonIds": [
         "cp1-me-3"
       ],
-      "prerequisiteSkillIds": []
+      "prerequisiteSkillIds": [],
+      "evidenceType": "recognized_token_match"
     },
     {
       "id": "connect-plus-1:cp1-me-4",
-      "title": "جرامر: my وyour",
+      "title": "ترديد محتوى اللوحة: جرامر: my وyour",
       "subjectId": "english",
       "lessonIds": [
         "cp1-me-4"
       ],
-      "prerequisiteSkillIds": []
+      "prerequisiteSkillIds": [],
+      "evidenceType": "recognized_token_match"
     },
     {
       "id": "connect-plus-1:cp1-family-1",
-      "title": "أفراد الأسرة",
+      "title": "ترديد محتوى اللوحة: أفراد الأسرة",
       "subjectId": "english",
       "lessonIds": [
         "cp1-family-1"
       ],
-      "prerequisiteSkillIds": []
+      "prerequisiteSkillIds": [],
+      "evidenceType": "recognized_token_match"
     },
     {
       "id": "connect-plus-1:cp1-family-2",
-      "title": "جرامر: he وshe",
+      "title": "ترديد محتوى اللوحة: جرامر: he وshe",
       "subjectId": "english",
       "lessonIds": [
         "cp1-family-2"
       ],
-      "prerequisiteSkillIds": []
+      "prerequisiteSkillIds": [],
+      "evidenceType": "recognized_token_match"
     },
     {
       "id": "connect-plus-1:cp1-family-3",
-      "title": "فونكس: أصوات الأسرة",
+      "title": "ترديد محتوى اللوحة: فونكس: أصوات الأسرة",
       "subjectId": "english",
       "lessonIds": [
         "cp1-family-3"
       ],
-      "prerequisiteSkillIds": []
+      "prerequisiteSkillIds": [],
+      "evidenceType": "recognized_token_match"
     },
     {
       "id": "connect-plus-1:cp1-family-4",
-      "title": "جرامر: his وher",
+      "title": "ترديد محتوى اللوحة: جرامر: his وher",
       "subjectId": "english",
       "lessonIds": [
         "cp1-family-4"
       ],
-      "prerequisiteSkillIds": []
+      "prerequisiteSkillIds": [],
+      "evidenceType": "recognized_token_match"
     },
     {
       "id": "connect-plus-1:cp1-community-1",
-      "title": "المدرسة والمجتمع",
+      "title": "ترديد محتوى اللوحة: المدرسة والمجتمع",
       "subjectId": "english",
       "lessonIds": [
         "cp1-community-1"
       ],
-      "prerequisiteSkillIds": []
+      "prerequisiteSkillIds": [],
+      "evidenceType": "recognized_token_match"
     },
     {
       "id": "connect-plus-1:cp1-community-2",
-      "title": "جرامر: a وan",
+      "title": "ترديد محتوى اللوحة: جرامر: a وan",
       "subjectId": "english",
       "lessonIds": [
         "cp1-community-2"
       ],
-      "prerequisiteSkillIds": []
+      "prerequisiteSkillIds": [],
+      "evidenceType": "recognized_token_match"
     },
     {
       "id": "connect-plus-1:cp1-community-3",
-      "title": "فونكس: أصوات المدرسة",
+      "title": "ترديد محتوى اللوحة: فونكس: أصوات المدرسة",
       "subjectId": "english",
       "lessonIds": [
         "cp1-community-3"
       ],
-      "prerequisiteSkillIds": []
+      "prerequisiteSkillIds": [],
+      "evidenceType": "recognized_token_match"
     },
     {
       "id": "connect-plus-1:cp1-community-4",
-      "title": "جرامر: فين الحاجة؟",
+      "title": "ترديد محتوى اللوحة: جرامر: فين الحاجة؟",
       "subjectId": "english",
       "lessonIds": [
         "cp1-community-4"
       ],
-      "prerequisiteSkillIds": []
+      "prerequisiteSkillIds": [],
+      "evidenceType": "recognized_token_match"
     },
     {
       "id": "connect-plus-1:cp1-farm-1",
-      "title": "حيوانات المزرعة",
+      "title": "ترديد محتوى اللوحة: حيوانات المزرعة",
       "subjectId": "english",
       "lessonIds": [
         "cp1-farm-1"
       ],
-      "prerequisiteSkillIds": []
+      "prerequisiteSkillIds": [],
+      "evidenceType": "recognized_token_match"
     },
     {
       "id": "connect-plus-1:cp1-farm-2",
-      "title": "جرامر: مفرد وجمع",
+      "title": "ترديد محتوى اللوحة: جرامر: مفرد وجمع",
       "subjectId": "english",
       "lessonIds": [
         "cp1-farm-2"
       ],
-      "prerequisiteSkillIds": []
+      "prerequisiteSkillIds": [],
+      "evidenceType": "recognized_token_match"
     },
     {
       "id": "connect-plus-1:cp1-farm-3",
-      "title": "فونكس: صوت a القصير",
+      "title": "ترديد محتوى اللوحة: فونكس: صوت a القصير",
       "subjectId": "english",
       "lessonIds": [
         "cp1-farm-3"
       ],
-      "prerequisiteSkillIds": []
+      "prerequisiteSkillIds": [],
+      "evidenceType": "recognized_token_match"
     },
     {
       "id": "connect-plus-1:cp1-farm-4",
-      "title": "جرامر: It is وThey are",
+      "title": "ترديد محتوى اللوحة: جرامر: It is وThey are",
       "subjectId": "english",
       "lessonIds": [
         "cp1-farm-4"
       ],
-      "prerequisiteSkillIds": []
+      "prerequisiteSkillIds": [],
+      "evidenceType": "recognized_token_match"
     },
     {
       "id": "connect-plus-1:cp1-transport-1",
-      "title": "وسائل المواصلات",
+      "title": "ترديد محتوى اللوحة: وسائل المواصلات",
       "subjectId": "english",
       "lessonIds": [
         "cp1-transport-1"
       ],
-      "prerequisiteSkillIds": []
+      "prerequisiteSkillIds": [],
+      "evidenceType": "recognized_token_match"
     },
     {
       "id": "connect-plus-1:cp1-transport-2",
-      "title": "جرامر: I can وI can’t",
+      "title": "ترديد محتوى اللوحة: جرامر: I can وI can’t",
       "subjectId": "english",
       "lessonIds": [
         "cp1-transport-2"
       ],
-      "prerequisiteSkillIds": []
+      "prerequisiteSkillIds": [],
+      "evidenceType": "recognized_token_match"
     },
     {
       "id": "connect-plus-1:cp1-transport-3",
-      "title": "فونكس: أصوات الحركة",
+      "title": "ترديد محتوى اللوحة: فونكس: أصوات الحركة",
       "subjectId": "english",
       "lessonIds": [
         "cp1-transport-3"
       ],
-      "prerequisiteSkillIds": []
+      "prerequisiteSkillIds": [],
+      "evidenceType": "recognized_token_match"
     },
     {
       "id": "connect-plus-1:cp1-transport-4",
-      "title": "جرامر: أروح بإيه؟",
+      "title": "ترديد محتوى اللوحة: جرامر: أروح بإيه؟",
       "subjectId": "english",
       "lessonIds": [
         "cp1-transport-4"
       ],
-      "prerequisiteSkillIds": []
+      "prerequisiteSkillIds": [],
+      "evidenceType": "recognized_token_match"
     },
     {
       "id": "connect-plus-1:cp1-world-1",
-      "title": "الطبيعة والألوان",
+      "title": "ترديد محتوى اللوحة: الطبيعة والألوان",
       "subjectId": "english",
       "lessonIds": [
         "cp1-world-1"
       ],
-      "prerequisiteSkillIds": []
+      "prerequisiteSkillIds": [],
+      "evidenceType": "recognized_token_match"
     },
     {
       "id": "connect-plus-1:cp1-world-2",
-      "title": "جرامر: this وthat",
+      "title": "ترديد محتوى اللوحة: جرامر: this وthat",
       "subjectId": "english",
       "lessonIds": [
         "cp1-world-2"
       ],
-      "prerequisiteSkillIds": []
+      "prerequisiteSkillIds": [],
+      "evidenceType": "recognized_token_match"
     },
     {
       "id": "connect-plus-1:cp1-world-3",
-      "title": "فونكس: أصوات الطبيعة",
+      "title": "ترديد محتوى اللوحة: فونكس: أصوات الطبيعة",
       "subjectId": "english",
       "lessonIds": [
         "cp1-world-3"
       ],
-      "prerequisiteSkillIds": []
+      "prerequisiteSkillIds": [],
+      "evidenceType": "recognized_token_match"
     },
     {
       "id": "connect-plus-1:cp1-world-4",
-      "title": "جرامر: It is + وصف",
+      "title": "ترديد محتوى اللوحة: جرامر: It is + وصف",
       "subjectId": "english",
       "lessonIds": [
         "cp1-world-4"
       ],
-      "prerequisiteSkillIds": []
+      "prerequisiteSkillIds": [],
+      "evidenceType": "recognized_token_match"
     },
     {
       "id": "connect-plus-1:cp1-shopping-1",
-      "title": "ملابس وألوان",
+      "title": "ترديد محتوى اللوحة: ملابس وألوان",
       "subjectId": "english",
       "lessonIds": [
         "cp1-shopping-1"
       ],
-      "prerequisiteSkillIds": []
+      "prerequisiteSkillIds": [],
+      "evidenceType": "recognized_token_match"
     },
     {
       "id": "connect-plus-1:cp1-shopping-2",
-      "title": "جرامر: this وthese",
+      "title": "ترديد محتوى اللوحة: جرامر: this وthese",
       "subjectId": "english",
       "lessonIds": [
         "cp1-shopping-2"
       ],
-      "prerequisiteSkillIds": []
+      "prerequisiteSkillIds": [],
+      "evidenceType": "recognized_token_match"
     },
     {
       "id": "connect-plus-1:cp1-shopping-3",
-      "title": "فونكس: sh وch",
+      "title": "ترديد محتوى اللوحة: فونكس: sh وch",
       "subjectId": "english",
       "lessonIds": [
         "cp1-shopping-3"
       ],
-      "prerequisiteSkillIds": []
+      "prerequisiteSkillIds": [],
+      "evidenceType": "recognized_token_match"
     },
     {
       "id": "connect-plus-1:cp1-shopping-4",
-      "title": "جرامر: I want",
+      "title": "ترديد محتوى اللوحة: جرامر: I want",
       "subjectId": "english",
       "lessonIds": [
         "cp1-shopping-4"
       ],
-      "prerequisiteSkillIds": []
+      "prerequisiteSkillIds": [],
+      "evidenceType": "recognized_token_match"
     },
     {
       "id": "connect-plus-1:cp1-work-1",
-      "title": "المهن والأدوات",
+      "title": "ترديد محتوى اللوحة: المهن والأدوات",
       "subjectId": "english",
       "lessonIds": [
         "cp1-work-1"
       ],
-      "prerequisiteSkillIds": []
+      "prerequisiteSkillIds": [],
+      "evidenceType": "recognized_token_match"
     },
     {
       "id": "connect-plus-1:cp1-work-2",
-      "title": "جرامر: he/she is",
+      "title": "ترديد محتوى اللوحة: جرامر: he/she is",
       "subjectId": "english",
       "lessonIds": [
         "cp1-work-2"
       ],
-      "prerequisiteSkillIds": []
+      "prerequisiteSkillIds": [],
+      "evidenceType": "recognized_token_match"
     },
     {
       "id": "connect-plus-1:cp1-work-3",
-      "title": "فونكس: أصوات المهن",
+      "title": "ترديد محتوى اللوحة: فونكس: أصوات المهن",
       "subjectId": "english",
       "lessonIds": [
         "cp1-work-3"
       ],
-      "prerequisiteSkillIds": []
+      "prerequisiteSkillIds": [],
+      "evidenceType": "recognized_token_match"
     },
     {
       "id": "connect-plus-1:cp1-work-4",
-      "title": "جرامر: المضارع البسيط",
+      "title": "ترديد محتوى اللوحة: جرامر: المضارع البسيط",
       "subjectId": "english",
       "lessonIds": [
         "cp1-work-4"
       ],
-      "prerequisiteSkillIds": []
+      "prerequisiteSkillIds": [],
+      "evidenceType": "recognized_token_match"
     },
     {
       "id": "connect-plus-1:cp1-market-1",
-      "title": "فواكه وخضار",
+      "title": "ترديد محتوى اللوحة: فواكه وخضار",
       "subjectId": "english",
       "lessonIds": [
         "cp1-market-1"
       ],
-      "prerequisiteSkillIds": []
+      "prerequisiteSkillIds": [],
+      "evidenceType": "recognized_token_match"
     },
     {
       "id": "connect-plus-1:cp1-market-2",
-      "title": "جرامر: How many?",
+      "title": "ترديد محتوى اللوحة: جرامر: How many?",
       "subjectId": "english",
       "lessonIds": [
         "cp1-market-2"
       ],
-      "prerequisiteSkillIds": []
+      "prerequisiteSkillIds": [],
+      "evidenceType": "recognized_token_match"
     },
     {
       "id": "connect-plus-1:cp1-market-3",
-      "title": "فونكس: أصوات الأكل",
+      "title": "ترديد محتوى اللوحة: فونكس: أصوات الأكل",
       "subjectId": "english",
       "lessonIds": [
         "cp1-market-3"
       ],
-      "prerequisiteSkillIds": []
+      "prerequisiteSkillIds": [],
+      "evidenceType": "recognized_token_match"
     },
     {
       "id": "connect-plus-1:cp1-market-4",
-      "title": "جرامر: some وa",
+      "title": "ترديد محتوى اللوحة: جرامر: some وa",
       "subjectId": "english",
       "lessonIds": [
         "cp1-market-4"
       ],
-      "prerequisiteSkillIds": []
+      "prerequisiteSkillIds": [],
+      "evidenceType": "recognized_token_match"
     },
     {
       "id": "connect-plus-1:cp1-out-1",
-      "title": "أماكن الخروج",
+      "title": "ترديد محتوى اللوحة: أماكن الخروج",
       "subjectId": "english",
       "lessonIds": [
         "cp1-out-1"
       ],
-      "prerequisiteSkillIds": []
+      "prerequisiteSkillIds": [],
+      "evidenceType": "recognized_token_match"
     },
     {
       "id": "connect-plus-1:cp1-out-2",
-      "title": "جرامر: there is وthere are",
+      "title": "ترديد محتوى اللوحة: جرامر: there is وthere are",
       "subjectId": "english",
       "lessonIds": [
         "cp1-out-2"
       ],
-      "prerequisiteSkillIds": []
+      "prerequisiteSkillIds": [],
+      "evidenceType": "recognized_token_match"
     },
     {
       "id": "connect-plus-1:cp1-out-3",
-      "title": "فونكس: أصوات الأماكن",
+      "title": "ترديد محتوى اللوحة: فونكس: أصوات الأماكن",
       "subjectId": "english",
       "lessonIds": [
         "cp1-out-3"
       ],
-      "prerequisiteSkillIds": []
+      "prerequisiteSkillIds": [],
+      "evidenceType": "recognized_token_match"
     },
     {
       "id": "connect-plus-1:cp1-out-4",
-      "title": "جرامر: أسأل عن المكان",
+      "title": "ترديد محتوى اللوحة: جرامر: أسأل عن المكان",
       "subjectId": "english",
       "lessonIds": [
         "cp1-out-4"
       ],
-      "prerequisiteSkillIds": []
+      "prerequisiteSkillIds": [],
+      "evidenceType": "recognized_token_match"
     },
     {
       "id": "connect-plus-1:cp1-time-1",
-      "title": "الساعة بالتمام",
+      "title": "ترديد محتوى اللوحة: الساعة بالتمام",
       "subjectId": "english",
       "lessonIds": [
         "cp1-time-1"
       ],
-      "prerequisiteSkillIds": []
+      "prerequisiteSkillIds": [],
+      "evidenceType": "recognized_token_match"
     },
     {
       "id": "connect-plus-1:cp1-time-2",
-      "title": "جرامر: أوقات يومي",
+      "title": "ترديد محتوى اللوحة: جرامر: أوقات يومي",
       "subjectId": "english",
       "lessonIds": [
         "cp1-time-2"
       ],
-      "prerequisiteSkillIds": []
+      "prerequisiteSkillIds": [],
+      "evidenceType": "recognized_token_match"
     },
     {
       "id": "connect-plus-1:cp1-time-3",
-      "title": "فونكس: أصوات الوقت",
+      "title": "ترديد محتوى اللوحة: فونكس: أصوات الوقت",
       "subjectId": "english",
       "lessonIds": [
         "cp1-time-3"
       ],
-      "prerequisiteSkillIds": []
+      "prerequisiteSkillIds": [],
+      "evidenceType": "recognized_token_match"
     },
     {
       "id": "connect-plus-1:cp1-time-4",
-      "title": "مراجعة: أسأل وأجاوب عن الوقت",
+      "title": "ترديد محتوى اللوحة: مراجعة: أسأل وأجاوب عن الوقت",
       "subjectId": "english",
       "lessonIds": [
         "cp1-time-4"
       ],
-      "prerequisiteSkillIds": []
+      "prerequisiteSkillIds": [],
+      "evidenceType": "recognized_token_match"
     },
     {
       "id": "connect-plus-1:cp1-free-1",
-      "title": "هواياتي",
+      "title": "ترديد محتوى اللوحة: هواياتي",
       "subjectId": "english",
       "lessonIds": [
         "cp1-free-1"
       ],
-      "prerequisiteSkillIds": []
+      "prerequisiteSkillIds": [],
+      "evidenceType": "recognized_token_match"
     },
     {
       "id": "connect-plus-1:cp1-free-2",
-      "title": "جرامر: I like / I don’t like",
+      "title": "ترديد محتوى اللوحة: جرامر: I like / I don’t like",
       "subjectId": "english",
       "lessonIds": [
         "cp1-free-2"
       ],
-      "prerequisiteSkillIds": []
+      "prerequisiteSkillIds": [],
+      "evidenceType": "recognized_token_match"
     },
     {
       "id": "connect-plus-1:cp1-free-3",
-      "title": "فونكس: ندمج أصوات قصيرة",
+      "title": "ترديد محتوى اللوحة: فونكس: ندمج أصوات قصيرة",
       "subjectId": "english",
       "lessonIds": [
         "cp1-free-3"
       ],
-      "prerequisiteSkillIds": []
+      "prerequisiteSkillIds": [],
+      "evidenceType": "recognized_token_match"
     },
     {
       "id": "connect-plus-1:cp1-free-4",
-      "title": "مراجعة مفتوحة: أنا أقدر وأحب",
+      "title": "ترديد محتوى اللوحة: مراجعة مفتوحة: أنا أقدر وأحب",
       "subjectId": "english",
       "lessonIds": [
         "cp1-free-4"
       ],
-      "prerequisiteSkillIds": []
+      "prerequisiteSkillIds": [],
+      "evidenceType": "recognized_token_match"
     },
     {
       "id": "math-grade-1:math-found-count-1",
-      "title": "نعدّ حاجات حقيقية",
+      "title": "ترديد محتوى اللوحة: نعدّ حاجات حقيقية",
       "subjectId": "mathematics",
       "lessonIds": [
         "math-found-count-1"
       ],
-      "prerequisiteSkillIds": []
+      "prerequisiteSkillIds": [],
+      "evidenceType": "recognized_token_match"
     },
     {
       "id": "math-grade-1:math-found-count-2",
-      "title": "واحد لكل شيء",
+      "title": "ترديد محتوى اللوحة: واحد لكل شيء",
       "subjectId": "mathematics",
       "lessonIds": [
         "math-found-count-2"
       ],
-      "prerequisiteSkillIds": []
+      "prerequisiteSkillIds": [],
+      "evidenceType": "recognized_token_match"
     },
     {
       "id": "math-grade-1:math-found-count-3",
-      "title": "مين عنده أكتر؟",
+      "title": "ترديد محتوى اللوحة: مين عنده أكتر؟",
       "subjectId": "mathematics",
       "lessonIds": [
         "math-found-count-3"
       ],
-      "prerequisiteSkillIds": []
+      "prerequisiteSkillIds": [],
+      "evidenceType": "recognized_token_match"
     },
     {
       "id": "math-grade-1:math-found-count-4",
-      "title": "يعني إيه مفيش؟",
+      "title": "ترديد محتوى اللوحة: يعني إيه مفيش؟",
       "subjectId": "mathematics",
       "lessonIds": [
         "math-found-count-4"
       ],
-      "prerequisiteSkillIds": []
+      "prerequisiteSkillIds": [],
+      "evidenceType": "recognized_token_match"
     },
     {
       "id": "math-grade-1:math-found-numbers-1",
-      "title": "نتعرف على الأرقام",
+      "title": "ترديد محتوى اللوحة: نتعرف على الأرقام",
       "subjectId": "mathematics",
       "lessonIds": [
         "math-found-numbers-1"
       ],
-      "prerequisiteSkillIds": []
+      "prerequisiteSkillIds": [],
+      "evidenceType": "recognized_token_match"
     },
     {
       "id": "math-grade-1:math-found-numbers-2",
-      "title": "نرتب الأرقام",
+      "title": "ترديد محتوى اللوحة: نرتب الأرقام",
       "subjectId": "mathematics",
       "lessonIds": [
         "math-found-numbers-2"
       ],
-      "prerequisiteSkillIds": []
+      "prerequisiteSkillIds": [],
+      "evidenceType": "recognized_token_match"
     },
     {
       "id": "math-grade-1:math-found-numbers-3",
-      "title": "نكمل العدد الناقص",
+      "title": "ترديد محتوى اللوحة: نكمل العدد الناقص",
       "subjectId": "mathematics",
       "lessonIds": [
         "math-found-numbers-3"
       ],
-      "prerequisiteSkillIds": []
+      "prerequisiteSkillIds": [],
+      "evidenceType": "recognized_token_match"
     },
     {
       "id": "math-grade-1:math-found-numbers-4",
-      "title": "نعدّ لحد عشرة",
+      "title": "ترديد محتوى اللوحة: نعدّ لحد عشرة",
       "subjectId": "mathematics",
       "lessonIds": [
         "math-found-numbers-4"
       ],
-      "prerequisiteSkillIds": []
+      "prerequisiteSkillIds": [],
+      "evidenceType": "recognized_token_match"
     },
     {
       "id": "math-grade-1:math-found-shapes-1",
-      "title": "الدائرة والمربع",
+      "title": "ترديد محتوى اللوحة: الدائرة والمربع",
       "subjectId": "mathematics",
       "lessonIds": [
         "math-found-shapes-1"
       ],
-      "prerequisiteSkillIds": []
+      "prerequisiteSkillIds": [],
+      "evidenceType": "recognized_token_match"
     },
     {
       "id": "math-grade-1:math-found-shapes-2",
-      "title": "المثلث والمستطيل",
+      "title": "ترديد محتوى اللوحة: المثلث والمستطيل",
       "subjectId": "mathematics",
       "lessonIds": [
         "math-found-shapes-2"
       ],
-      "prerequisiteSkillIds": []
+      "prerequisiteSkillIds": [],
+      "evidenceType": "recognized_token_match"
     },
     {
       "id": "math-grade-1:math-found-shapes-3",
-      "title": "فوق وتحت وجنب",
+      "title": "ترديد محتوى اللوحة: فوق وتحت وجنب",
       "subjectId": "mathematics",
       "lessonIds": [
         "math-found-shapes-3"
       ],
-      "prerequisiteSkillIds": []
+      "prerequisiteSkillIds": [],
+      "evidenceType": "recognized_token_match"
     },
     {
       "id": "math-grade-1:math-found-shapes-4",
-      "title": "نمط بيتكرر",
+      "title": "ترديد محتوى اللوحة: نمط بيتكرر",
       "subjectId": "mathematics",
       "lessonIds": [
         "math-found-shapes-4"
       ],
-      "prerequisiteSkillIds": []
+      "prerequisiteSkillIds": [],
+      "evidenceType": "recognized_token_match"
     },
     {
       "id": "math-grade-1:math-grade-count-1",
-      "title": "نعدّ من ١١ إلى ١٥",
+      "title": "ترديد محتوى اللوحة: نعدّ من ١١ إلى ١٥",
       "subjectId": "mathematics",
       "lessonIds": [
         "math-grade-count-1"
       ],
-      "prerequisiteSkillIds": []
+      "prerequisiteSkillIds": [],
+      "evidenceType": "recognized_token_match"
     },
     {
       "id": "math-grade-1:math-grade-count-2",
-      "title": "نعدّ من ١٦ إلى ٢٠",
+      "title": "ترديد محتوى اللوحة: نعدّ من ١٦ إلى ٢٠",
       "subjectId": "mathematics",
       "lessonIds": [
         "math-grade-count-2"
       ],
-      "prerequisiteSkillIds": []
+      "prerequisiteSkillIds": [],
+      "evidenceType": "recognized_token_match"
     },
     {
       "id": "math-grade-1:math-grade-count-3",
-      "title": "قبل وبعد وبين",
+      "title": "ترديد محتوى اللوحة: قبل وبعد وبين",
       "subjectId": "mathematics",
       "lessonIds": [
         "math-grade-count-3"
       ],
-      "prerequisiteSkillIds": []
+      "prerequisiteSkillIds": [],
+      "evidenceType": "recognized_token_match"
     },
     {
       "id": "math-grade-1:math-grade-count-4",
-      "title": "نقارن الأعداد",
+      "title": "ترديد محتوى اللوحة: نقارن الأعداد",
       "subjectId": "mathematics",
       "lessonIds": [
         "math-grade-count-4"
       ],
-      "prerequisiteSkillIds": []
+      "prerequisiteSkillIds": [],
+      "evidenceType": "recognized_token_match"
     },
     {
       "id": "math-grade-1:math-grade-place-1",
-      "title": "عشرة واحدة",
+      "title": "ترديد محتوى اللوحة: عشرة واحدة",
       "subjectId": "mathematics",
       "lessonIds": [
         "math-grade-place-1"
       ],
-      "prerequisiteSkillIds": []
+      "prerequisiteSkillIds": [],
+      "evidenceType": "recognized_token_match"
     },
     {
       "id": "math-grade-1:math-grade-place-2",
-      "title": "العشرات والآحاد",
+      "title": "ترديد محتوى اللوحة: العشرات والآحاد",
       "subjectId": "mathematics",
       "lessonIds": [
         "math-grade-place-2"
       ],
-      "prerequisiteSkillIds": []
+      "prerequisiteSkillIds": [],
+      "evidenceType": "recognized_token_match"
     },
     {
       "id": "math-grade-1:math-grade-place-3",
-      "title": "نكوّن العدد",
+      "title": "ترديد محتوى اللوحة: نكوّن العدد",
       "subjectId": "mathematics",
       "lessonIds": [
         "math-grade-place-3"
       ],
-      "prerequisiteSkillIds": []
+      "prerequisiteSkillIds": [],
+      "evidenceType": "recognized_token_match"
     },
     {
       "id": "math-grade-1:math-grade-place-4",
-      "title": "نفك العدد",
+      "title": "ترديد محتوى اللوحة: نفك العدد",
       "subjectId": "mathematics",
       "lessonIds": [
         "math-grade-place-4"
       ],
-      "prerequisiteSkillIds": []
+      "prerequisiteSkillIds": [],
+      "evidenceType": "recognized_token_match"
     },
     {
       "id": "math-grade-1:math-grade-add-1",
-      "title": "الجمع يعني نزود",
+      "title": "ترديد محتوى اللوحة: الجمع يعني نزود",
       "subjectId": "mathematics",
       "lessonIds": [
         "math-grade-add-1"
       ],
-      "prerequisiteSkillIds": []
+      "prerequisiteSkillIds": [],
+      "evidenceType": "recognized_token_match"
     },
     {
       "id": "math-grade-1:math-grade-add-2",
-      "title": "نجمع بالصور",
+      "title": "ترديد محتوى اللوحة: نجمع بالصور",
       "subjectId": "mathematics",
       "lessonIds": [
         "math-grade-add-2"
       ],
-      "prerequisiteSkillIds": []
+      "prerequisiteSkillIds": [],
+      "evidenceType": "recognized_token_match"
     },
     {
       "id": "math-grade-1:math-grade-add-3",
-      "title": "نجمع حتى ١٠",
+      "title": "ترديد محتوى اللوحة: نجمع حتى ١٠",
       "subjectId": "mathematics",
       "lessonIds": [
         "math-grade-add-3"
       ],
-      "prerequisiteSkillIds": []
+      "prerequisiteSkillIds": [],
+      "evidenceType": "recognized_token_match"
     },
     {
       "id": "math-grade-1:math-grade-add-4",
-      "title": "نكمل العشرة",
+      "title": "ترديد محتوى اللوحة: نكمل العشرة",
       "subjectId": "mathematics",
       "lessonIds": [
         "math-grade-add-4"
       ],
-      "prerequisiteSkillIds": []
+      "prerequisiteSkillIds": [],
+      "evidenceType": "recognized_token_match"
     },
     {
       "id": "math-grade-1:math-grade-subtract-1",
-      "title": "الطرح يعني ناخد",
+      "title": "ترديد محتوى اللوحة: الطرح يعني ناخد",
       "subjectId": "mathematics",
       "lessonIds": [
         "math-grade-subtract-1"
       ],
-      "prerequisiteSkillIds": []
+      "prerequisiteSkillIds": [],
+      "evidenceType": "recognized_token_match"
     },
     {
       "id": "math-grade-1:math-grade-subtract-2",
-      "title": "نطرح بالصور",
+      "title": "ترديد محتوى اللوحة: نطرح بالصور",
       "subjectId": "mathematics",
       "lessonIds": [
         "math-grade-subtract-2"
       ],
-      "prerequisiteSkillIds": []
+      "prerequisiteSkillIds": [],
+      "evidenceType": "recognized_token_match"
     },
     {
       "id": "math-grade-1:math-grade-subtract-3",
-      "title": "نطرح حتى ١٠",
+      "title": "ترديد محتوى اللوحة: نطرح حتى ١٠",
       "subjectId": "mathematics",
       "lessonIds": [
         "math-grade-subtract-3"
       ],
-      "prerequisiteSkillIds": []
+      "prerequisiteSkillIds": [],
+      "evidenceType": "recognized_token_match"
     },
     {
       "id": "math-grade-1:math-grade-subtract-4",
-      "title": "الجمع والطرح أصحاب",
+      "title": "ترديد محتوى اللوحة: الجمع والطرح أصحاب",
       "subjectId": "mathematics",
       "lessonIds": [
         "math-grade-subtract-4"
       ],
-      "prerequisiteSkillIds": []
+      "prerequisiteSkillIds": [],
+      "evidenceType": "recognized_token_match"
     },
     {
       "id": "math-grade-1:math-grade-problems-1",
-      "title": "مسألة جمع من الحياة",
+      "title": "ترديد محتوى اللوحة: مسألة جمع من الحياة",
       "subjectId": "mathematics",
       "lessonIds": [
         "math-grade-problems-1"
       ],
-      "prerequisiteSkillIds": []
+      "prerequisiteSkillIds": [],
+      "evidenceType": "recognized_token_match"
     },
     {
       "id": "math-grade-1:math-grade-problems-2",
-      "title": "مسألة طرح من الحياة",
+      "title": "ترديد محتوى اللوحة: مسألة طرح من الحياة",
       "subjectId": "mathematics",
       "lessonIds": [
         "math-grade-problems-2"
       ],
-      "prerequisiteSkillIds": []
+      "prerequisiteSkillIds": [],
+      "evidenceType": "recognized_token_match"
     },
     {
       "id": "math-grade-1:math-grade-problems-3",
-      "title": "نختار العملية المناسبة",
+      "title": "ترديد محتوى اللوحة: نختار العملية المناسبة",
       "subjectId": "mathematics",
       "lessonIds": [
         "math-grade-problems-3"
       ],
-      "prerequisiteSkillIds": []
+      "prerequisiteSkillIds": [],
+      "evidenceType": "recognized_token_match"
     },
     {
       "id": "math-grade-1:math-grade-problems-4",
-      "title": "نحكي المسألة بالرسم",
+      "title": "ترديد محتوى اللوحة: نحكي المسألة بالرسم",
       "subjectId": "mathematics",
       "lessonIds": [
         "math-grade-problems-4"
       ],
-      "prerequisiteSkillIds": []
+      "prerequisiteSkillIds": [],
+      "evidenceType": "recognized_token_match"
     },
     {
       "id": "math-grade-1:math-grade-geometry-1",
-      "title": "أشكال مسطحة",
+      "title": "ترديد محتوى اللوحة: أشكال مسطحة",
       "subjectId": "mathematics",
       "lessonIds": [
         "math-grade-geometry-1"
       ],
-      "prerequisiteSkillIds": []
+      "prerequisiteSkillIds": [],
+      "evidenceType": "recognized_token_match"
     },
     {
       "id": "math-grade-1:math-grade-geometry-2",
-      "title": "أشكال لها أركان",
+      "title": "ترديد محتوى اللوحة: أشكال لها أركان",
       "subjectId": "mathematics",
       "lessonIds": [
         "math-grade-geometry-2"
       ],
-      "prerequisiteSkillIds": []
+      "prerequisiteSkillIds": [],
+      "evidenceType": "recognized_token_match"
     },
     {
       "id": "math-grade-1:math-grade-geometry-3",
-      "title": "مجسمات حوالينا",
+      "title": "ترديد محتوى اللوحة: مجسمات حوالينا",
       "subjectId": "mathematics",
       "lessonIds": [
         "math-grade-geometry-3"
       ],
-      "prerequisiteSkillIds": []
+      "prerequisiteSkillIds": [],
+      "evidenceType": "recognized_token_match"
     },
     {
       "id": "math-grade-1:math-grade-geometry-4",
-      "title": "نبني شكل من أشكال",
+      "title": "ترديد محتوى اللوحة: نبني شكل من أشكال",
       "subjectId": "mathematics",
       "lessonIds": [
         "math-grade-geometry-4"
       ],
-      "prerequisiteSkillIds": []
+      "prerequisiteSkillIds": [],
+      "evidenceType": "recognized_token_match"
     },
     {
       "id": "math-grade-1:math-grade-measure-1",
-      "title": "أطول وأقصر",
+      "title": "ترديد محتوى اللوحة: أطول وأقصر",
       "subjectId": "mathematics",
       "lessonIds": [
         "math-grade-measure-1"
       ],
-      "prerequisiteSkillIds": []
+      "prerequisiteSkillIds": [],
+      "evidenceType": "recognized_token_match"
     },
     {
       "id": "math-grade-1:math-grade-measure-2",
-      "title": "أثقل وأخف",
+      "title": "ترديد محتوى اللوحة: أثقل وأخف",
       "subjectId": "mathematics",
       "lessonIds": [
         "math-grade-measure-2"
       ],
-      "prerequisiteSkillIds": []
+      "prerequisiteSkillIds": [],
+      "evidenceType": "recognized_token_match"
     },
     {
       "id": "math-grade-1:math-grade-measure-3",
-      "title": "أكثر وأقل في السعة",
+      "title": "ترديد محتوى اللوحة: أكثر وأقل في السعة",
       "subjectId": "mathematics",
       "lessonIds": [
         "math-grade-measure-3"
       ],
-      "prerequisiteSkillIds": []
+      "prerequisiteSkillIds": [],
+      "evidenceType": "recognized_token_match"
     },
     {
       "id": "math-grade-1:math-grade-measure-4",
-      "title": "نقيس بوحدات بسيطة",
+      "title": "ترديد محتوى اللوحة: نقيس بوحدات بسيطة",
       "subjectId": "mathematics",
       "lessonIds": [
         "math-grade-measure-4"
       ],
-      "prerequisiteSkillIds": []
+      "prerequisiteSkillIds": [],
+      "evidenceType": "recognized_token_match"
     },
     {
       "id": "math-grade-1:math-grade-time-data-1",
-      "title": "الصبح والليل",
+      "title": "ترديد محتوى اللوحة: الصبح والليل",
       "subjectId": "mathematics",
       "lessonIds": [
         "math-grade-time-data-1"
       ],
-      "prerequisiteSkillIds": []
+      "prerequisiteSkillIds": [],
+      "evidenceType": "recognized_token_match"
     },
     {
       "id": "math-grade-1:math-grade-time-data-2",
-      "title": "أيام الأسبوع",
+      "title": "ترديد محتوى اللوحة: أيام الأسبوع",
       "subjectId": "mathematics",
       "lessonIds": [
         "math-grade-time-data-2"
       ],
-      "prerequisiteSkillIds": []
+      "prerequisiteSkillIds": [],
+      "evidenceType": "recognized_token_match"
     },
     {
       "id": "math-grade-1:math-grade-time-data-3",
-      "title": "نجمع ونقارن بيانات",
+      "title": "ترديد محتوى اللوحة: نجمع ونقارن بيانات",
       "subjectId": "mathematics",
       "lessonIds": [
         "math-grade-time-data-3"
       ],
-      "prerequisiteSkillIds": []
+      "prerequisiteSkillIds": [],
+      "evidenceType": "recognized_token_match"
     },
     {
       "id": "math-grade-1:math-grade-time-data-4",
-      "title": "مراجعة ماث بحكاية",
+      "title": "ترديد محتوى اللوحة: مراجعة ماث بحكاية",
       "subjectId": "mathematics",
       "lessonIds": [
         "math-grade-time-data-4"
       ],
-      "prerequisiteSkillIds": []
+      "prerequisiteSkillIds": [],
+      "evidenceType": "recognized_token_match"
     }
   ],
   "versionHistory": [
@@ -7621,6 +7761,11 @@
       "version": "2.0.0",
       "date": "2026-11-27",
       "note": "Added versioned curriculum metadata and stable lesson-to-skill references without changing lesson ids or content."
+    },
+    {
+      "version": "2.1.0",
+      "date": "2026-11-27",
+      "note": "Clarified lesson skill evidence as recognized-token repetition; does not claim pronunciation or full lesson mastery."
     }
   ],
   "strands": [
@@ -7629,5 +7774,8 @@
     "phonics",
     "review",
     "math"
+  ],
+  "evidenceTypes": [
+    "recognized_token_match"
   ]
 }

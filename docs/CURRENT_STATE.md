@@ -8,7 +8,7 @@
 
 - Static Arabic RTL interface: `index.html`, `app.js`, `pcm-processor.js`.
 - Python standard-library server: `server.py`; Vercel Python endpoints import its handler from `api/`.
-- Curriculum data: `curriculum.json` (schema 2.0: 12 foundation units, 12 Connect Plus units, 11 Math units, 140 lessons, and 140 lesson-linked skills).
+- Curriculum data: `curriculum.json` (schema 2, content version 2.1.0: 12 foundation units, 12 Connect Plus units, 11 Math units, 140 lessons, and 140 lesson-linked skills; skill evidence is explicitly recognized-token matching).
 - Learning progress and parent settings are stored in browser `localStorage`.
 - Realtime speech uses short-lived provider tokens issued server-side; provider order and features are controlled in `app.js` / `server.py`.
 - Android is a Capacitor shell (`android-apk/`) targeting the hosted Vercel URL; package ID is `com.heshammera.lolo`.
@@ -25,4 +25,4 @@
 
 ## Current work status
 
-Phase 0 / Phase 1 safeguards, branding, deterministic writing/math grading, and a bounded lesson-token oral repeat test are implemented. OpenAI oral-test replies are gated by local transcript grading. Curriculum schema v2 and validation are deployed: 140 lessons carry versions and link to stable skill records. Open comprehension questions, pronunciation evaluation, Gemini parity, normal lesson assessment, skill mastery and spaced review remain open. `main` is at `83e8ab6` (implementation `5eb1f75`), Vercel deployment succeeded, and `backup/pre-lolo-v2` remains at the old baseline `458ae22`.
+Phase 0 / Phase 1 safeguards, branding, deterministic writing/math grading, and a bounded lesson-token oral repeat test are implemented. OpenAI oral-test replies are gated by local transcript grading. Curriculum schema v2.1.0 adds a registry for evidence types. The in-progress skill-progress engine records introductions, deterministic answer outcomes, completed listen-and-repeat test scores, and review dates locally; it does not evaluate pronunciation or comprehension. The changes are on `main` but have not yet passed the repository's Node-based checks or been deployed. `backup/pre-lolo-v2` remains at `458ae22`.

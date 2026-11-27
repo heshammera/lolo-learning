@@ -27,6 +27,7 @@
     }
     if (!Array.isArray(data.units) || !Array.isArray(data.programs)) issue(errors, 'TRACKS_REQUIRED', '$', 'Foundation units and program tracks must be arrays.');
     if (!Array.isArray(data.subjects)) issue(errors, 'SUBJECTS_REQUIRED', '$.subjects', 'A subject registry is required.');
+    if (!Array.isArray(data.evidenceTypes) || data.evidenceTypes.some(type => typeof type !== 'string' || !type.trim()) || new Set(data.evidenceTypes).size !== data.evidenceTypes.length) issue(errors, 'EVIDENCE_TYPES_REQUIRED', '$.evidenceTypes', 'Skill evidence types must be registered once each.');
     if (!Array.isArray(data.strands) || data.strands.some(strand => typeof strand !== 'string' || !strand.trim())) issue(errors, 'STRANDS_REQUIRED', '$.strands', 'A strand registry is required for typed lesson strands.');
     if (!Array.isArray(data.skills)) issue(errors, 'SKILLS_REQUIRED', '$.skills', 'A skill registry is required.');
 
@@ -136,10 +137,11 @@
     const skills = new Map();
     for (const [index, skill] of (Array.isArray(data.skills) ? data.skills : []).entries()) {
       const path = `$.skills[${index}]`;
-      if (!isObject(skill) || typeof skill.id !== 'string' || !skill.id.trim() || typeof skill.title !== 'string' || !skill.title.trim() || typeof skill.subjectId !== 'string' || !skill.subjectId.trim() || !strings(skill.lessonIds) || !strings(skill.prerequisiteSkillIds)) {
-        issue(errors, 'SKILL_INVALID', path, 'Each skill needs id, title, subjectId, lessonIds, and prerequisiteSkillIds.');
+      if (!isObject(skill) || typeof skill.id !== 'string' || !skill.id.trim() || typeof skill.title !== 'string' || !skill.title.trim() || typeof skill.subjectId !== 'string' || !skill.subjectId.trim() || typeof skill.evidenceType !== 'string' || !skill.evidenceType.trim() || !strings(skill.lessonIds) || !strings(skill.prerequisiteSkillIds)) {
+        issue(errors, 'SKILL_INVALID', path, 'Each skill needs id, title, subjectId, evidenceType, lessonIds, and prerequisiteSkillIds.');
         continue;
       }
+      if (!Array.isArray(data.evidenceTypes) || !data.evidenceTypes.includes(skill.evidenceType)) issue(errors, 'SKILL_EVIDENCE_TYPE', `${path}.evidenceType`, `Unregistered skill evidence type: ${skill.evidenceType}.`);
       if (skills.has(skill.id)) issue(errors, 'DUPLICATE_SKILL_ID', `${path}.id`, `Duplicate skill id: ${skill.id}.`);
       if (new Set(skill.lessonIds).size !== skill.lessonIds.length) issue(errors, 'DUPLICATE_SKILL_LESSON', `${path}.lessonIds`, 'A lesson may only be listed once per skill.');
       if (new Set(skill.prerequisiteSkillIds).size !== skill.prerequisiteSkillIds.length) issue(errors, 'DUPLICATE_PREREQUISITE', `${path}.prerequisiteSkillIds`, 'A prerequisite may only be listed once.');

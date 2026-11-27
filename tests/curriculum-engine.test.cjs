@@ -8,6 +8,9 @@ const baseline = validateCurriculum(curriculum);
 assert.equal(baseline.valid, true, JSON.stringify(baseline.errors, null, 2));
 assert.deepEqual(baseline.counts, {programs: 3, units: 35, lessons: 140, skills: 140});
 assert.ok(baseline.warnings.some(item => item.code === 'QUESTION_BANK_MISSING'));
+assert.equal(curriculum.curriculumVersion, '2.1.0');
+assert.ok(curriculum.evidenceTypes.includes('recognized_token_match'));
+assert.ok(curriculum.skills.every(skill => skill.evidenceType === 'recognized_token_match'));
 
 const duplicate = structuredClone(curriculum);
 duplicate.skills.push(structuredClone(duplicate.skills[0]));

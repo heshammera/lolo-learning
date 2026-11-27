@@ -2,6 +2,7 @@ const $ = selector => document.querySelector(selector);
 const storage = window.LoloStorage;
 const assessmentEngine = window.LoloAssessment.create();
 const curriculumEngine = window.LoloCurriculum;
+const learningEngine = window.LoloLearning;
 const sessionTimers = window.LoloSessionTimers.create();
 window.addEventListener('lolo-storage-warning', event => showError(event.detail));
 if (storage.get('lolo-welcome-tour-v1-complete') === 'true' && storage.get('lolo-selected-program')) $('#app')?.classList.add('ready');
@@ -17,6 +18,7 @@ let writingPathOverrides = storage.getJSON('lolo-writing-path-overrides', {});
 let traceSpeechRequestId = 0;
 let traceSpeechAudio = null;
 let lessonStats = storage.getJSON('lolo-lesson-stats', {});
+let skillProgress = learningEngine.createStore(storage.getJSON('lolo-skill-progress-v1', {}));
 const DEFAULT_PARENT_SETTINGS = {sessionMinutes: 10, speechPace: 'slow', hintLevel: 'gentle', repeatWords: true, rewardEnabled: true, rewardSeconds: 9, learningPath: 'selected'};
 let parentSettings = {...DEFAULT_PARENT_SETTINGS, ...storage.getJSON('lolo-parent-settings', {})};
 let sessionMode = 'lesson';
@@ -1534,6 +1536,18 @@ function saveSpokenAssessmentResult(assessment) {
     history: resultHistory,
   };
   storage.set('lolo-test-results', JSON.stringify(testResults));
+  for (const skillId of currentLesson?.skillIds || []) {
+    const recorded = learningEngine.recordAssessment(skillProgress, skillId, {
+      assessmentId: assessment.assessmentId,
+      curriculumVersion: course?.curriculumVersion || null,
+      lessonVersion: currentLesson?.version || null,
+      correct,
+      total,
+      completedAt: testResults[assessment.lessonId].completedAt,
+    });
+    skillProgress = recorded.progress;
+  }
+  storage.set('lolo-skill-progress-v1', JSON.stringify(skillProgress));
   renderParentReport();
   if (currentLesson) refreshLessonPicker(currentLesson.programId, currentLesson.unitId);
   return testResults[assessment.lessonId];
@@ -1563,6 +1577,18 @@ function recordSpokenAssessmentAnswer(assessmentId, questionId, turnId) {
     return response;
   }
   if (!evaluation.recorded) return evaluation;
+
+  for (const skillId of currentLesson?.skillIds || []) {
+    const recorded = learningEngine.recordResponse(skillProgress, skillId, {
+      attemptId,
+      questionId: evaluation.questionId,
+      isCorrect: evaluation.isCorrect,
+      curriculumVersion: course?.curriculumVersion || null,
+      lessonVersion: currentLesson?.version || null,
+    });
+    skillProgress = recorded.progress;
+  }
+  storage.set('lolo-skill-progress-v1', JSON.stringify(skillProgress));
 
   answerPending = false;
   pendingChildAnswer = '';
@@ -2440,6 +2466,14 @@ async function startSession() {
     if (!sessionTimers.isCurrent(sessionId) || requestController.signal.aborted) return;
     if (!activeProvider) throw new Error('تعذر الاتصال بكل مزودي الصوت. ' + failures.map(item => item.message).join(' — '));
     isActive = true; isStarting = false;
+    if (sessionMode === 'lesson') {
+      const introduced = learningEngine.markIntroduced(skillProgress, currentLesson?.skillIds || [], {
+        curriculumVersion: course?.curriculumVersion || null,
+        lessonVersion: currentLesson?.version || null,
+      });
+      skillProgress = introduced.progress;
+      storage.set('lolo-skill-progress-v1', JSON.stringify(skillProgress));
+    }
     updateProgress();
     $('#app').classList.add('in-lesson');
     if (!$('#app').classList.contains('ready')) { storage.set('lolo-onboarding-complete', 'true'); storage.set('lolo-welcome-tour-v1-complete', 'true'); $('#app').classList.add('ready'); }
@@ -2549,6 +2583,23 @@ function renderParentReport() {
   addCard('الدروس', `${completed} من ${lessons.length} مكتمل`);
   addCard('الإجابات', `${correct} صح · ${wrong} محتاجة مراجعة · ${total ? Math.round(correct / total * 100) : 0}% صح`);
   addCard('الاختبارات', `${testEntries.length} شفهي · ${traceEntries.length} كتابة باللمس`);
+  const skillIds = new Set(lessons.flatMap(lesson => lesson.skillIds || []));
+  const skillStates = [...skillIds].map(skillId => ({skillId, status: learningEngine.getStatus(skillProgress, skillId)}));
+  const skillCounts = Object.fromEntries(Object.values(learningEngine.STATUS).map(status => [status, 0]));
+  for (const item of skillStates) skillCounts[item.status] += 1;
+  const dueIds = new Set(learningEngine.getDueSkillIds(skillProgress));
+  const dueLesson = lessons.find(lesson => (lesson.skillIds || []).some(skillId => dueIds.has(skillId)));
+  const skillCard = document.createElement('div'); skillCard.className = 'parent-report-card';
+  const skillTitle = document.createElement('strong'); skillTitle.textContent = 'متابعة الترديد ';
+  const skillText = document.createElement('span'); skillText.textContent = `${skillCounts[learningEngine.STATUS.MASTERED]} متقنة · ${skillCounts[learningEngine.STATUS.PROFICIENT]} متقدمة · ${skillCounts[learningEngine.STATUS.REVIEW_REQUIRED]} للمراجعة`;
+  skillCard.append(skillTitle, skillText);
+  if (dueLesson) {
+    const reviewButton = document.createElement('button');
+    reviewButton.type = 'button'; reviewButton.className = 'small-btn'; reviewButton.textContent = `ابدئي مراجعة: ${dueLesson.title || dueLesson.focus}`;
+    reviewButton.addEventListener('click', () => chooseLesson(dueLesson.id, 'test'));
+    skillCard.appendChild(reviewButton);
+  }
+  report.appendChild(skillCard);
   const activeProgram = programList().find(program => program.id === programId);
   if (activeProgram) {
     const pathResults = writingPathResults[activeProgram.id] || {};
@@ -2560,8 +2611,13 @@ function renderParentReport() {
     const stats = lessonStats[lesson.id] || {};
     const result = testResults[lesson.id];
     const trace = traceResults[lesson.id];
-    if (!stats.correct && !stats.wrong && !result && !trace) continue;
+    const lessonSkillStates = (lesson.skillIds || []).map(skillId => ({skillId, status: learningEngine.getStatus(skillProgress, skillId)}));
+    if (!stats.correct && !stats.wrong && !result && !trace && lessonSkillStates.every(item => item.status === learningEngine.STATUS.NOT_STARTED)) continue;
     const details = [];
+    for (const item of lessonSkillStates) {
+      const record = learningEngine.getRecord(skillProgress, item.skillId);
+      details.push(`حالة الترديد: ${learningEngine.getStatusLabel(item.status)}${record.nextReviewAt ? ` · المراجعة ${new Date(record.nextReviewAt).toLocaleDateString('ar-EG')}` : ''}`);
+    }
     if (stats.correct || stats.wrong) details.push(`${stats.correct || 0} صح و${stats.wrong || 0} محتاجة مراجعة`);
     if (result) details.push(`الاختبار ${result.correct}/${result.total}`);
     if (trace) details.push(`الكتابة باللمس ${trace.percent}% · ${trace.scores.map(item => `${item.value} ${item.score}%`).join('، ')}`);
@@ -2657,6 +2713,7 @@ $('#resetCourse').onclick = () => {
   traceResults = {};
   writingPathResults = {};
   writingPathOverrides = {};
+  skillProgress = learningEngine.createStore({});
   lessonStats = {};
   activeAnswerEvents = [];
   sessionMode = 'lesson';
@@ -2667,6 +2724,7 @@ $('#resetCourse').onclick = () => {
   storage.remove('lolo-writing-path-results');
   storage.remove('lolo-writing-path-overrides');
   storage.remove('lolo-lesson-stats');
+  storage.set('lolo-skill-progress-v1', JSON.stringify(skillProgress));
   storage.remove('lolo-explicit-lesson-choice');
   currentLesson = nextLesson() || allLessons()[0] || null;
   if (currentLesson) storage.set('lolo-current-lesson', currentLesson.id);
