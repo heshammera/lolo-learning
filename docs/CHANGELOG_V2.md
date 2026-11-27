@@ -52,3 +52,9 @@
 - **Before:** leaving the page or backgrounding the app could leave voice resources active. **After:** active sessions close on page hide/background, microphone tracks/audio connections are closed, and late microphone permission results are stopped.
 - Added automated Node tests for corrupt storage, quota failures, and stale session timers. Added the tests to the Android CI workflow.
 - **Verification:** 7 Python security/API tests and 2 Node resilience tests pass; Python and JavaScript syntax checks pass; local HTTP smoke checks cover the app shell, curriculum, PWA/brand assets, and both new scripts; Android resource/build validation is tracked in the CI run after push. No live AI calls are used.
+
+## Milestone 1.2 — Run CI checks from the repository root
+
+- **Before:** the workflow ran Python tests from inside `android-apk`, so `server.py` was outside Python's import path and the security test module could not load.
+- **After:** the workflow changes to the repository root before running Python and Node tests, then returns to the existing Android build step.
+- **Verification:** GitHub Actions run `45935676035` passed all 7 Python tests, both Node tests, the Android debug build, and APK upload. Downloaded artifact SHA256: `e51aa09ae6fe2dfadf3af90d4f5f1874d92aee1401b034a4f65c03a30277e4fd`.
