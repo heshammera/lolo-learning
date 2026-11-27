@@ -94,7 +94,7 @@
       }else if(a.type==='interactive-story'){
         box.append(el('p','من صفحتين إلى ثماني صفحات. يمكن لكل اختيار الانتقال إلى صفحة لاحقة أو إنهاء القصة. يجب أن تكون جميع الصفحات قابلة للوصول.'));
         c.scenes.forEach((scene,i)=>{
-          const pane=el('div');pane.className='cms-lesson';box.append(pane);pane.append(el('h5','صفحة '+(i+1)));
+          const pane=el('div');pane.className='cms-story-page';box.append(pane);pane.append(el('h5','صفحة '+(i+1)));
           field(pane,'نص الصفحة',scene.text,v=>scene.text=v,{max:500});
           field(pane,'سؤال الصفحة',scene.question,v=>scene.question=v,{max:500});
           scene.options.forEach((o,j)=>{
