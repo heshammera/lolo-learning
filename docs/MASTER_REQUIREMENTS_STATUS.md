@@ -34,3 +34,5 @@ Progress backend promoted at 25f9a9d. Staging UI candidate adds temporary login,
 Restore candidate: explicit copy of limited remote snapshot into a new local profile; no automatic overwrite, identity link or sync queue.
 
 Restore copy promoted at f2e93ad after successful checks. Pending first-backup queue candidate retains approved snapshot and operation ID after lost response, explicit authenticated retry only. No unattended sync or update of existing remote versions.
+
+First-backup queue promoted at ae98c9e after run 46054696792. User approved independent owner CMS and expanded dynamic activity library; keep all prior requirements. Activity registry candidate: seven v1 contracts/evaluators/shared accessible preview renderer, draft science examples only. Server validation, CMS, publishing, download and remaining activities pending.

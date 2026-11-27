@@ -17,6 +17,8 @@ on:
       - 'learning-path-engine.js'
       - 'network.js'
       - 'family-client.js'
+      - 'activity-engine.js'
+      - 'activity-pilot.js'
       - 'progress_sync.py'
       - 'offline-assets.js'
       - 'offline.html'
@@ -72,7 +74,7 @@ jobs:
           node --check learning-path-engine.js
           node --check network.js
           node --check sw.js
-          node --test tests/offline.test.cjs tests/family-client.test.cjs
+          node --test tests/offline.test.cjs tests/family-client.test.cjs tests/activity-engine.test.cjs
           python3 -m py_compile server.py
           node tests/parent-gate.test.cjs
           node scripts/validate-curriculum.js

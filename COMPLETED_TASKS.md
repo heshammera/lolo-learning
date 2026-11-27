@@ -27,3 +27,5 @@
 - Local profiles promoted at fb473d6 after run 46052818258 passed offline browser switching and Android build.
 
 - Progress sync backend promoted at 25f9a9d after PostgreSQL and Android/browser checks passed (46053423531, 46053423600); disabled by default.
+
+- Queue milestone promoted at ae98c9e after successful CI run 46054696792.

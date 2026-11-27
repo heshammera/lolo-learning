@@ -3156,6 +3156,19 @@ $('#cloudRestore').onclick=()=>{
 };
 window.addEventListener('offline',resetCloudFamily);
 window.addEventListener('online',()=>{if(parentGate.isUnlocked())renderCloudFamily();});
+function renderActivityPreview(){
+  if(!parentGate.isUnlocked())return;
+  const engine=window.LoloActivities,pilot=window.LoloActivityPilot;
+  const select=$('#activityPreviewSelect'),container=$('#activityPreviewContent');
+  const compatibility=engine.checkLessons(pilot.lessons);
+  $('#activityPreviewStatus').textContent=compatibility.compatible?'الأنشطة التجريبية متوافقة مع المحرك الحالي. لم تُنشر.':'توجد أنشطة غير متوافقة.';
+  const activities=pilot.lessons.flatMap(l=>l.activities);
+  const prior=select.value;select.replaceChildren();
+  for(const a of activities){const option=document.createElement('option');option.value=a.id;option.textContent=engine.types[a.type]?.label||a.type;select.append(option);}
+  if(activities.some(a=>a.id===prior))select.value=prior;
+  const render=()=>{container.replaceChildren();if(parentGate.isUnlocked()&&compatibility.compatible)engine.render(activities.find(a=>a.id===select.value),container);};
+  select.onchange=render;render();
+}
 function showParentSettingsUnlocked(tab = 'settings') {
   if (!parentGate.isUnlocked()) return openParentSettings(tab);
   $('#parentSheet').classList.add('open');
@@ -3164,6 +3177,7 @@ function showParentSettingsUnlocked(tab = 'settings') {
   $('#parentClose').focus();
   syncParentSettingsUI();
   renderLocalProfiles();
+  renderActivityPreview();
   renderParentReport();
   $('#parentProgress').textContent = `${parentProgressSummary()} تقدري تختاري درسًا أو وحدة أو منهجًا بالكامل.`;
   $('#pathScope').value = activePath?.scope || 'lesson';
