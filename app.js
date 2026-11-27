@@ -1,21 +1,26 @@
 const $ = selector => document.querySelector(selector);
-if (localStorage.getItem('lolo-welcome-tour-v1-complete') === 'true' && localStorage.getItem('lolo-selected-program')) $('#app')?.classList.add('ready');
+const storage = window.LoloStorage;
+const assessmentEngine = window.LoloAssessment.create();
+const sessionTimers = window.LoloSessionTimers.create();
+window.addEventListener('lolo-storage-warning', event => showError(event.detail));
+if (storage.get('lolo-welcome-tour-v1-complete') === 'true' && storage.get('lolo-selected-program')) $('#app')?.classList.add('ready');
 
 let course = null;
 let currentLesson = null;
-let mastered = new Set(JSON.parse(localStorage.getItem('lolo-mastered') || '[]'));
-let lessonExcellence = JSON.parse(localStorage.getItem('lolo-lesson-excellence') || '{}');
-let testResults = JSON.parse(localStorage.getItem('lolo-test-results') || '{}');
-let traceResults = JSON.parse(localStorage.getItem('lolo-trace-results') || '{}');
-let writingPathResults = JSON.parse(localStorage.getItem('lolo-writing-path-results') || '{}');
-let writingPathOverrides = JSON.parse(localStorage.getItem('lolo-writing-path-overrides') || '{}');
+let mastered = new Set(storage.getJSON('lolo-mastered', []));
+let lessonExcellence = storage.getJSON('lolo-lesson-excellence', {});
+let testResults = storage.getJSON('lolo-test-results', {});
+let traceResults = storage.getJSON('lolo-trace-results', {});
+let writingPathResults = storage.getJSON('lolo-writing-path-results', {});
+let writingPathOverrides = storage.getJSON('lolo-writing-path-overrides', {});
 let traceSpeechRequestId = 0;
 let traceSpeechAudio = null;
-let lessonStats = JSON.parse(localStorage.getItem('lolo-lesson-stats') || '{}');
+let lessonStats = storage.getJSON('lolo-lesson-stats', {});
 const DEFAULT_PARENT_SETTINGS = {sessionMinutes: 10, speechPace: 'slow', hintLevel: 'gentle', repeatWords: true, rewardEnabled: true, rewardSeconds: 9, learningPath: 'selected'};
-let parentSettings = (() => { try { return {...DEFAULT_PARENT_SETTINGS, ...JSON.parse(localStorage.getItem('lolo-parent-settings') || '{}')}; } catch { return {...DEFAULT_PARENT_SETTINGS}; } })();
+let parentSettings = {...DEFAULT_PARENT_SETTINGS, ...storage.getJSON('lolo-parent-settings', {})};
 let sessionMode = 'lesson';
 let activeAnswerEvents = [];
+let activeSpeakingAssessment = null;
 let answerPending = false;
 let pendingChildAnswer = '';
 let pendingTutorFeedback = '';
@@ -28,7 +33,7 @@ let replayHonoredThisSession = false;
 let mathInteractionTimer = null;
 let completionFollowUpTimer = null;
 let completionFollowUpPending = false;
-let sessionLimitTimer = null;
+let sessionController = null;
 let lastTutorOutputAt = 0;
 let socket = null;
 let realtimePeer = null;
@@ -65,7 +70,7 @@ function allLessons() {
 }
 
 function nextLesson() {
-  const selectedProgram = localStorage.getItem('lolo-path-program') || localStorage.getItem('lolo-selected-program');
+  const selectedProgram = storage.get('lolo-path-program') || storage.get('lolo-selected-program');
   const all = allLessons();
   if (parentSettings.learningPath === 'foundation-first') {
     const foundationLesson = all.find(lesson => lesson.programId === 'foundation' && !mastered.has(lesson.id));
@@ -85,7 +90,7 @@ function lessonAfterCurrent() {
   const next = lessons.slice(currentIndex + 1).find(lesson => !mastered.has(lesson.id));
   if (next) return next;
   if (parentSettings.learningPath === 'foundation-first' && currentLesson?.programId === 'foundation') {
-    const selectedProgram = localStorage.getItem('lolo-path-program') || localStorage.getItem('lolo-selected-program');
+    const selectedProgram = storage.get('lolo-path-program') || storage.get('lolo-selected-program');
     return allLessons().find(lesson => lesson.programId === selectedProgram && !mastered.has(lesson.id)) || null;
   }
   return null;
@@ -212,16 +217,16 @@ async function playWelcomeNarration(step, button) {
 
 function refreshLessonPicker(programId, unitId, requestedGradeId = '') {
   const programs = programList();
-  const savedProgram = programs.find(item => item.id === programId) || programs.find(item => item.id === localStorage.getItem('lolo-selected-program'));
-  const gradeId = requestedGradeId || savedProgram?.gradeId || localStorage.getItem('lolo-grade-id') || programs[0]?.gradeId;
+  const savedProgram = programs.find(item => item.id === programId) || programs.find(item => item.id === storage.get('lolo-selected-program'));
+  const gradeId = requestedGradeId || savedProgram?.gradeId || storage.get('lolo-grade-id') || programs[0]?.gradeId;
   fillGradeSelect($('#gradeSelect'), gradeId);
-  localStorage.setItem('lolo-grade-id', gradeId || '');
+  storage.set('lolo-grade-id', gradeId || '');
   const gradePrograms = programs.filter(item => (item.gradeId || 'grade-1') === gradeId);
   fillSelect($('#trackSelect'), gradePrograms, item => item.id, item => item.curriculumLabel || item.title);
-  const program = gradePrograms.find(item => item.id === programId) || gradePrograms.find(item => item.id === localStorage.getItem('lolo-selected-program')) || gradePrograms[0];
+  const program = gradePrograms.find(item => item.id === programId) || gradePrograms.find(item => item.id === storage.get('lolo-selected-program')) || gradePrograms[0];
   if (!program) return;
   $('#trackSelect').value = program.id;
-  localStorage.setItem('lolo-selected-program', program.id);
+  storage.set('lolo-selected-program', program.id);
   syncWelcomePrograms(gradeId, program.id);
   fillSelect($('#unitSelect'), program.units, unit => unit.id, unit => unitProgressLabel(unit));
   const unit = program.units.find(item => item.id === unitId) || program.units[0];
@@ -466,7 +471,7 @@ function renderWritingPath(program) {
   override.setAttribute('aria-pressed', String(!!writingPathOverrides[program.id]));
   override.onclick = () => {
     writingPathOverrides[program.id] = !writingPathOverrides[program.id];
-    localStorage.setItem('lolo-writing-path-overrides', JSON.stringify(writingPathOverrides));
+    storage.set('lolo-writing-path-overrides', JSON.stringify(writingPathOverrides));
     refreshLessonPicker(program.id, $('#unitSelect')?.value);
   };
   section.appendChild(override);
@@ -496,7 +501,11 @@ function renderWritingPath(program) {
       report.appendChild(line);
       for (const item of result.items || []) {
         const answer = document.createElement('p'); answer.className = `writing-result-item ${item.correct ? 'correct' : 'wrong'}`;
-        answer.textContent = `${item.prompt} · ${item.correct ? '✅ صح' : `❌ الإجابة: ${item.expected}`}`;
+        const childAnswer = item.answer ? ` · إجابة الطفلة: ${item.answer}` : '';
+        const score = Number.isFinite(item.score) ? ` · قرب التتبع: ${item.score}%` : '';
+        const attemptCount = Array.isArray(item.attempts) ? item.attempts.length : 1;
+        const resultLabel = item.correct ? '✅ صح' : item.status === 'partial' ? '🟠 قريبة وتحتاج تدريب' : `❌ الإجابة: ${item.expected}`;
+        answer.textContent = `${item.prompt} · ${resultLabel}${childAnswer}${score} · ${attemptCount} محاولة`;
         report.appendChild(answer);
       }
     }
@@ -632,7 +641,8 @@ function startWritingPath(program, stageIndex) {
   if (!writingStageUnlocked(program, stageIndex)) return;
   if (isActive || isStarting) stopSession();
   const items = program.subject === 'math' ? buildMathWritingTasks(program, stageIndex) : buildEnglishWritingTasks(program, stageIndex);
-  traceState = {mode:'advanced', programId:program.id, stageIndex, items, index:0, results:[], attempts:0, selected:[]};
+  const assessmentId = window.LoloAssessment.createAssessmentId();
+  traceState = {mode:'advanced', programId:program.id, stageIndex, assessmentId, items:items.map((item, index) => ({...item, questionId:`${assessmentId}:q${index + 1}`, attempts:[]})), index:0, results:[], attempts:0, selected:[]};
   $('#parentSheet').classList.remove('open');
   $('#traceSheet').classList.add('open'); $('#traceSheet').setAttribute('aria-hidden','false');
   $('#traceTitle').textContent = program.subject === 'math' ? '🔢 تحدّي الماث' : '✍️ تحدّي الكتابة';
@@ -697,7 +707,7 @@ function renderWritingTask() {
       for (const choice of item.options) {
         const value = typeof choice === 'string' ? choice : choice.value;
         const label = typeof choice === 'string' ? choice : choice.label;
-        addWritingChoice(label, () => submitWritingAnswer(value === item.target, value));
+        addWritingChoice(label, () => submitWritingAnswer(null, value));
       }
     }
   }
@@ -728,27 +738,47 @@ function updateOrderDisplay() {
 function checkWritingDraw() {
   if (!traceState || traceState.mode !== 'advanced') return;
   const item = traceState.items[traceState.index];
-  if (item.type === 'order') { submitWritingAnswer(true, item.target); return; }
+  if (item.type === 'order') { submitWritingAnswer(null, traceState.selected.map(tile=>tile.value).join('')); return; }
   if (!traceState.hasStroke) { $('#traceFeedback').textContent='جربي تكتبي الإجابة الأول 🌼'; return; }
   const score = gradeTrace(); traceState.attempts++;
+  const expected = item.expected ?? item.target;
+  const evaluation = assessmentEngine.grade({
+    questionId:item.questionId,
+    attemptId:`${item.questionId}:attempt-${item.attempts.length + 1}`,
+    kind:'handwriting', answer:'', expected:item.target,
+    acceptedAnswers:item.acceptedAnswers || [item.target], quality:score,
+  });
+  item.attempts.push(evaluation);
   if (score < 48 && traceState.attempts < 2) {
     $('#traceFeedback').textContent='قريبة، امسحي وجربي تاني. ركّزي في شكل الحرف أو الرقم 💛';
     speakTraceFeedback('قريبة، جربي تاني يا بطلة'); drawTraceTarget(); return;
   }
-  submitWritingAnswer(score >= 62, item.target, score);
+  submitWritingAnswer(null, item.target, score, evaluation);
 }
-function submitWritingAnswer(correct, answer, score = null) {
+function submitWritingAnswer(_callerCorrect, answer, score = null, recordedEvaluation = null) {
   const state = traceState, item = state?.items[state.index];
   if (!state || state.mode !== 'advanced' || state.waiting) return;
   if (item.type === 'order' && state.selected.length !== item.target.length) {
     $('#traceFeedback').textContent='استخدمي كل الحروف الأول، وبعدها اضغطي «قيّمي كتابتي» 💛'; return;
   }
   state.waiting = true;
-  const finalCorrect = item.type === 'order' ? state.selected.map(tile=>tile.value).join('') === item.target : correct;
-  const childAnswer = item.type === 'order' ? state.selected.map(tile=>tile.value).join('') : String(answer);
-  state.results.push({prompt:item.prompt, answer:childAnswer, expected:item.expected || item.target, correct:finalCorrect, score});
+  const childAnswer = score === null ? String(answer) : 'كتبت بإصبعها';
+  const expected = item.expected ?? item.target;
+  const answerKey = item.target ?? expected;
+  const evaluation = recordedEvaluation || assessmentEngine.grade({
+    questionId:item.questionId,
+    attemptId:`${item.questionId}:attempt-${item.attempts.length + 1}`,
+    kind:score === null ? (item.lang === 'ar-EG' && /^\d+$/.test(String(expected)) ? 'math' : 'text') : 'handwriting',
+    answer:childAnswer,
+    expected:answerKey,
+    acceptedAnswers:item.acceptedAnswers || [answerKey],
+    quality:score,
+  });
+  if (!recordedEvaluation) item.attempts.push(evaluation);
+  const finalCorrect = evaluation.isCorrect === true;
+  state.results.push({questionId:evaluation.questionId, attemptId:evaluation.attemptId, attempts:item.attempts, prompt:item.prompt, answer:childAnswer, expected, correct:finalCorrect, status:evaluation.status, confidence:evaluation.confidence, score:evaluation.score});
   $('#traceChoices').querySelectorAll('button').forEach(button=>button.disabled=true);
-  const feedback = finalCorrect ? 'برافو! إجابة ممتازة ⭐' : `الإجابة الصح ${item.expected || item.target}. نكمل ونتعلمها سوا 🌱`;
+  const feedback = evaluation.status === 'partial' ? 'قريبة جدًا! شكل كتابتك محتاج محاولة كمان 🌼' : finalCorrect ? 'برافو! إجابة ممتازة ⭐' : `الإجابة الصح ${expected}. نكمل ونتعلمها سوا 🌱`;
   $('#traceFeedback').textContent = score === null ? feedback : `${feedback} · ${score}%`;
   speakTraceFeedback(feedback);
   setTimeout(() => {
@@ -769,7 +799,7 @@ function finishWritingPath() {
   const history = [...(old.history || []), attempt].slice(-10);
   programResults[state.stageIndex] = {percent:Math.max(percent, old.bestPercent || old.percent || 0), bestPercent:Math.max(percent, old.bestPercent || old.percent || 0), attempts:(old.attempts||0)+1, items:state.results, history};
   writingPathResults[state.programId] = programResults;
-  localStorage.setItem('lolo-writing-path-results', JSON.stringify(writingPathResults));
+  storage.set('lolo-writing-path-results', JSON.stringify(writingPathResults));
   $('#traceCanvas').hidden=true; $('#traceHear').hidden=true; $('#traceChoices').hidden=true; $('#traceVisual').hidden=true; $('#traceClear').hidden=true; $('#traceNext').hidden=true;
   $('#traceCount').textContent = `${correct} من ${state.results.length} إجابات صح`;
   $('#tracePrompt').textContent = percent >= 75 ? 'عدّيتي المرحلة! المرحلة اللي بعدها بقت مفتوحة 🎉' : 'تدريب جميل! خلينا نعيد المرحلة عشان تثبتيها 🌼';
@@ -960,7 +990,7 @@ function nextTraceTarget() {
   const percent = Math.round(scores.reduce((a, b) => a + b, 0) / scores.length);
   const old = traceResults[traceState.lesson.id];
   traceResults[traceState.lesson.id] = {percent, attempts: (old?.attempts || 0) + 1, scores: traceState.scores, completedAt: new Date().toISOString()};
-  localStorage.setItem('lolo-trace-results', JSON.stringify(traceResults));
+  storage.set('lolo-trace-results', JSON.stringify(traceResults));
   $('#traceFeedback').textContent = `خلصتي الاختبار! نتيجتك ${percent}٪ 🎉`;
   $('#traceCount').textContent = 'ممتاز، خلصتي الخمس محاولات!';
   $('#traceCanvas').hidden = true; $('#traceNext').hidden = true;
@@ -997,6 +1027,11 @@ function chooseLesson(lessonId, mode = 'lesson') {
   }
   const lesson = allLessons().find(item => item.id === lessonId);
   if (!lesson) return;
+  const speakingAssessment = mode === 'test' ? assessmentEngine.createSpokenAssessment(lesson) : null;
+  if (speakingAssessment && !speakingAssessment.supported) {
+    showError('الاختبار الصوتي لهذا الدرس لسه محتاج كلمات واضحة في المنهج.');
+    return;
+  }
   if (isActive || isStarting) stopSession();
   answerPending = false;
   pendingChildAnswer = '';
@@ -1006,13 +1041,14 @@ function chooseLesson(lessonId, mode = 'lesson') {
   clearCompletionFollowUp();
   currentLesson = lesson;
   activeAnswerEvents = [];
+  activeSpeakingAssessment = speakingAssessment;
   mathScene = null;
   $('#mathGroups').replaceChildren(); $('#mathObjects').replaceChildren(); $('#mathActions').replaceChildren(); $('#mathEquation').textContent = '';
   sessionMode = mode;
   $('#app').classList.toggle('assessment', mode === 'test');
   $('#app').classList.remove('in-lesson');
-  localStorage.setItem('lolo-current-lesson', lesson.id);
-  localStorage.setItem('lolo-explicit-lesson-choice', 'true');
+  storage.set('lolo-current-lesson', lesson.id);
+  storage.set('lolo-explicit-lesson-choice', 'true');
   cardsFor(currentLesson);
   updateLessonBadge(currentLesson);
   updateDashboardLesson();
@@ -1026,16 +1062,16 @@ function selectProgram(programId) {
   const program = programList().find(item => item.id === programId);
   if (!program) return;
   if (isActive || isStarting) stopSession();
-  localStorage.setItem('lolo-selected-program', program.id);
-  if (program.id !== 'foundation') localStorage.setItem('lolo-path-program', program.id);
-  localStorage.setItem('lolo-grade-id', program.gradeId || 'grade-1');
+  storage.set('lolo-selected-program', program.id);
+  if (program.id !== 'foundation') storage.set('lolo-path-program', program.id);
+  storage.set('lolo-grade-id', program.gradeId || 'grade-1');
   const lessons = allLessons().filter(lesson => lesson.programId === program.id);
   currentLesson = (parentSettings.learningPath === 'foundation-first' ? allLessons().find(lesson => lesson.programId === 'foundation' && !mastered.has(lesson.id)) : null)
     || lessons.find(lesson => !mastered.has(lesson.id)) || lessons[0] || null;
   sessionMode = 'lesson';
   $('#app').classList.remove('assessment', 'in-lesson');
   if (currentLesson) {
-    localStorage.setItem('lolo-current-lesson', currentLesson.id);
+    storage.set('lolo-current-lesson', currentLesson.id);
     cardsFor(currentLesson); updateLessonBadge(currentLesson); updateDashboardLesson();
     refreshLessonPicker(program.id, currentLesson.unitId, program.gradeId);
   }
@@ -1046,9 +1082,9 @@ function enterAppFromWelcome() {
   const programId = $('#welcomeProgramSelect').value;
   if (!gradeId || !programId) return;
   selectProgram(programId);
-  localStorage.setItem('lolo-onboarding-complete', 'true');
-  localStorage.setItem('lolo-welcome-tour-v1-complete', 'true');
-  localStorage.setItem('lolo-explicit-lesson-choice', 'true');
+  storage.set('lolo-onboarding-complete', 'true');
+  storage.set('lolo-welcome-tour-v1-complete', 'true');
+  storage.set('lolo-explicit-lesson-choice', 'true');
   $('#app').classList.add('ready');
   $('#welcomeError').textContent = '';
   $('#welcomeAudio').pause();
@@ -1072,7 +1108,7 @@ function updateLessonBadge(lesson) {
   $('#lessonBadge').setAttribute('aria-label', `${labels[lesson?.strand] || 'درس تأسيس'}: ${lesson?.title || ''}`);
   $('#welcomeLessonIcon').textContent = icons[lesson?.strand] || '🌱';
   $('#welcomeLessonTitle').textContent = lesson?.title || 'درس تأسيس';
-  $('#welcomeLessonChoice').classList.toggle('show', localStorage.getItem('lolo-explicit-lesson-choice') === 'true');
+  $('#welcomeLessonChoice').classList.toggle('show', storage.get('lolo-explicit-lesson-choice') === 'true');
 }
 
 function cardsFor(lesson) {
@@ -1368,7 +1404,7 @@ function renderTopProgress(lessons = allLessons()) {
     $('#progressIcon').textContent = '⭐';
     return;
   }
-  const target = sessionMode === 'test' ? 5 : 2;
+  const target = sessionMode === 'test' ? (activeSpeakingAssessment?.questions.length || 5) : 2;
   const replay = lessonWasMasteredAtStart && sessionMode === 'lesson';
   const lessonHistory = Array.isArray(lessonStats[currentLesson?.id]?.history) ? lessonStats[currentLesson.id].history : [];
   const savedLessonEvents = lessonHistory.filter(item => item.mode !== 'test');
@@ -1427,7 +1463,8 @@ function renderTopProgress(lessons = allLessons()) {
   $('#progressIcon').textContent = unresolvedWrong ? '💛' : '⭐';
 }
 
-function recordLessonAnswer(lessonId, answer, isCorrect, questionNumber) {
+function recordLessonAnswer(lessonId, answer, isCorrect, questionNumber, questionId = '') {
+  if (sessionMode === 'test') return {recorded: false, reason: 'الاختبار يقيّم الإجابة من محرك المنهج، وليس من تقدير المعلمة.'};
   if (typeof answer === 'number' && Number.isFinite(answer)) answer = String(answer);
   if (typeof isCorrect === 'string' && /^(true|false)$/i.test(isCorrect.trim())) isCorrect = isCorrect.trim().toLowerCase() === 'true';
   if (!isActive || lessonId !== currentLesson?.id || typeof answer !== 'string' || !answer.trim() || typeof isCorrect !== 'boolean') {
@@ -1452,7 +1489,7 @@ function recordLessonAnswer(lessonId, answer, isCorrect, questionNumber) {
   events.history = events.history.slice(-100);
   lessonStats[lessonId] = events;
   activeAnswerEvents.push({answer: answer.trim(), is_correct: isCorrect, question_number: question});
-  localStorage.setItem('lolo-lesson-stats', JSON.stringify(lessonStats));
+  storage.set('lolo-lesson-stats', JSON.stringify(lessonStats));
   updateProgress();
   renderParentReport();
   if (currentLesson) refreshLessonPicker(currentLesson.programId, currentLesson.unitId);
@@ -1464,6 +1501,121 @@ function recordLessonAnswer(lessonId, answer, isCorrect, questionNumber) {
   return {recorded: true, correct: events.correct, wrong: events.wrong, percent: Math.round(events.correct / (events.correct + events.wrong) * 100), mastery};
 }
 
+function saveSpokenAssessmentResult(assessment) {
+  if (!assessment?.supported || assessment.currentIndex !== assessment.questions.length || assessment.results.length !== assessment.questions.length) return null;
+  const total = assessment.questions.length;
+  const correct = assessment.results.filter(item => item.isCorrect).length;
+  const previous = testResults[assessment.lessonId] || {};
+  const resultHistory = [...(previous.history || []), {
+    assessmentId: assessment.assessmentId,
+    questionResults: assessment.results.map(item => ({
+      questionId: item.questionId,
+      attemptId: item.attemptId,
+      question: item.question,
+      answer: item.answer,
+      correct_answer: item.correctAnswer,
+      is_correct: item.isCorrect,
+      status: item.status,
+      confidence: item.confidence,
+    })),
+    correct, total, completedAt: new Date().toISOString(),
+  }].slice(-10);
+  testResults[assessment.lessonId] = {
+    assessmentId: assessment.assessmentId,
+    correct, total, passed: correct / total >= 0.75,
+    attempts: (Number(previous.attempts) || 0) + 1,
+    completedAt: new Date().toISOString(),
+    questionResults: resultHistory.at(-1).questionResults,
+    history: resultHistory,
+  };
+  storage.set('lolo-test-results', JSON.stringify(testResults));
+  renderParentReport();
+  if (currentLesson) refreshLessonPicker(currentLesson.programId, currentLesson.unitId);
+  return testResults[assessment.lessonId];
+}
+
+function recordSpokenAssessmentAnswer(assessmentId, questionId, turnId) {
+  const assessment = activeSpeakingAssessment;
+  if (!isActive || sessionMode !== 'test' || !assessment?.supported || assessmentId !== assessment.assessmentId || assessment.lessonId !== currentLesson?.id) {
+    return {recorded: false, reason: 'جلسة الاختبار تغيّرت.'};
+  }
+  if (turnId && gradedAnswerTurnId === turnId && assessment.lastResponse) return {...assessment.lastResponse, duplicate: true};
+  const question = assessment.questions[assessment.currentIndex];
+  if (!question || question.questionId !== questionId) return {recorded: false, reason: 'معرّف السؤال لا يطابق السؤال الحالي.'};
+  const answer = pendingChildAnswer.trim();
+  if (!answerPending || !answer) return {recorded: false, unresolved: true, reason: 'لسه ماوصلتش إجابة صوتية واضحة.'};
+
+  const attemptId = `${question.questionId}:voice-${turnId || assessment.attempts + 1}`;
+  const evaluation = assessmentEngine.gradeSpokenResponse(assessment, questionId, answer, attemptId);
+  if (evaluation.unresolved) {
+    answerPending = false;
+    pendingChildAnswer = '';
+    pendingTutorFeedback = '';
+    gradedAnswerTurnId = turnId;
+    const response = {...evaluation, assessmentId, totalQuestions: assessment.questions.length, retryQuestion: question.prompt};
+    assessment.lastResponse = response;
+    updateProgress();
+    return response;
+  }
+  if (!evaluation.recorded) return evaluation;
+
+  answerPending = false;
+  pendingChildAnswer = '';
+  pendingTutorFeedback = '';
+  gradedAnswerTurnId = turnId;
+  const questionNumber = evaluation.questionNumber;
+  const events = lessonStats[assessment.lessonId] || {correct: 0, wrong: 0};
+  events[evaluation.isCorrect ? 'correct' : 'wrong'] = (Number(events[evaluation.isCorrect ? 'correct' : 'wrong']) || 0) + 1;
+  events.history = Array.isArray(events.history) ? events.history : [];
+  events.history.push({
+    answer: answer,
+    is_correct: evaluation.isCorrect,
+    mode: 'test',
+    assessmentId,
+    questionId: evaluation.questionId,
+    attemptId: evaluation.attemptId,
+    question: evaluation.question,
+    correct_answer: evaluation.correctAnswer,
+    confidence: evaluation.confidence,
+    completedAt: new Date().toISOString(),
+  });
+  events.history = events.history.slice(-100);
+  lessonStats[assessment.lessonId] = events;
+  activeAnswerEvents.push({answer, is_correct: evaluation.isCorrect, question_number: questionNumber, question_id: evaluation.questionId, attempt_id: evaluation.attemptId});
+  storage.set('lolo-lesson-stats', JSON.stringify(lessonStats));
+  updateProgress();
+  renderParentReport();
+  refreshLessonPicker(currentLesson.programId, currentLesson.unitId);
+
+  const saved = evaluation.complete ? saveSpokenAssessmentResult(assessment) : null;
+  const response = {
+    ...evaluation,
+    assessmentId,
+    nextQuestion: evaluation.nextQuestion ? {questionId: evaluation.nextQuestion.questionId, prompt: evaluation.nextQuestion.prompt} : null,
+    testResult: saved ? {correct: saved.correct, total: saved.total, passed: saved.passed} : null,
+  };
+  response.coachPrompt = spokenAssessmentCoachPrompt(response);
+  assessment.lastResponse = response;
+  return response;
+}
+
+function spokenAssessmentCoachPrompt(result) {
+  if (result.unresolved) return `لم يصل تقييم واضح، ولم تُسجّل درجة. قولي للطفلة بلطف أن تكرر نفس السؤال: «${result.retryQuestion}». لا تقولي صح أو غلط. بعد سماع إجابتها أرسلي submit_spoken_assessment_answer بالمعرّفين assessment_id=${result.assessmentId} وquestion_id=${result.questionId} فقط.`;
+  if (!result.recorded) return 'لم تُسجل الإجابة. لا تعلّقي على صحتها، واطلبي إعادة السؤال الحالي.';
+  const feedback = result.isCorrect
+    ? 'محرك التقييم تحقق محلياً من صحة الإجابة؛ امدحي المحاولة بجملة قصيرة.'
+    : `محرك التقييم تحقق محلياً أن الإجابة غير مطابقة. صححي بلطف وقولي الإجابة المقبولة: ${result.correctAnswer}.`;
+  if (result.complete) {
+    const summary = result.testResult || {correct: result.correct ? 1 : 0, total: result.totalQuestions, passed: false};
+    return `${feedback} انتهى الاختبار. قولي النتيجة المسجلة من المحرك: ${summary.correct} من ${summary.total}، بجملة مشجعة، ثم قولي «تحبي تخلي ماما تختارلك درس تاني؟». لا تطرحي سؤالاً جديداً ولا تعدلي النتيجة.`;
+  }
+  return `${feedback} انتقلي الآن للسؤال التالي المحدد فقط واقرئيه كما هو: «${result.nextQuestion?.prompt || ''}». لا تخترعي سؤالاً ولا إجابة جديدة. بعد سماع إجابتها أرسلي submit_spoken_assessment_answer بالمعرّفين assessment_id=${result.assessmentId} وquestion_id=${result.nextQuestion?.questionId || ''} فقط.`;
+}
+
+function submitSpokenAssessmentAnswer(assessmentId, questionId) {
+  return recordSpokenAssessmentAnswer(assessmentId, questionId, answerTurnId);
+}
+
 function appendTranscript(current, next) {
   if (!next) return current;
   // Gemini may send cumulative transcript snapshots; OpenAI sends deltas.
@@ -1473,6 +1625,14 @@ function appendTranscript(current, next) {
 }
 
 function recordFromSpokenFeedback() {
+  if (sessionMode === 'test' && activeSpeakingAssessment && answerPending && pendingChildAnswer.trim()) {
+    const result = recordSpokenAssessmentAnswer(activeSpeakingAssessment.assessmentId, activeSpeakingAssessment.questions[activeSpeakingAssessment.currentIndex]?.questionId, answerTurnId);
+    if (!result.recorded || result.duplicate) return !!result.recorded;
+    const followUp = spokenAssessmentCoachPrompt(result);
+    if (activeProvider === 'openai') sendOpenAIText(followUp);
+    else send({clientContent: {turns: [{role: 'user', parts: [{text: followUp}]}], turnComplete: true}});
+    return true;
+  }
   if (!isActive || !answerPending || !['lesson', 'test'].includes(sessionMode) || !pendingChildAnswer.trim()) return false;
   const feedback = pendingTutorFeedback.trim().toLocaleLowerCase();
   if (!feedback) return false;
@@ -1701,7 +1861,9 @@ function sendOpenAIText(text) {
   realtimeChannel.send(JSON.stringify({type: 'conversation.item.create', item: {
     type: 'message', role: 'user', content: [{type: 'input_text', text}],
   }}));
-  realtimeChannel.send(JSON.stringify({type: 'response.create'}));
+  realtimeChannel.send(JSON.stringify({type: 'response.create', response: {
+    ...(sessionMode === 'test' ? {tool_choice: 'none'} : {}),
+  }}));
 }
 
 function sendChoice(label) {
@@ -1725,8 +1887,9 @@ function stopPlayback() {
 }
 
 function closeSession() {
-  clearTimeout(sessionLimitTimer);
-  sessionLimitTimer = null;
+  sessionTimers.invalidate();
+  sessionController?.abort();
+  sessionController = null;
   if (setupHandshake) {
     setupHandshake.reject(new Error('اتقفل اتصال الدرس قبل ما يجهز.'));
     setupHandshake = null;
@@ -1745,6 +1908,7 @@ function closeSession() {
   pendingTutorFeedback = '';
   answerTurnId = 0;
   gradedAnswerTurnId = 0;
+  activeSpeakingAssessment = null;
   clearCompletionFollowUp();
   modelSpeaking = false;
   if (audioWorklet) audioWorklet.port.onmessage = null;
@@ -1771,6 +1935,8 @@ function closeSession() {
   activeProvider = null;
   audioContext = null;
   setListening(false);
+  $('#mic').disabled = false;
+  $('#welcomeStart').disabled = $('#app').classList.contains('ready');
   $('#buddy').classList.remove('talking');
   $('#soundWave').classList.remove('on');
   updateProgress();
@@ -1838,8 +2004,8 @@ function selectLessonInApp(lesson) {
   replayHonoredThisSession = false;
   activeAnswerEvents = [];
   $('#app').classList.remove('assessment');
-  localStorage.setItem('lolo-current-lesson', lesson.id);
-  localStorage.setItem('lolo-selected-program', lesson.programId);
+  storage.set('lolo-current-lesson', lesson.id);
+  storage.set('lolo-selected-program', lesson.programId);
   cardsFor(lesson);
   updateLessonBadge(lesson);
   updateDashboardLesson();
@@ -1855,10 +2021,10 @@ function updateCurrentLesson(lessonId, correctResponses, evidence) {
   let excellenceAward = null;
   if (!alreadySaved) {
     mastered.add(lessonId);
-    localStorage.setItem('lolo-mastered', JSON.stringify([...mastered]));
+    storage.set('lolo-mastered', JSON.stringify([...mastered]));
   } else if (lessonWasMasteredAtStart && !replayHonoredThisSession) {
     lessonExcellence[lessonId] = (Number(lessonExcellence[lessonId]) || 0) + 1;
-    localStorage.setItem('lolo-lesson-excellence', JSON.stringify(lessonExcellence));
+    storage.set('lolo-lesson-excellence', JSON.stringify(lessonExcellence));
     replayHonoredThisSession = true;
     excellenceAward = lessonExcellence[lessonId];
   }
@@ -1894,40 +2060,7 @@ function openParentPickerFromTutor() {
 }
 
 function saveTestResult(lessonId, questionResults, totalQuestions) {
-  if (sessionMode !== 'test' || lessonId !== currentLesson?.id || totalQuestions !== 5 || !Array.isArray(questionResults) || questionResults.length !== 5 || questionResults.some(item => typeof item?.question !== 'string' || !item.question.trim() || typeof item?.answer !== 'string' || !item.answer.trim() || typeof item?.correct_answer !== 'string' || !item.correct_answer.trim() || typeof item.is_correct !== 'boolean')) {
-    return {saved: false};
-  }
-  for (const [index, item] of questionResults.entries()) {
-    if (activeAnswerEvents.some(event => event.question_number === index + 1)) continue;
-    const stats = lessonStats[lessonId] || {correct: 0, wrong: 0};
-    stats[item.is_correct ? 'correct' : 'wrong'] = (Number(stats[item.is_correct ? 'correct' : 'wrong']) || 0) + 1;
-    stats.history = Array.isArray(stats.history) ? stats.history : [];
-    stats.history.push({answer: item.answer.trim(), is_correct: item.is_correct, mode: 'test', completedAt: new Date().toISOString()});
-    stats.history = stats.history.slice(-100);
-    lessonStats[lessonId] = stats;
-    activeAnswerEvents.push({answer: item.answer, is_correct: item.is_correct, question_number: index + 1});
-  }
-  localStorage.setItem('lolo-lesson-stats', JSON.stringify(lessonStats));
-  const correctAnswers = questionResults.filter(item => item.is_correct).length;
-  const attempts = (testResults[lessonId]?.attempts || 0) + 1;
-  const history = [...(testResults[lessonId]?.history || []), {
-    questionResults: questionResults.map(item => ({question: item.question.trim(), answer: item.answer.trim(), correct_answer: item.correct_answer.trim(), is_correct: item.is_correct})),
-    correct: correctAnswers, total: totalQuestions, completedAt: new Date().toISOString(),
-  }].slice(-10);
-  testResults[lessonId] = {
-    correct: correctAnswers,
-    total: totalQuestions,
-    passed: correctAnswers >= 4,
-    attempts,
-    completedAt: new Date().toISOString(),
-    questionResults: history.at(-1).questionResults,
-    history,
-  };
-  localStorage.setItem('lolo-test-results', JSON.stringify(testResults));
-  updateProgress();
-  renderParentReport();
-  refreshLessonPicker(currentLesson.programId, currentLesson.unitId);
-  return {saved: true, correct: correctAnswers, total: totalQuestions, passed: correctAnswers >= 4, attempts};
+  return {saved: false, reason: 'نتائج الاختبار تُحسب وتحفظ من محرك التقييم بعد تسجيل كل إجابة صوتية.'};
 }
 
 function handleToolCall(toolCall) {
@@ -1948,6 +2081,9 @@ function handleToolCall(toolCall) {
     } else if (call.name === 'record_lesson_test_result') {
       const result = saveTestResult(call.args?.lesson_id, call.args?.question_results, Number(call.args?.total_questions));
       functionResponses.push({name: call.name, id: call.id, response: {result}});
+    } else if (call.name === 'submit_spoken_assessment_answer') {
+      const result = submitSpokenAssessmentAnswer(call.args?.assessment_id, call.args?.question_id);
+      functionResponses.push({name: call.name, id: call.id, response: {result}});
     }
   }
   if (functionResponses.length) send({toolResponse: {functionResponses}});
@@ -1967,6 +2103,8 @@ function handleOpenAIToolCall(name, args, callId) {
       ? openParentPickerFromTutor()
     : name === 'record_lesson_test_result'
       ? saveTestResult(args?.lesson_id, args?.question_results, Number(args?.total_questions))
+    : name === 'submit_spoken_assessment_answer'
+      ? submitSpokenAssessmentAnswer(args?.assessment_id, args?.question_id)
       : null;
   if (result && realtimeChannel?.readyState === 'open') {
     realtimeChannel.send(JSON.stringify({type: 'conversation.item.create', item: {
@@ -1988,6 +2126,11 @@ function handleOpenAIMessage(event) {
       if (!answerPending) { answerTurnId++; pendingChildAnswer = ''; pendingTutorFeedback = ''; }
       pendingChildAnswer = message.transcript || '';
       answerPending = true; updateProgress();
+      if (sessionMode === 'test' && activeSpeakingAssessment) {
+        const question = activeSpeakingAssessment.questions[activeSpeakingAssessment.currentIndex];
+        const result = recordSpokenAssessmentAnswer(activeSpeakingAssessment.assessmentId, question?.questionId, answerTurnId);
+        if (result.recorded || result.unresolved) sendOpenAIText(result.coachPrompt || spokenAssessmentCoachPrompt(result));
+      }
     }
   } else if (message.type === 'input_audio_buffer.speech_started') {
     setStatus('سامعة صوتك');
@@ -2024,8 +2167,8 @@ async function handleGeminiMessage(event) {
     isActive = true;
     isStarting = false;
     if (!$('#app').classList.contains('ready')) {
-      localStorage.setItem('lolo-onboarding-complete', 'true');
-      localStorage.setItem('lolo-welcome-tour-v1-complete', 'true');
+      storage.set('lolo-onboarding-complete', 'true');
+      storage.set('lolo-welcome-tour-v1-complete', 'true');
       $('#app').classList.add('ready');
     }
     $('#mic').disabled = false;
@@ -2067,7 +2210,7 @@ async function handleGeminiMessage(event) {
       updateProgress();
     }
     if (content.turnComplete || content.generationComplete) {
-      recordFromSpokenFeedback();
+      if (!message.toolCall) recordFromSpokenFeedback();
       settleUnscoredAnswer();
       modelSpeaking = false;
       $('#buddy').classList.remove('talking');
@@ -2097,19 +2240,23 @@ function closeProviderTransport() {
   socket = null; realtimeChannel = null; realtimePeer = null; remoteAudio = null; activeProvider = null;
 }
 
-async function providerToken(provider) {
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 12000);
+async function providerToken(provider, sessionSignal) {
+  const requestController = new AbortController();
+  const abortWithSession = () => requestController.abort();
+  if (sessionSignal?.aborted) requestController.abort();
+  else sessionSignal?.addEventListener('abort', abortWithSession, {once: true});
+  const timeout = setTimeout(() => requestController.abort(), 12000);
   let response;
   try {
     response = await fetch('/api/provider-token', {
-      method: 'POST', headers: {'Content-Type': 'application/json'}, signal: controller.signal,
+      method: 'POST', headers: {'Content-Type': 'application/json'}, signal: requestController.signal,
       body: JSON.stringify({provider, lessonId: currentLesson?.id || 'course-complete', mode: sessionMode, alreadyMastered: sessionMode === 'lesson' && mastered.has(currentLesson?.id), excellenceCount: Number(lessonExcellence[currentLesson?.id]) || 0, teacherSettings: {speechPace: parentSettings.speechPace, hintLevel: parentSettings.hintLevel, repeatWords: parentSettings.repeatWords}}),
     });
   } catch (error) {
+    if (sessionSignal?.aborted) throw new Error('اتقفلت الجلسة قبل تجهيز الاتصال.');
     if (error.name === 'AbortError') throw new Error(`انتهت مهلة الاتصال بـ ${provider}.`);
     throw error;
-  } finally { clearTimeout(timeout); }
+  } finally { clearTimeout(timeout); sessionSignal?.removeEventListener('abort', abortWithSession); }
   const data = await response.json();
   if (!response.ok) throw new Error(data.error || 'تعذر تجهيز مزود الصوت.');
   return data;
@@ -2124,46 +2271,87 @@ function waitForSetup(timeoutMs, name) {
   });
 }
 
-async function connectGemini(provider) {
-  const data = await providerToken(provider);
+async function connectGemini(provider, sessionId, sessionSignal) {
+  const data = await providerToken(provider, sessionSignal);
+  if (!sessionTimers.isCurrent(sessionId) || sessionSignal.aborted) throw new Error('اتقفلت الجلسة قبل تجهيز الاتصال.');
   activeProvider = provider;
   const url = `wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContentConstrained?access_token=${encodeURIComponent(data.token)}`;
   const ready = waitForSetup(12000, 'Gemini');
   ready.catch(() => {});
-  socket = new WebSocket(url);
-  socket.binaryType = 'arraybuffer';
-  socket.onmessage = handleGeminiMessage;
-  socket.onopen = () => socket.send(JSON.stringify({setup: {model: data.model, ...data.config}}));
-  socket.onerror = () => { if (setupHandshake) setupHandshake.reject(new Error('تعذر فتح اتصال Gemini Live.')); };
-  socket.onclose = event => {
+  const sessionSocket = new WebSocket(url);
+  socket = sessionSocket;
+  sessionSocket.binaryType = 'arraybuffer';
+  sessionSocket.onmessage = event => { if (sessionTimers.isCurrent(sessionId) && socket === sessionSocket) handleGeminiMessage(event); };
+  sessionSocket.onopen = () => {
+    if (!sessionTimers.isCurrent(sessionId) || socket !== sessionSocket) return;
+    sessionSocket.send(JSON.stringify({setup: {model: data.model, ...data.config}}));
+  };
+  sessionSocket.onerror = () => { if (sessionTimers.isCurrent(sessionId) && socket === sessionSocket && setupHandshake) setupHandshake.reject(new Error('تعذر فتح اتصال Gemini Live.')); };
+  sessionSocket.onclose = event => {
+    if (!sessionTimers.isCurrent(sessionId) || socket !== sessionSocket) return;
     if (setupHandshake) setupHandshake.reject(new Error(`Gemini قفل الاتصال قبل التجهيز؛ رمز ${event.code}.`));
     if (isActive) { closeSession(); if (event.code !== 1000) showError('اتقطع اتصال Gemini. ابدئي الدرس مرة تانية.'); }
   };
   await ready;
 }
 
-async function connectOpenAI() {
+async function connectOpenAI(sessionId, sessionSignal) {
   if (!window.RTCPeerConnection) throw new Error('المتصفح لا يدعم اتصال OpenAI الصوتي.');
-  const data = await providerToken('openai');
+  const data = await providerToken('openai', sessionSignal);
+  if (!sessionTimers.isCurrent(sessionId) || sessionSignal.aborted) throw new Error('اتقفلت الجلسة قبل تجهيز الاتصال.');
   activeProvider = 'openai';
   realtimePeer = new RTCPeerConnection();
   remoteAudio = document.createElement('audio');
   remoteAudio.autoplay = true; remoteAudio.playsInline = true; remoteAudio.style.display = 'none';
   document.body.appendChild(remoteAudio);
-  realtimePeer.ontrack = event => { remoteAudio.srcObject = event.streams[0]; remoteAudio.play().catch(() => {}); };
-  for (const track of micStream.getAudioTracks()) realtimePeer.addTrack(track, micStream);
-  realtimeChannel = realtimePeer.createDataChannel('oai-events');
-  realtimeChannel.onmessage = handleOpenAIMessage;
+  const sessionPeer = realtimePeer;
+  const sessionAudio = remoteAudio;
+  sessionPeer.onconnectionstatechange = () => {
+    if (!sessionTimers.isCurrent(sessionId) || realtimePeer !== sessionPeer) return;
+    if (sessionPeer.connectionState === 'failed') {
+      if (setupHandshake) setupHandshake.reject(new Error('اتقطع اتصال OpenAI أثناء تجهيز الدرس.'));
+      else if (isActive) { closeSession(); showError('اتقطع اتصال OpenAI. ابدئي الدرس مرة تانية.'); }
+    }
+  };
+  sessionPeer.ontrack = event => {
+    if (!sessionTimers.isCurrent(sessionId) || realtimePeer !== sessionPeer) return;
+    sessionAudio.srcObject = event.streams[0]; sessionAudio.play().catch(() => {});
+  };
+  for (const track of micStream.getAudioTracks()) sessionPeer.addTrack(track, micStream);
+  const sessionChannel = sessionPeer.createDataChannel('oai-events');
+  realtimeChannel = sessionChannel;
+  sessionChannel.onmessage = event => { if (sessionTimers.isCurrent(sessionId) && realtimeChannel === sessionChannel) handleOpenAIMessage(event); };
   const ready = new Promise((resolve, reject) => {
-    const timer = setTimeout(() => reject(new Error('OpenAI لم يجهز القناة الصوتية.')), 12000);
-    realtimeChannel.onopen = () => { clearTimeout(timer); resolve(); };
-    realtimeChannel.onerror = () => { clearTimeout(timer); reject(new Error('تعذر فتح قناة OpenAI الصوتية.')); };
+    let settled = false;
+    const finish = (callback, value) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      sessionSignal.removeEventListener('abort', abortReady);
+      callback(value);
+    };
+    const abortReady = () => finish(reject, new Error('اتقفلت الجلسة قبل تجهيز قناة OpenAI.'));
+    const timer = setTimeout(() => finish(reject, new Error('OpenAI لم يجهز القناة الصوتية.')), 12000);
+    sessionChannel.onopen = () => finish(resolve);
+    sessionChannel.onerror = () => {
+      if (!sessionTimers.isCurrent(sessionId) || realtimeChannel !== sessionChannel) return;
+      if (!settled) finish(reject, new Error('تعذر فتح قناة OpenAI الصوتية.'));
+      else if (isActive) { closeSession(); showError('اتقطع اتصال OpenAI. ابدئي الدرس مرة تانية.'); }
+    };
+    sessionChannel.onclose = () => {
+      if (!sessionTimers.isCurrent(sessionId) || realtimeChannel !== sessionChannel) return;
+      if (!settled) finish(reject, new Error('OpenAI قفل القناة الصوتية.'));
+      else if (isActive) { closeSession(); showError('اتقطع اتصال OpenAI. ابدئي الدرس مرة تانية.'); }
+    };
+    sessionSignal.addEventListener('abort', abortReady, {once: true});
   });
   ready.catch(() => {});
-  const offer = await realtimePeer.createOffer();
-  await realtimePeer.setLocalDescription(offer);
+  const offer = await sessionPeer.createOffer();
+  if (!sessionTimers.isCurrent(sessionId) || sessionSignal.aborted) throw new Error('اتقفلت الجلسة قبل تجهيز الاتصال.');
+  await sessionPeer.setLocalDescription(offer);
+  if (!sessionTimers.isCurrent(sessionId) || sessionSignal.aborted) throw new Error('اتقفلت الجلسة قبل تجهيز الاتصال.');
   const response = await fetch('https://api.openai.com/v1/realtime/calls', {
-    method: 'POST', body: offer.sdp,
+    method: 'POST', body: offer.sdp, signal: sessionSignal,
     headers: {Authorization: `Bearer ${data.token}`, 'Content-Type': 'application/sdp'},
   });
   if (!response.ok) {
@@ -2172,12 +2360,24 @@ async function connectOpenAI() {
     try { detail = JSON.parse(rawError).error?.message || rawError; } catch {}
     throw new Error(`OpenAI رفض اتصال الصوت (HTTP ${response.status})${detail ? `: ${detail.slice(0, 240)}` : '.'}`);
   }
-  await realtimePeer.setRemoteDescription({type: 'answer', sdp: await response.text()});
+  if (!sessionTimers.isCurrent(sessionId) || sessionSignal.aborted) throw new Error('اتقفلت الجلسة قبل تجهيز الاتصال.');
+  await sessionPeer.setRemoteDescription({type: 'answer', sdp: await response.text()});
   await ready;
 }
 
 async function startSession() {
   if (isStarting || isActive) return;
+  currentLesson = currentLesson || nextLesson();
+  if (sessionMode === 'test' && (!activeSpeakingAssessment || activeSpeakingAssessment.lessonId !== currentLesson?.id)) {
+    activeSpeakingAssessment = assessmentEngine.createSpokenAssessment(currentLesson);
+    if (!activeSpeakingAssessment.supported) {
+      showError('الاختبار الصوتي لهذا الدرس غير جاهز بعد.');
+      return;
+    }
+  }
+  const sessionId = sessionTimers.begin();
+  const requestController = new AbortController();
+  sessionController = requestController;
   isStarting = true;
   answerPending = false;
   pendingChildAnswer = '';
@@ -2195,30 +2395,47 @@ async function startSession() {
   cardsFor(currentLesson); updateProgress(); setStatus('جاري توصيل لولو');
   try {
     if (!navigator.mediaDevices?.getUserMedia || !window.AudioWorkletNode || !window.WebSocket) throw new Error('الميكروفون يحتاج متصفحاً حديثاً ورابط HTTPS أو localhost.');
-    const providerStatusPromise = fetch('/api/status').then(response => {
+    const providerStatusPromise = fetch('/api/status', {signal: requestController.signal}).then(response => {
       if (!response.ok) throw new Error('تعذر قراءة إعدادات الصوت.');
       return response.json();
     });
-    micStream = await navigator.mediaDevices.getUserMedia({audio: {channelCount: 1, echoCancellation: true, noiseSuppression: true, autoGainControl: true}, video: false});
+    const acquiredStream = await navigator.mediaDevices.getUserMedia({audio: {channelCount: 1, echoCancellation: true, noiseSuppression: true, autoGainControl: true}, video: false});
+    if (!sessionTimers.isCurrent(sessionId) || requestController.signal.aborted) {
+      acquiredStream.getTracks().forEach(track => track.stop());
+      return;
+    }
+    micStream = acquiredStream;
     audioContext = new AudioContext({latencyHint: 'interactive'}); await audioContext.resume(); await audioContext.audioWorklet.addModule('/pcm-processor.js');
+    if (!sessionTimers.isCurrent(sessionId) || requestController.signal.aborted) return;
     micSource = audioContext.createMediaStreamSource(micStream);
     audioWorklet = new AudioWorkletNode(audioContext, 'pcm16-input', {numberOfInputs: 1, numberOfOutputs: 1, outputChannelCount: [1]});
-    audioWorklet.port.onmessage = event => streamAudioToGemini(event.data);
+    audioWorklet.port.onmessage = event => { if (sessionTimers.isCurrent(sessionId)) streamAudioToGemini(event.data); };
     micSource.connect(audioWorklet); audioWorklet.connect(audioContext.destination);
     const status = await providerStatusPromise;
+    if (!sessionTimers.isCurrent(sessionId) || requestController.signal.aborted) return;
     const order = ['openai', 'gemini', 'gemini-backup'].filter(provider => status.providers?.includes(provider));
     if (!order.length) throw new Error('مفيش مفاتيح API متسجلة في ملف .env.');
     const failures = [];
     for (const provider of order) {
       setStatus('لولو بتجهز الدرس…');
-      try { if (provider === 'openai') await connectOpenAI(); else await connectGemini(provider); break; }
-      catch (error) { failures.push({provider, message: error.message}); closeProviderTransport(); }
+      try {
+        if (provider === 'openai') await connectOpenAI(sessionId, requestController.signal);
+        else await connectGemini(provider, sessionId, requestController.signal);
+        if (!sessionTimers.isCurrent(sessionId) || requestController.signal.aborted) return;
+        break;
+      }
+      catch (error) {
+        if (!sessionTimers.isCurrent(sessionId) || requestController.signal.aborted) return;
+        failures.push({provider, message: error.message});
+        closeProviderTransport();
+      }
     }
+    if (!sessionTimers.isCurrent(sessionId) || requestController.signal.aborted) return;
     if (!activeProvider) throw new Error('تعذر الاتصال بكل مزودي الصوت. ' + failures.map(item => item.message).join(' — '));
     isActive = true; isStarting = false;
     updateProgress();
     $('#app').classList.add('in-lesson');
-    if (!$('#app').classList.contains('ready')) { localStorage.setItem('lolo-onboarding-complete', 'true'); localStorage.setItem('lolo-welcome-tour-v1-complete', 'true'); $('#app').classList.add('ready'); }
+    if (!$('#app').classList.contains('ready')) { storage.set('lolo-onboarding-complete', 'true'); storage.set('lolo-welcome-tour-v1-complete', 'true'); $('#app').classList.add('ready'); }
     $('#mic').disabled = false; setListening(true);
     const connectedName = activeProvider === 'openai' ? 'OpenAI' : 'Gemini';
     setStatus('لولو سامعاكي عبر ' + connectedName);
@@ -2231,23 +2448,30 @@ async function startSession() {
     const replayOpening = lessonWasMasteredAtStart
       ? `الدرس ${lessonTitle} متقن من قبل. ابدئي بسؤالها بصوتك: «إحنا خلصنا الدرس ده قبل كده يا بطلة؛ تحبي نعيده سوا؟» لا تعيدي الشرح ولا تطرحي أسئلة تقييمية ولا تسجلي أي إجابة قبل أن توافق بوضوح. إذا وافقت، ابدئي مراجعة قصيرة لهذا الدرس واسألي سؤالاً واحداً في كل مرة. إذا لم توافق، قولي لها تسلم الهاتف لماما لتختار درساً آخر.`
       : null;
-    const opening = replayOpening || (isMathLesson
-      ? (sessionMode === 'test'
-        ? `ابدئي الآن بصوتك من غير انتظار كلام الطفلة. قدمي سؤال الاختبار الأول فقط: ${mathOpeningScript()} انتظري إجابتها، ولا تذكري شيئاً خارج الحالة المرئية.`
-        : `قولي الآن هذه الافتتاحية في رد صوتي واحد: ${mathOpeningScript()} بعد السؤال اسكتي واسمعي إجابتها. لا تضيفي شيئاً غير الموجود في الحالة المرئية.`) + mathContext
-      : sessionMode === 'test'
-        ? `ابدئي الكلام فوراً: أهلاً يا بطلة، ده اختبار صغير على ${lessonTitle}. هنلعب خمس أسئلة، سؤال سؤال. ابدئي بأول سؤال مرتبط بالدرس وانتظري إجابتها.`
+    const firstAssessmentQuestion = activeSpeakingAssessment?.questions[0];
+    const opening = replayOpening || (sessionMode === 'test'
+      ? `ابدئي فوراً بصوت لولو: «أهلاً يا بطلة! ده اختبار سماع وترديد صغير على ${lessonTitle}. هسمّعك كلمات من درسنا وإنتي تكرريها معايا». عدد الأسئلة ${activeSpeakingAssessment.questions.length}. اقرئي السؤال الأول كما هو فقط: «${firstAssessmentQuestion.prompt}». assessment_id هو ${activeSpeakingAssessment.assessmentId} وquestion_id هو ${firstAssessmentQuestion.questionId}. بعد سماع جوابها، لا تقولي صح أو غلط ولا السؤال التالي؛ استدعي submit_spoken_assessment_answer بالمعرّفين فقط، ثم اتبعي coachPrompt الذي يرجع من التطبيق.`
+      : isMathLesson
+        ? `قولي الآن هذه الافتتاحية في رد صوتي واحد: ${mathOpeningScript()} بعد السؤال اسكتي واسمعي إجابتها. لا تضيفي شيئاً غير الموجود في الحالة المرئية.${mathContext}`
         : `ابدئي الكلام فوراً من غير انتظار الطفلة: أهلاً يا بطلة! درسنا النهارده ${lessonTitle}. ${currentLesson?.goal || currentLesson?.focus || ''} الصور الظاهرة قدامك هي: ${visibleCards || 'اختيارات الدرس المصورة'}. اشرحي فكرة واحدة بجملتين بسيطتين، واسألي سؤالاً سهلاً من الصور دي عشان تبدأ.`);
     if (activeProvider === 'openai') sendOpenAIText(opening);
     else send({clientContent: {turns: [{role: 'user', parts: [{text: opening}]}], turnComplete: true}});
-    sessionLimitTimer = setTimeout(() => {
-      if (!isActive) return;
+    sessionTimers.schedule(sessionId, Math.max(1, Math.min(30, Number(parentSettings.sessionMinutes) || 10)) * 60 * 1000, () => {
+      if (!isActive || !sessionTimers.isCurrent(sessionId)) return;
       const breakMessage = 'وقت الدرس خلص دلوقتي. امدحي الطفلة على اللي عملته، وقولي لها إن وقت راحة قصير جه، وما تفتحيش سؤالاً جديداً. بعد رسالة صوتية قصيرة، اقفلي الجلسة بلطف.';
       sendTeacherTurn(breakMessage);
-      setTimeout(() => { if (isActive) stopSession(); }, 12000);
-    }, Math.max(1, Math.min(30, Number(parentSettings.sessionMinutes) || 10)) * 60 * 1000);
-  } catch (error) { closeSession(); showError(error.message || 'مقدرناش نفتح الميكروفون.'); }
-  finally { isStarting = false; $('#mic').disabled = false; $('#welcomeStart').disabled = $('#app').classList.contains('ready'); }
+      sessionTimers.schedule(sessionId, 12000, () => { if (isActive && sessionTimers.isCurrent(sessionId)) stopSession(); });
+    });
+  } catch (error) {
+    if (sessionTimers.isCurrent(sessionId)) { closeSession(); showError(error.message || 'مقدرناش نفتح الميكروفون.'); }
+  } finally {
+    if (sessionTimers.isCurrent(sessionId)) {
+      isStarting = false;
+      $('#mic').disabled = false;
+      $('#welcomeStart').disabled = $('#app').classList.contains('ready');
+      if (!isActive && sessionController === requestController) sessionController = null;
+    }
+  }
 }
 function stopSession() {
   if (!isActive && !isStarting) return;
@@ -2261,6 +2485,12 @@ function stopSession() {
 }
 
 $('#mic').onclick = () => isActive || isStarting ? stopSession() : startSession();
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'hidden' && (isActive || isStarting)) stopSession();
+});
+window.addEventListener('pagehide', () => {
+  if (isActive || isStarting) stopSession();
+});
 $('#rewardSkip').onclick = () => finishRewardGame(false);
 $('#homeStart').onclick = startSession;
 $('#homeChoose').onclick = () => openParentSettings('lessons');
@@ -2275,15 +2505,15 @@ function saveParentSettings() {
     rewardSeconds: Math.max(4, Math.min(15, Number($('#rewardSeconds').value) || 9)),
     learningPath: $('#learningPath').value === 'foundation-first' ? 'foundation-first' : 'selected',
   };
-  localStorage.setItem('lolo-parent-settings', JSON.stringify(parentSettings));
+  storage.set('lolo-parent-settings', JSON.stringify(parentSettings));
   $('#settingsSaved').textContent = 'اتحفظت الإعدادات على الجهاز ✅';
   if (!isActive && !isStarting && parentSettings.learningPath === 'foundation-first') {
     const firstFoundation = allLessons().find(lesson => lesson.programId === 'foundation' && !mastered.has(lesson.id));
     if (firstFoundation) {
       currentLesson = firstFoundation;
       sessionMode = 'lesson';
-      localStorage.setItem('lolo-current-lesson', currentLesson.id);
-      localStorage.setItem('lolo-selected-program', currentLesson.programId);
+      storage.set('lolo-current-lesson', currentLesson.id);
+      storage.set('lolo-selected-program', currentLesson.programId);
       cardsFor(currentLesson); updateLessonBadge(currentLesson); updateDashboardLesson(); updateProgress();
       refreshLessonPicker(currentLesson.programId, currentLesson.unitId);
     }
@@ -2295,7 +2525,7 @@ function renderParentReport() {
   const report = $('#parentReport');
   if (!report) return;
   report.replaceChildren();
-  const programId = $('#trackSelect')?.value || currentLesson?.programId || localStorage.getItem('lolo-selected-program');
+  const programId = $('#trackSelect')?.value || currentLesson?.programId || storage.get('lolo-selected-program');
   const lessons = allLessons().filter(lesson => !programId || lesson.programId === programId);
   const completed = lessons.filter(lesson => mastered.has(lesson.id)).length;
   const testEntries = lessons.filter(lesson => testResults[lesson.id]);
@@ -2423,16 +2653,16 @@ $('#resetCourse').onclick = () => {
   lessonStats = {};
   activeAnswerEvents = [];
   sessionMode = 'lesson';
-  localStorage.removeItem('lolo-mastered');
-  localStorage.removeItem('lolo-lesson-excellence');
-  localStorage.removeItem('lolo-test-results');
-  localStorage.removeItem('lolo-trace-results');
-  localStorage.removeItem('lolo-writing-path-results');
-  localStorage.removeItem('lolo-writing-path-overrides');
-  localStorage.removeItem('lolo-lesson-stats');
-  localStorage.removeItem('lolo-explicit-lesson-choice');
+  storage.remove('lolo-mastered');
+  storage.remove('lolo-lesson-excellence');
+  storage.remove('lolo-test-results');
+  storage.remove('lolo-trace-results');
+  storage.remove('lolo-writing-path-results');
+  storage.remove('lolo-writing-path-overrides');
+  storage.remove('lolo-lesson-stats');
+  storage.remove('lolo-explicit-lesson-choice');
   currentLesson = nextLesson() || allLessons()[0] || null;
-  if (currentLesson) localStorage.setItem('lolo-current-lesson', currentLesson.id);
+  if (currentLesson) storage.set('lolo-current-lesson', currentLesson.id);
   updateProgress();
   cardsFor(currentLesson);
   updateLessonBadge(currentLesson);
@@ -2446,10 +2676,10 @@ $('#clearAnswerHistory').onclick = () => {
   testResults = {};
   traceResults = {};
   writingPathResults = {};
-  localStorage.removeItem('lolo-lesson-stats');
-  localStorage.removeItem('lolo-test-results');
-  localStorage.removeItem('lolo-trace-results');
-  localStorage.removeItem('lolo-writing-path-results');
+  storage.remove('lolo-lesson-stats');
+  storage.remove('lolo-test-results');
+  storage.remove('lolo-trace-results');
+  storage.remove('lolo-writing-path-results');
   updateProgress();
   refreshLessonPicker(currentLesson?.programId, currentLesson?.unitId);
   renderParentReport();
@@ -2463,19 +2693,19 @@ if (location.protocol === 'file:') {
     return response.json();
   }).then(data => {
     course = data;
-    const needsCurriculumSetup = !localStorage.getItem('lolo-selected-program');
-    const savedLessonId = localStorage.getItem('lolo-current-lesson');
-    const selectedProgram = localStorage.getItem('lolo-selected-program');
+    const needsCurriculumSetup = !storage.get('lolo-selected-program');
+    const savedLessonId = storage.get('lolo-current-lesson');
+    const selectedProgram = storage.get('lolo-selected-program');
     currentLesson = allLessons().find(lesson => lesson.id === savedLessonId && (!selectedProgram || lesson.programId === selectedProgram))
       || (selectedProgram ? allLessons().find(lesson => lesson.programId === selectedProgram && !mastered.has(lesson.id)) : null)
       || nextLesson();
-    if (currentLesson) localStorage.setItem('lolo-current-lesson', currentLesson.id);
+    if (currentLesson) storage.set('lolo-current-lesson', currentLesson.id);
     updateLessonBadge(currentLesson);
     updateDashboardLesson();
     refreshLessonPicker(currentLesson?.programId, currentLesson?.unitId);
     if (needsCurriculumSetup) {
-      localStorage.removeItem('lolo-selected-program');
-      localStorage.removeItem('lolo-grade-id');
+      storage.remove('lolo-selected-program');
+      storage.remove('lolo-grade-id');
       fillGradeSelect($('#welcomeGradeSelect'), '', true);
       syncWelcomePrograms('', '');
     } else {
@@ -2487,7 +2717,7 @@ if (location.protocol === 'file:') {
     cardsFor(currentLesson);
     updateProgress();
     $('#mic').disabled = false;
-    if (localStorage.getItem('lolo-welcome-tour-v1-complete') === 'true' && !needsCurriculumSetup) $('#app').classList.add('ready');
+    if (storage.get('lolo-welcome-tour-v1-complete') === 'true' && !needsCurriculumSetup) $('#app').classList.add('ready');
   }).catch(() => {
     showError('المنهج مش ظاهر. راجعي ملفات التطبيق.');
     $('#mic').disabled = false;
