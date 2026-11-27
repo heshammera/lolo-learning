@@ -2310,7 +2310,7 @@ function handleOpenAIMessage(event) {
     try { args = JSON.parse(message.arguments || '{}'); } catch {}
     handleOpenAIToolCall(message.name, args, message.call_id);
   } else if (message.type === 'error') {
-    const detail = message.error?.message || 'حصلت مشكلة في جلسة OpenAI.';
+    const detail = 'حصلت مشكلة مؤقتة في جلسة الصوت.';
     if (setupHandshake) { setupHandshake.reject(new Error(detail)); setupHandshake = null; }
     else showError(detail);
   }
@@ -2391,7 +2391,7 @@ async function handleGeminiMessage(event, sessionId, sessionSocket) {
     return;
   }
   if (message.error) {
-    const detail = message.error.message || 'حصلت مشكلة في جلسة Gemini.';
+    const detail = 'حصلت مشكلة مؤقتة في جلسة الصوت.';
     if (setupHandshake) {
       setupHandshake.reject(new Error(detail));
       setupHandshake = null;
@@ -2428,12 +2428,15 @@ async function providerToken(provider, sessionSignal) {
       body: JSON.stringify({provider, lessonId: currentLesson?.id || 'course-complete', mode: sessionMode, alreadyMastered: sessionMode === 'lesson' && mastered.has(currentLesson?.id), excellenceCount: Number(lessonExcellence[currentLesson?.id]) || 0, teacherSettings: {speechPace: parentSettings.speechPace, hintLevel: parentSettings.hintLevel, repeatWords: parentSettings.repeatWords, learningScope:activePath?.scope || 'lesson'}}),
     });
   } catch (error) {
-    if (sessionSignal?.aborted) throw new Error('اتقفلت الجلسة قبل تجهيز الاتصال.');
-    if (error.name === 'AbortError') throw new Error(`انتهت مهلة الاتصال بـ ${provider}.`);
-    throw error;
+    if (sessionSignal?.aborted) throw Object.assign(new Error('اتقفلت الجلسة قبل تجهيز الاتصال.'),{stopFallback:true});
+    // The server may already have issued a paid credential. Do not retry an ambiguous transport failure.
+    throw Object.assign(new Error('تعذر تجهيز الاتصال الآن. جربي مرة تانية لما تكوني جاهزة.'),{stopFallback:true});
   } finally { clearTimeout(timeout); sessionSignal?.removeEventListener('abort', abortWithSession); }
-  const data = await response.json();
-  if (!response.ok) throw Object.assign(new Error(data.error || 'تعذر تجهيز مزود الصوت.'),{status:response.status});
+  let data;
+  try { data=await response.json(); }
+  catch { throw Object.assign(new Error('استجابة خدمة الصوت غير مكتملة.'),{status:response.status,stopFallback:true}); }
+  if (!response.ok) throw Object.assign(new Error('تعذر تجهيز مزود الصوت.'),{status:response.status});
+  if(!data||data.provider!==provider||typeof data.token!=='string'||!data.token||typeof data.model!=='string')throw Object.assign(new Error('استجابة خدمة الصوت غير صالحة.'),{stopFallback:true});
   return data;
 }
 
@@ -2535,10 +2538,7 @@ async function connectOpenAI(sessionId, sessionSignal) {
     headers: {Authorization: `Bearer ${data.token}`, 'Content-Type': 'application/sdp'},
   });
   if (!response.ok) {
-    const rawError = await response.text();
-    let detail = rawError;
-    try { detail = JSON.parse(rawError).error?.message || rawError; } catch {}
-    throw new Error(`OpenAI رفض اتصال الصوت (HTTP ${response.status})${detail ? `: ${detail.slice(0, 240)}` : '.'}`);
+    throw Object.assign(new Error('تعذر اتصال الصوت بمزود الخدمة.'),{status:response.status});
   }
   if (!sessionTimers.isCurrent(sessionId) || sessionSignal.aborted) throw new Error('اتقفلت الجلسة قبل تجهيز الاتصال.');
   await sessionPeer.setRemoteDescription({type: 'answer', sdp: await response.text()});
@@ -2604,6 +2604,13 @@ async function startSession(continuing = false) {
       return;
     }
     micStream = acquiredStream;
+    for(const track of acquiredStream.getAudioTracks()){
+      track.enabled=false;
+      track.addEventListener('ended',()=>{
+        if(!sessionTimers.isCurrent(sessionId)||micStream!==acquiredStream)return;
+        if(isActive||isStarting){stopSession();setStatus('الميكروفون مش متاح. تقدمك محفوظ والتدريبات المحلية متاحة.');}
+      },{once:true});
+    }
     audioContext = new AudioContext({latencyHint: 'interactive'}); await audioContext.resume(); await audioContext.audioWorklet.addModule('/pcm-processor.js');
     if (!sessionTimers.isCurrent(sessionId) || requestController.signal.aborted) return;
     micSource = audioContext.createMediaStreamSource(micStream);
@@ -2627,12 +2634,13 @@ async function startSession(continuing = false) {
         if (!sessionTimers.isCurrent(sessionId) || requestController.signal.aborted) return;
         failures.push({provider, message: error.message});
         closeProviderTransport();
-        if([401,403,429].includes(error.status)||navigator.onLine===false)break;
+        if(!window.LoloSessionTimers.shouldTryNextProvider({status:error.status,stopFallback:error.stopFallback,online:navigator.onLine!==false,aborted:requestController.signal.aborted,deadline:learningDeadline}))break;
       }
     }
     if (!sessionTimers.isCurrent(sessionId) || requestController.signal.aborted) return;
     if (!activeProvider) throw new Error('تعذر الاتصال بكل مزودي الصوت. ' + failures.map(item => item.message).join(' — '));
     isActive = true; isStarting = false;
+    micStream?.getAudioTracks().forEach(track=>{track.enabled=true;});
     if (sessionMode === 'lesson') {
       const introduced = learningEngine.markIntroduced(skillProgress, currentLesson?.skillIds || [], {
         curriculumVersion: course?.curriculumVersion || null,
@@ -2647,8 +2655,7 @@ async function startSession(continuing = false) {
     $('#mic').disabled = false; setListening(true);
     const connectedName = activeProvider === 'openai' ? 'OpenAI' : 'Gemini';
     setStatus('لولو سامعاكي عبر ' + connectedName);
-    const openAIFailure = failures.find(item => item.provider === 'openai');
-    if (openAIFailure) showError(`${openAIFailure.message} شغالة دلوقتي على ${connectedName} الاحتياطي.`);
+    if(failures.length)setStatus('لولو جاهزة مع مزود الصوت المتاح.');
     const isMathLesson = programList().find(program => program.id === currentLesson?.programId)?.subject === 'math';
     const mathContext = isMathLesson ? ` الحالة الدقيقة لما يظهر على الشاشة الآن: ${mathVisualState()}. هذه هي الحقيقة الوحيدة عن العناصر المرئية؛ معلومات الدرس وبطاقاته ليست معروضة. لا تذكري أي شيء أو لون أو رقم أو كمية غير واردة في الحالة المرئية. إذا احتجتِ مثالاً جديداً، اعرضيه أولاً بأداة المشهد ثم اذكريه بعد تأكيد ظهور نتيجتها.` : '';
     const visibleCards = (currentLesson?.cards || []).map(card => card[1]).filter(Boolean).join('، ');

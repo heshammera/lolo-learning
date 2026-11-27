@@ -26,7 +26,10 @@
     });
   }
 
-  const api = Object.freeze({create});
+  function shouldTryNextProvider({status,stopFallback,online=true,aborted=false,now=Date.now(),deadline=Infinity}={}) {
+    return online && !aborted && !stopFallback && ![401,403,429].includes(status) && now<deadline;
+  }
+  const api = Object.freeze({create,shouldTryNextProvider});
   if (typeof window !== 'undefined') window.LoloSessionTimers = api;
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
 })();

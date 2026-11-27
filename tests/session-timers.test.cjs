@@ -1,5 +1,5 @@
 const assert = require('node:assert/strict');
-const {create} = require('../session-timers.js');
+const {create,shouldTryNextProvider} = require('../session-timers.js');
 
 class FakeClock {
   now = 0;
@@ -43,3 +43,10 @@ assert.equal(endings, 1);
 assert.equal(sessions.isCurrent(first), false);
 assert.equal(sessions.isCurrent(second), true);
 console.log('Session timer generation checks passed.');
+
+for(const status of [401,403,429])assert.equal(shouldTryNextProvider({status}),false);
+for(const status of [502,503])assert.equal(shouldTryNextProvider({status}),true);
+assert.equal(shouldTryNextProvider({stopFallback:true}),false);
+assert.equal(shouldTryNextProvider({online:false}),false);
+assert.equal(shouldTryNextProvider({aborted:true}),false);
+assert.equal(shouldTryNextProvider({now:10,deadline:10}),false);
