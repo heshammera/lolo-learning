@@ -2,13 +2,13 @@
 
 **Reviewed:** 2026-11-27
 **Baseline:** `458ae22` (`Ignore downloaded Android APK artifact`)
-**Working branch:** `development/lolo-v2` (local work is in progress)
+**Working branch:** `main` (new local schema work; the user requested updates on Vercel-linked main)
 
 ## Product and runtime
 
 - Static Arabic RTL interface: `index.html`, `app.js`, `pcm-processor.js`.
 - Python standard-library server: `server.py`; Vercel Python endpoints import its handler from `api/`.
-- Curriculum data: `curriculum.json` (JSON hierarchy: 12 foundation units, 12 Connect Plus units, and 11 Math units; 140 lessons total).
+- Curriculum data: `curriculum.json` (schema 2.0: 12 foundation units, 12 Connect Plus units, 11 Math units, 140 lessons, and 140 lesson-linked skills).
 - Learning progress and parent settings are stored in browser `localStorage`.
 - Realtime speech uses short-lived provider tokens issued server-side; provider order and features are controlled in `app.js` / `server.py`.
 - Android is a Capacitor shell (`android-apk/`) targeting the hosted Vercel URL; package ID is `com.heshammera.lolo`.
@@ -25,4 +25,4 @@
 
 ## Current work status
 
-Phase 0 / Phase 1 foundational safeguards and the brand integration have been implemented and validated in earlier milestones. Phase 5/6 work includes deterministic writing/math grading and a bounded lesson-token oral repeat test. OpenAI oral-test replies are gated by local transcript grading; ASR accuracy, open comprehension, pronunciation evaluation, Gemini parity, regular lesson assessment, and trusted server-side scoring remain open. Work remains isolated on `development/lolo-v2`; `backup/pre-lolo-v2` and production `main` remain at the baseline, and no production deployment has been made.
+Phase 0 / Phase 1 safeguards, branding, deterministic writing/math grading, and a bounded lesson-token oral repeat test are implemented. OpenAI oral-test replies are gated by local transcript grading. Curriculum schema v2 and validation have been added locally: 140 lessons now carry versions and link to stable skill records. Open comprehension questions, pronunciation evaluation, Gemini parity, normal lesson assessment, skill mastery and spaced review remain open. `main` currently contains V2 through merge `b9c5850`; the local curriculum schema changes are not yet pushed. `backup/pre-lolo-v2` remains at the old baseline `458ae22`.

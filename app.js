@@ -1,6 +1,7 @@
 const $ = selector => document.querySelector(selector);
 const storage = window.LoloStorage;
 const assessmentEngine = window.LoloAssessment.create();
+const curriculumEngine = window.LoloCurriculum;
 const sessionTimers = window.LoloSessionTimers.create();
 window.addEventListener('lolo-storage-warning', event => showError(event.detail));
 if (storage.get('lolo-welcome-tour-v1-complete') === 'true' && storage.get('lolo-selected-program')) $('#app')?.classList.add('ready');
@@ -1485,7 +1486,7 @@ function recordLessonAnswer(lessonId, answer, isCorrect, questionNumber, questio
   const events = lessonStats[lessonId] || {correct: 0, wrong: 0};
   events[isCorrect ? 'correct' : 'wrong'] = (Number(events[isCorrect ? 'correct' : 'wrong']) || 0) + 1;
   events.history = Array.isArray(events.history) ? events.history : [];
-  events.history.push({answer: answer.trim(), is_correct: isCorrect, mode: sessionMode, completedAt: new Date().toISOString()});
+  events.history.push({answer: answer.trim(), is_correct: isCorrect, mode: sessionMode, curriculumVersion: course?.curriculumVersion || null, lessonVersion: currentLesson?.version || null, completedAt: new Date().toISOString()});
   events.history = events.history.slice(-100);
   lessonStats[lessonId] = events;
   activeAnswerEvents.push({answer: answer.trim(), is_correct: isCorrect, question_number: question});
@@ -1508,6 +1509,8 @@ function saveSpokenAssessmentResult(assessment) {
   const previous = testResults[assessment.lessonId] || {};
   const resultHistory = [...(previous.history || []), {
     assessmentId: assessment.assessmentId,
+    curriculumVersion: course?.curriculumVersion || null,
+    lessonVersion: currentLesson?.version || null,
     questionResults: assessment.results.map(item => ({
       questionId: item.questionId,
       attemptId: item.attemptId,
@@ -1522,6 +1525,8 @@ function saveSpokenAssessmentResult(assessment) {
   }].slice(-10);
   testResults[assessment.lessonId] = {
     assessmentId: assessment.assessmentId,
+    curriculumVersion: course?.curriculumVersion || null,
+    lessonVersion: currentLesson?.version || null,
     correct, total, passed: correct / total >= 0.75,
     attempts: (Number(previous.attempts) || 0) + 1,
     completedAt: new Date().toISOString(),
@@ -1572,6 +1577,8 @@ function recordSpokenAssessmentAnswer(assessmentId, questionId, turnId) {
     is_correct: evaluation.isCorrect,
     mode: 'test',
     assessmentId,
+    curriculumVersion: course?.curriculumVersion || null,
+    lessonVersion: currentLesson?.version || null,
     questionId: evaluation.questionId,
     attemptId: evaluation.attemptId,
     question: evaluation.question,
@@ -2692,6 +2699,11 @@ if (location.protocol === 'file:') {
     if (!response.ok) throw new Error();
     return response.json();
   }).then(data => {
+    const validation = curriculumEngine.validateCurriculum(data);
+    if (!validation.valid) {
+      console.error('Curriculum validation failed:', validation.errors);
+      throw new Error('Invalid curriculum data.');
+    }
     course = data;
     const needsCurriculumSetup = !storage.get('lolo-selected-program');
     const savedLessonId = storage.get('lolo-current-lesson');

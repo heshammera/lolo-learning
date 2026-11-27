@@ -10,7 +10,8 @@
 ## Current deterministic checks
 
 - Python `unittest` for limiter behavior, API input rejection, response security headers, public asset routing, and `.env` non-public routing (7 tests).
-- Node tests for safe local storage, deterministic writing/math/oral-repeat assessment normalization/grading/idempotency, and stale session timer callbacks (3 test files).
+- Node tests for safe local storage, deterministic writing/math/oral-repeat assessment normalization/grading/idempotency, curriculum schema/references/skill cycles, and stale session timer callbacks (4 test files).
+- Curriculum validation checks 3 programs, 35 units, 140 lessons, and 140 skill records; current missing authored question banks, localization, accessibility, and reviewed difficulty are warnings, not hidden.
 - Python bytecode syntax compilation for serverless handlers.
 - Node syntax checks for frontend files.
 - Android Gradle debug build and resource validation.

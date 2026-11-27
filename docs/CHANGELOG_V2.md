@@ -5,7 +5,7 @@
 **Date:** 2026-11-27
 **Baseline commit:** `458ae22`
 **Rollback:** remote branch `backup/pre-lolo-v2`
-**Working branch:** `development/lolo-v2`
+**Initial development branch:** `development/lolo-v2`; promoted to `main` at the user's request.
 
 ### Backend/security
 
@@ -72,3 +72,10 @@
 - **After:** oral tests derive a short question list from each lesson's displayed tokens and grade the recognized transcript locally against the current target. OpenAI test sessions enable input transcription, keep VAD active, disable automatic responses, and create app-controlled tutor replies only after scoring. Test responses also disable tool calls. Regular lessons retain their previous response behavior.
 - **Scope limit:** this evaluates transcript-to-token matching for listen-and-repeat only. ASR can mishear a child; this is not open comprehension or pronunciation-quality scoring. Gemini still depends on a model tool call, live lesson scoring still depends on the model, and browser-local results can be edited.
 - **Verification:** all 9 Python tests and all 3 Node test files pass; Python compilation, JavaScript syntax checks, and `git diff --check` pass. GitHub Actions run `45939267199` passed its test step, Android debug APK build, and artifact upload. No live provider call was used for deterministic tests.
+
+## Milestone 1.5 — Versioned curriculum schema and validation
+
+- **Before:** curriculum data had no schema/content version, lesson version, subject registry, or explicit skill references. Browser startup trusted the fetched JSON. Duplicate IDs, broken skill references, and cyclic prerequisites had no automated check.
+- **After:** added schema version 2 and content version `2.0.0`, lesson version `1.0.0`, subject IDs, and 140 stable lesson-linked skill records without changing existing lesson IDs or lesson text. `curriculum-engine.js` validates required fields, IDs, references, skill prerequisites/cycles, registered activities, question answer sets, math arithmetic answers, and version metadata. The browser validates before loading a course; CI runs the validator. Spoken assessment results now record curriculum and lesson versions.
+- **Scope limit:** the skill records currently map one lesson to its stated focus; no prerequisite edges have been authored or used to lock lessons. Each of the 140 lessons still lacks an authored question bank, reviewed difficulty, localization metadata, and accessibility metadata; CI reports these as warnings. Current oral questions still repeat lesson-board tokens.
+- **Verification:** local checks pass for the 140-lesson curriculum and synthetic duplicate/reference/cycle/math/activity failures. Full unit, syntax, HTTP, and Android CI verification is pending.

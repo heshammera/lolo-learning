@@ -36,7 +36,12 @@
                 "role": "word"
               }
             ]
-          }
+          },
+          "version": "1.0.0",
+          "skillIds": [
+            "foundation:hello-1"
+          ],
+          "subjectId": "english"
         },
         {
           "id": "hello-2",
@@ -72,7 +77,12 @@
                 "role": "detail"
               }
             ]
-          }
+          },
+          "version": "1.0.0",
+          "skillIds": [
+            "foundation:hello-2"
+          ],
+          "subjectId": "english"
         },
         {
           "id": "hello-3",
@@ -104,7 +114,12 @@
                 "role": "word"
               }
             ]
-          }
+          },
+          "version": "1.0.0",
+          "skillIds": [
+            "foundation:hello-3"
+          ],
+          "subjectId": "english"
         },
         {
           "id": "hello-4",
@@ -140,7 +155,12 @@
                 "role": "detail"
               }
             ]
-          }
+          },
+          "version": "1.0.0",
+          "skillIds": [
+            "foundation:hello-4"
+          ],
+          "subjectId": "english"
         }
       ]
     },
@@ -182,7 +202,12 @@
                 "role": "verb"
               }
             ]
-          }
+          },
+          "version": "1.0.0",
+          "skillIds": [
+            "foundation:class-1"
+          ],
+          "subjectId": "english"
         },
         {
           "id": "class-2",
@@ -214,7 +239,12 @@
                 "role": "verb"
               }
             ]
-          }
+          },
+          "version": "1.0.0",
+          "skillIds": [
+            "foundation:class-2"
+          ],
+          "subjectId": "english"
         },
         {
           "id": "class-3",
@@ -246,7 +276,12 @@
                 "role": "verb"
               }
             ]
-          }
+          },
+          "version": "1.0.0",
+          "skillIds": [
+            "foundation:class-3"
+          ],
+          "subjectId": "english"
         },
         {
           "id": "class-4",
@@ -278,7 +313,12 @@
                 "role": "verb"
               }
             ]
-          }
+          },
+          "version": "1.0.0",
+          "skillIds": [
+            "foundation:class-4"
+          ],
+          "subjectId": "english"
         }
       ]
     },
@@ -320,7 +360,12 @@
                 "role": "detail"
               }
             ]
-          }
+          },
+          "version": "1.0.0",
+          "skillIds": [
+            "foundation:color-1"
+          ],
+          "subjectId": "english"
         },
         {
           "id": "color-2",
@@ -356,7 +401,12 @@
                 "role": "detail"
               }
             ]
-          }
+          },
+          "version": "1.0.0",
+          "skillIds": [
+            "foundation:color-2"
+          ],
+          "subjectId": "english"
         },
         {
           "id": "color-3",
@@ -392,7 +442,12 @@
                 "role": "word"
               }
             ]
-          }
+          },
+          "version": "1.0.0",
+          "skillIds": [
+            "foundation:color-3"
+          ],
+          "subjectId": "english"
         },
         {
           "id": "color-4",
@@ -428,7 +483,12 @@
                 "role": "detail"
               }
             ]
-          }
+          },
+          "version": "1.0.0",
+          "skillIds": [
+            "foundation:color-4"
+          ],
+          "subjectId": "english"
         }
       ]
     },
@@ -470,7 +530,12 @@
                 "role": "word"
               }
             ]
-          }
+          },
+          "version": "1.0.0",
+          "skillIds": [
+            "foundation:num-1"
+          ],
+          "subjectId": "english"
         },
         {
           "id": "num-2",
@@ -502,7 +567,12 @@
                 "role": "word"
               }
             ]
-          }
+          },
+          "version": "1.0.0",
+          "skillIds": [
+            "foundation:num-2"
+          ],
+          "subjectId": "english"
         },
         {
           "id": "num-3",
@@ -538,7 +608,12 @@
                 "role": "word"
               }
             ]
-          }
+          },
+          "version": "1.0.0",
+          "skillIds": [
+            "foundation:num-3"
+          ],
+          "subjectId": "english"
         },
         {
           "id": "num-4",
@@ -574,7 +649,12 @@
                 "role": "word"
               }
             ]
-          }
+          },
+          "version": "1.0.0",
+          "skillIds": [
+            "foundation:num-4"
+          ],
+          "subjectId": "english"
         }
       ]
     },
@@ -616,7 +696,12 @@
                 "role": "word"
               }
             ]
-          }
+          },
+          "version": "1.0.0",
+          "skillIds": [
+            "foundation:people-1"
+          ],
+          "subjectId": "english"
         },
         {
           "id": "people-2",
@@ -652,7 +737,12 @@
                 "role": "word"
               }
             ]
-          }
+          },
+          "version": "1.0.0",
+          "skillIds": [
+            "foundation:people-2"
+          ],
+          "subjectId": "english"
         },
         {
           "id": "people-3",
@@ -692,7 +782,12 @@
                 "role": "noun"
               }
             ]
-          }
+          },
+          "version": "1.0.0",
+          "skillIds": [
+            "foundation:people-3"
+          ],
+          "subjectId": "english"
         },
         {
           "id": "people-4",
@@ -728,7 +823,12 @@
                 "role": "verb"
               }
             ]
-          }
+          },
+          "version": "1.0.0",
+          "skillIds": [
+            "foundation:people-4"
+          ],
+          "subjectId": "english"
         }
       ]
     },
@@ -770,7 +870,12 @@
                 "role": "word"
               }
             ]
-          }
+          },
+          "version": "1.0.0",
+          "skillIds": [
+            "foundation:body-1"
+          ],
+          "subjectId": "english"
         },
         {
           "id": "body-2",
@@ -806,7 +911,12 @@
                 "role": "word"
               }
             ]
-          }
+          },
+          "version": "1.0.0",
+          "skillIds": [
+            "foundation:body-2"
+          ],
+          "subjectId": "english"
         },
         {
           "id": "body-3",
@@ -846,7 +956,12 @@
                 "role": "verb"
               }
             ]
-          }
+          },
+          "version": "1.0.0",
+          "skillIds": [
+            "foundation:body-3"
+          ],
+          "subjectId": "english"
         },
         {
           "id": "body-4",
@@ -882,7 +997,12 @@
                 "role": "detail"
               }
             ]
-          }
+          },
+          "version": "1.0.0",
+          "skillIds": [
+            "foundation:body-4"
+          ],
+          "subjectId": "english"
         }
       ]
     },
@@ -924,7 +1044,12 @@
                 "role": "word"
               }
             ]
-          }
+          },
+          "version": "1.0.0",
+          "skillIds": [
+            "foundation:animal-1"
+          ],
+          "subjectId": "english"
         },
         {
           "id": "animal-2",
@@ -960,7 +1085,12 @@
                 "role": "word"
               }
             ]
-          }
+          },
+          "version": "1.0.0",
+          "skillIds": [
+            "foundation:animal-2"
+          ],
+          "subjectId": "english"
         },
         {
           "id": "animal-3",
@@ -996,7 +1126,12 @@
                 "role": "word"
               }
             ]
-          }
+          },
+          "version": "1.0.0",
+          "skillIds": [
+            "foundation:animal-3"
+          ],
+          "subjectId": "english"
         },
         {
           "id": "animal-4",
@@ -1036,7 +1171,12 @@
                 "role": "noun"
               }
             ]
-          }
+          },
+          "version": "1.0.0",
+          "skillIds": [
+            "foundation:animal-4"
+          ],
+          "subjectId": "english"
         }
       ]
     },
@@ -1078,7 +1218,12 @@
                 "role": "word"
               }
             ]
-          }
+          },
+          "version": "1.0.0",
+          "skillIds": [
+            "foundation:food-1"
+          ],
+          "subjectId": "english"
         },
         {
           "id": "food-2",
@@ -1114,7 +1259,12 @@
                 "role": "word"
               }
             ]
-          }
+          },
+          "version": "1.0.0",
+          "skillIds": [
+            "foundation:food-2"
+          ],
+          "subjectId": "english"
         },
         {
           "id": "food-3",
@@ -1150,7 +1300,12 @@
                 "role": "noun"
               }
             ]
-          }
+          },
+          "version": "1.0.0",
+          "skillIds": [
+            "foundation:food-3"
+          ],
+          "subjectId": "english"
         },
         {
           "id": "food-4",
@@ -1186,7 +1341,12 @@
                 "role": "detail"
               }
             ]
-          }
+          },
+          "version": "1.0.0",
+          "skillIds": [
+            "foundation:food-4"
+          ],
+          "subjectId": "english"
         }
       ]
     },
@@ -1232,7 +1392,12 @@
                 "role": "word"
               }
             ]
-          }
+          },
+          "version": "1.0.0",
+          "skillIds": [
+            "foundation:alpha-1"
+          ],
+          "subjectId": "english"
         },
         {
           "id": "alpha-2",
@@ -1272,7 +1437,12 @@
                 "role": "word"
               }
             ]
-          }
+          },
+          "version": "1.0.0",
+          "skillIds": [
+            "foundation:alpha-2"
+          ],
+          "subjectId": "english"
         },
         {
           "id": "alpha-3",
@@ -1312,7 +1482,12 @@
                 "role": "word"
               }
             ]
-          }
+          },
+          "version": "1.0.0",
+          "skillIds": [
+            "foundation:alpha-3"
+          ],
+          "subjectId": "english"
         },
         {
           "id": "alpha-4",
@@ -1352,7 +1527,12 @@
                 "role": "word"
               }
             ]
-          }
+          },
+          "version": "1.0.0",
+          "skillIds": [
+            "foundation:alpha-4"
+          ],
+          "subjectId": "english"
         }
       ]
     },
@@ -1394,7 +1574,12 @@
                 "role": "detail"
               }
             ]
-          }
+          },
+          "version": "1.0.0",
+          "skillIds": [
+            "foundation:sound-1"
+          ],
+          "subjectId": "english"
         },
         {
           "id": "sound-2",
@@ -1434,7 +1619,12 @@
                 "role": "word"
               }
             ]
-          }
+          },
+          "version": "1.0.0",
+          "skillIds": [
+            "foundation:sound-2"
+          ],
+          "subjectId": "english"
         },
         {
           "id": "sound-3",
@@ -1466,7 +1656,12 @@
                 "role": "sound"
               }
             ]
-          }
+          },
+          "version": "1.0.0",
+          "skillIds": [
+            "foundation:sound-3"
+          ],
+          "subjectId": "english"
         },
         {
           "id": "sound-4",
@@ -1506,7 +1701,12 @@
                 "role": "word"
               }
             ]
-          }
+          },
+          "version": "1.0.0",
+          "skillIds": [
+            "foundation:sound-4"
+          ],
+          "subjectId": "english"
         }
       ]
     },
@@ -1548,7 +1748,12 @@
                 "role": "word"
               }
             ]
-          }
+          },
+          "version": "1.0.0",
+          "skillIds": [
+            "foundation:first-1"
+          ],
+          "subjectId": "english"
         },
         {
           "id": "first-2",
@@ -1588,7 +1793,12 @@
                 "role": "word"
               }
             ]
-          }
+          },
+          "version": "1.0.0",
+          "skillIds": [
+            "foundation:first-2"
+          ],
+          "subjectId": "english"
         },
         {
           "id": "first-3",
@@ -1624,7 +1834,12 @@
                 "role": "word"
               }
             ]
-          }
+          },
+          "version": "1.0.0",
+          "skillIds": [
+            "foundation:first-3"
+          ],
+          "subjectId": "english"
         },
         {
           "id": "first-4",
@@ -1660,7 +1875,12 @@
                 "role": "noun"
               }
             ]
-          }
+          },
+          "version": "1.0.0",
+          "skillIds": [
+            "foundation:first-4"
+          ],
+          "subjectId": "english"
         }
       ]
     },
@@ -1702,7 +1922,12 @@
                 "role": "word"
               }
             ]
-          }
+          },
+          "version": "1.0.0",
+          "skillIds": [
+            "foundation:home-1"
+          ],
+          "subjectId": "english"
         },
         {
           "id": "home-2",
@@ -1738,7 +1963,12 @@
                 "role": "word"
               }
             ]
-          }
+          },
+          "version": "1.0.0",
+          "skillIds": [
+            "foundation:home-2"
+          ],
+          "subjectId": "english"
         },
         {
           "id": "home-3",
@@ -1778,7 +2008,12 @@
                 "role": "detail"
               }
             ]
-          }
+          },
+          "version": "1.0.0",
+          "skillIds": [
+            "foundation:home-3"
+          ],
+          "subjectId": "english"
         },
         {
           "id": "home-4",
@@ -1818,7 +2053,12 @@
                 "role": "detail"
               }
             ]
-          }
+          },
+          "version": "1.0.0",
+          "skillIds": [
+            "foundation:home-4"
+          ],
+          "subjectId": "english"
         }
       ]
     }
@@ -1868,7 +2108,12 @@
                     "role": "detail"
                   }
                 ]
-              }
+              },
+              "version": "1.0.0",
+              "skillIds": [
+                "connect-plus-1:cp1-me-1"
+              ],
+              "subjectId": "english"
             },
             {
               "id": "cp1-me-2",
@@ -1906,7 +2151,12 @@
                     "role": "detail"
                   }
                 ]
-              }
+              },
+              "version": "1.0.0",
+              "skillIds": [
+                "connect-plus-1:cp1-me-2"
+              ],
+              "subjectId": "english"
             },
             {
               "id": "cp1-me-3",
@@ -1948,7 +2198,12 @@
                     "role": "word"
                   }
                 ]
-              }
+              },
+              "version": "1.0.0",
+              "skillIds": [
+                "connect-plus-1:cp1-me-3"
+              ],
+              "subjectId": "english"
             },
             {
               "id": "cp1-me-4",
@@ -1990,7 +2245,12 @@
                     "role": "noun"
                   }
                 ]
-              }
+              },
+              "version": "1.0.0",
+              "skillIds": [
+                "connect-plus-1:cp1-me-4"
+              ],
+              "subjectId": "english"
             }
           ]
         },
@@ -2038,7 +2298,12 @@
                     "role": "noun"
                   }
                 ]
-              }
+              },
+              "version": "1.0.0",
+              "skillIds": [
+                "connect-plus-1:cp1-family-1"
+              ],
+              "subjectId": "english"
             },
             {
               "id": "cp1-family-2",
@@ -2076,7 +2341,12 @@
                     "role": "detail"
                   }
                 ]
-              }
+              },
+              "version": "1.0.0",
+              "skillIds": [
+                "connect-plus-1:cp1-family-2"
+              ],
+              "subjectId": "english"
             },
             {
               "id": "cp1-family-3",
@@ -2118,7 +2388,12 @@
                     "role": "word"
                   }
                 ]
-              }
+              },
+              "version": "1.0.0",
+              "skillIds": [
+                "connect-plus-1:cp1-family-3"
+              ],
+              "subjectId": "english"
             },
             {
               "id": "cp1-family-4",
@@ -2160,7 +2435,12 @@
                     "role": "noun"
                   }
                 ]
-              }
+              },
+              "version": "1.0.0",
+              "skillIds": [
+                "connect-plus-1:cp1-family-4"
+              ],
+              "subjectId": "english"
             }
           ]
         },
@@ -2204,7 +2484,12 @@
                     "role": "word"
                   }
                 ]
-              }
+              },
+              "version": "1.0.0",
+              "skillIds": [
+                "connect-plus-1:cp1-community-1"
+              ],
+              "subjectId": "english"
             },
             {
               "id": "cp1-community-2",
@@ -2246,7 +2531,12 @@
                     "role": "noun"
                   }
                 ]
-              }
+              },
+              "version": "1.0.0",
+              "skillIds": [
+                "connect-plus-1:cp1-community-2"
+              ],
+              "subjectId": "english"
             },
             {
               "id": "cp1-community-3",
@@ -2288,7 +2578,12 @@
                     "role": "word"
                   }
                 ]
-              }
+              },
+              "version": "1.0.0",
+              "skillIds": [
+                "connect-plus-1:cp1-community-3"
+              ],
+              "subjectId": "english"
             },
             {
               "id": "cp1-community-4",
@@ -2330,7 +2625,12 @@
                     "role": "detail"
                   }
                 ]
-              }
+              },
+              "version": "1.0.0",
+              "skillIds": [
+                "connect-plus-1:cp1-community-4"
+              ],
+              "subjectId": "english"
             }
           ]
         },
@@ -2374,7 +2674,12 @@
                     "role": "word"
                   }
                 ]
-              }
+              },
+              "version": "1.0.0",
+              "skillIds": [
+                "connect-plus-1:cp1-farm-1"
+              ],
+              "subjectId": "english"
             },
             {
               "id": "cp1-farm-2",
@@ -2416,7 +2721,12 @@
                     "role": "noun"
                   }
                 ]
-              }
+              },
+              "version": "1.0.0",
+              "skillIds": [
+                "connect-plus-1:cp1-farm-2"
+              ],
+              "subjectId": "english"
             },
             {
               "id": "cp1-farm-3",
@@ -2458,7 +2768,12 @@
                     "role": "word"
                   }
                 ]
-              }
+              },
+              "version": "1.0.0",
+              "skillIds": [
+                "connect-plus-1:cp1-farm-3"
+              ],
+              "subjectId": "english"
             },
             {
               "id": "cp1-farm-4",
@@ -2496,7 +2811,12 @@
                     "role": "noun"
                   }
                 ]
-              }
+              },
+              "version": "1.0.0",
+              "skillIds": [
+                "connect-plus-1:cp1-farm-4"
+              ],
+              "subjectId": "english"
             }
           ]
         },
@@ -2540,7 +2860,12 @@
                     "role": "word"
                   }
                 ]
-              }
+              },
+              "version": "1.0.0",
+              "skillIds": [
+                "connect-plus-1:cp1-transport-1"
+              ],
+              "subjectId": "english"
             },
             {
               "id": "cp1-transport-2",
@@ -2586,7 +2911,12 @@
                     "role": "detail"
                   }
                 ]
-              }
+              },
+              "version": "1.0.0",
+              "skillIds": [
+                "connect-plus-1:cp1-transport-2"
+              ],
+              "subjectId": "english"
             },
             {
               "id": "cp1-transport-3",
@@ -2628,7 +2958,12 @@
                     "role": "word"
                   }
                 ]
-              }
+              },
+              "version": "1.0.0",
+              "skillIds": [
+                "connect-plus-1:cp1-transport-3"
+              ],
+              "subjectId": "english"
             },
             {
               "id": "cp1-transport-4",
@@ -2666,7 +3001,12 @@
                     "role": "detail"
                   }
                 ]
-              }
+              },
+              "version": "1.0.0",
+              "skillIds": [
+                "connect-plus-1:cp1-transport-4"
+              ],
+              "subjectId": "english"
             }
           ]
         },
@@ -2714,7 +3054,12 @@
                     "role": "noun"
                   }
                 ]
-              }
+              },
+              "version": "1.0.0",
+              "skillIds": [
+                "connect-plus-1:cp1-world-1"
+              ],
+              "subjectId": "english"
             },
             {
               "id": "cp1-world-2",
@@ -2756,7 +3101,12 @@
                     "role": "noun"
                   }
                 ]
-              }
+              },
+              "version": "1.0.0",
+              "skillIds": [
+                "connect-plus-1:cp1-world-2"
+              ],
+              "subjectId": "english"
             },
             {
               "id": "cp1-world-3",
@@ -2798,7 +3148,12 @@
                     "role": "word"
                   }
                 ]
-              }
+              },
+              "version": "1.0.0",
+              "skillIds": [
+                "connect-plus-1:cp1-world-3"
+              ],
+              "subjectId": "english"
             },
             {
               "id": "cp1-world-4",
@@ -2836,7 +3191,12 @@
                     "role": "detail"
                   }
                 ]
-              }
+              },
+              "version": "1.0.0",
+              "skillIds": [
+                "connect-plus-1:cp1-world-4"
+              ],
+              "subjectId": "english"
             }
           ]
         },
@@ -2884,7 +3244,12 @@
                     "role": "noun"
                   }
                 ]
-              }
+              },
+              "version": "1.0.0",
+              "skillIds": [
+                "connect-plus-1:cp1-shopping-1"
+              ],
+              "subjectId": "english"
             },
             {
               "id": "cp1-shopping-2",
@@ -2926,7 +3291,12 @@
                     "role": "noun"
                   }
                 ]
-              }
+              },
+              "version": "1.0.0",
+              "skillIds": [
+                "connect-plus-1:cp1-shopping-2"
+              ],
+              "subjectId": "english"
             },
             {
               "id": "cp1-shopping-3",
@@ -2968,7 +3338,12 @@
                     "role": "word"
                   }
                 ]
-              }
+              },
+              "version": "1.0.0",
+              "skillIds": [
+                "connect-plus-1:cp1-shopping-3"
+              ],
+              "subjectId": "english"
             },
             {
               "id": "cp1-shopping-4",
@@ -3006,7 +3381,12 @@
                     "role": "noun"
                   }
                 ]
-              }
+              },
+              "version": "1.0.0",
+              "skillIds": [
+                "connect-plus-1:cp1-shopping-4"
+              ],
+              "subjectId": "english"
             }
           ]
         },
@@ -3050,7 +3430,12 @@
                     "role": "word"
                   }
                 ]
-              }
+              },
+              "version": "1.0.0",
+              "skillIds": [
+                "connect-plus-1:cp1-work-1"
+              ],
+              "subjectId": "english"
             },
             {
               "id": "cp1-work-2",
@@ -3088,7 +3473,12 @@
                     "role": "noun"
                   }
                 ]
-              }
+              },
+              "version": "1.0.0",
+              "skillIds": [
+                "connect-plus-1:cp1-work-2"
+              ],
+              "subjectId": "english"
             },
             {
               "id": "cp1-work-3",
@@ -3130,7 +3520,12 @@
                     "role": "word"
                   }
                 ]
-              }
+              },
+              "version": "1.0.0",
+              "skillIds": [
+                "connect-plus-1:cp1-work-3"
+              ],
+              "subjectId": "english"
             },
             {
               "id": "cp1-work-4",
@@ -3172,7 +3567,12 @@
                     "role": "verb"
                   }
                 ]
-              }
+              },
+              "version": "1.0.0",
+              "skillIds": [
+                "connect-plus-1:cp1-work-4"
+              ],
+              "subjectId": "english"
             }
           ]
         },
@@ -3216,7 +3616,12 @@
                     "role": "word"
                   }
                 ]
-              }
+              },
+              "version": "1.0.0",
+              "skillIds": [
+                "connect-plus-1:cp1-market-1"
+              ],
+              "subjectId": "english"
             },
             {
               "id": "cp1-market-2",
@@ -3254,7 +3659,12 @@
                     "role": "noun"
                   }
                 ]
-              }
+              },
+              "version": "1.0.0",
+              "skillIds": [
+                "connect-plus-1:cp1-market-2"
+              ],
+              "subjectId": "english"
             },
             {
               "id": "cp1-market-3",
@@ -3296,7 +3706,12 @@
                     "role": "word"
                   }
                 ]
-              }
+              },
+              "version": "1.0.0",
+              "skillIds": [
+                "connect-plus-1:cp1-market-3"
+              ],
+              "subjectId": "english"
             },
             {
               "id": "cp1-market-4",
@@ -3338,7 +3753,12 @@
                     "role": "noun"
                   }
                 ]
-              }
+              },
+              "version": "1.0.0",
+              "skillIds": [
+                "connect-plus-1:cp1-market-4"
+              ],
+              "subjectId": "english"
             }
           ]
         },
@@ -3382,7 +3802,12 @@
                     "role": "word"
                   }
                 ]
-              }
+              },
+              "version": "1.0.0",
+              "skillIds": [
+                "connect-plus-1:cp1-out-1"
+              ],
+              "subjectId": "english"
             },
             {
               "id": "cp1-out-2",
@@ -3424,7 +3849,12 @@
                     "role": "noun"
                   }
                 ]
-              }
+              },
+              "version": "1.0.0",
+              "skillIds": [
+                "connect-plus-1:cp1-out-2"
+              ],
+              "subjectId": "english"
             },
             {
               "id": "cp1-out-3",
@@ -3466,7 +3896,12 @@
                     "role": "word"
                   }
                 ]
-              }
+              },
+              "version": "1.0.0",
+              "skillIds": [
+                "connect-plus-1:cp1-out-3"
+              ],
+              "subjectId": "english"
             },
             {
               "id": "cp1-out-4",
@@ -3508,7 +3943,12 @@
                     "role": "detail"
                   }
                 ]
-              }
+              },
+              "version": "1.0.0",
+              "skillIds": [
+                "connect-plus-1:cp1-out-4"
+              ],
+              "subjectId": "english"
             }
           ]
         },
@@ -3552,7 +3992,12 @@
                     "role": "noun"
                   }
                 ]
-              }
+              },
+              "version": "1.0.0",
+              "skillIds": [
+                "connect-plus-1:cp1-time-1"
+              ],
+              "subjectId": "english"
             },
             {
               "id": "cp1-time-2",
@@ -3590,7 +4035,12 @@
                     "role": "detail"
                   }
                 ]
-              }
+              },
+              "version": "1.0.0",
+              "skillIds": [
+                "connect-plus-1:cp1-time-2"
+              ],
+              "subjectId": "english"
             },
             {
               "id": "cp1-time-3",
@@ -3632,7 +4082,12 @@
                     "role": "word"
                   }
                 ]
-              }
+              },
+              "version": "1.0.0",
+              "skillIds": [
+                "connect-plus-1:cp1-time-3"
+              ],
+              "subjectId": "english"
             },
             {
               "id": "cp1-time-4",
@@ -3670,7 +4125,12 @@
                     "role": "detail"
                   }
                 ]
-              }
+              },
+              "version": "1.0.0",
+              "skillIds": [
+                "connect-plus-1:cp1-time-4"
+              ],
+              "subjectId": "english"
             }
           ]
         },
@@ -3714,7 +4174,12 @@
                     "role": "word"
                   }
                 ]
-              }
+              },
+              "version": "1.0.0",
+              "skillIds": [
+                "connect-plus-1:cp1-free-1"
+              ],
+              "subjectId": "english"
             },
             {
               "id": "cp1-free-2",
@@ -3756,7 +4221,12 @@
                     "role": "detail"
                   }
                 ]
-              }
+              },
+              "version": "1.0.0",
+              "skillIds": [
+                "connect-plus-1:cp1-free-2"
+              ],
+              "subjectId": "english"
             },
             {
               "id": "cp1-free-3",
@@ -3798,7 +4268,12 @@
                     "role": "word"
                   }
                 ]
-              }
+              },
+              "version": "1.0.0",
+              "skillIds": [
+                "connect-plus-1:cp1-free-3"
+              ],
+              "subjectId": "english"
             },
             {
               "id": "cp1-free-4",
@@ -3840,11 +4315,17 @@
                     "role": "verb"
                   }
                 ]
-              }
+              },
+              "version": "1.0.0",
+              "skillIds": [
+                "connect-plus-1:cp1-free-4"
+              ],
+              "subjectId": "english"
             }
           ]
         }
-      ]
+      ],
+      "subjectId": "english"
     },
     {
       "id": "math-grade-1",
@@ -3896,7 +4377,12 @@
                   }
                 ],
                 "focusIndex": 0
-              }
+              },
+              "version": "1.0.0",
+              "skillIds": [
+                "math-grade-1:math-found-count-1"
+              ],
+              "subjectId": "mathematics"
             },
             {
               "id": "math-found-count-2",
@@ -3935,7 +4421,12 @@
                   }
                 ],
                 "focusIndex": 0
-              }
+              },
+              "version": "1.0.0",
+              "skillIds": [
+                "math-grade-1:math-found-count-2"
+              ],
+              "subjectId": "mathematics"
             },
             {
               "id": "math-found-count-3",
@@ -3974,7 +4465,12 @@
                   }
                 ],
                 "focusIndex": 0
-              }
+              },
+              "version": "1.0.0",
+              "skillIds": [
+                "math-grade-1:math-found-count-3"
+              ],
+              "subjectId": "mathematics"
             },
             {
               "id": "math-found-count-4",
@@ -4013,7 +4509,12 @@
                   }
                 ],
                 "focusIndex": 0
-              }
+              },
+              "version": "1.0.0",
+              "skillIds": [
+                "math-grade-1:math-found-count-4"
+              ],
+              "subjectId": "mathematics"
             }
           ]
         },
@@ -4058,7 +4559,12 @@
                   }
                 ],
                 "focusIndex": 0
-              }
+              },
+              "version": "1.0.0",
+              "skillIds": [
+                "math-grade-1:math-found-numbers-1"
+              ],
+              "subjectId": "mathematics"
             },
             {
               "id": "math-found-numbers-2",
@@ -4097,7 +4603,12 @@
                   }
                 ],
                 "focusIndex": 0
-              }
+              },
+              "version": "1.0.0",
+              "skillIds": [
+                "math-grade-1:math-found-numbers-2"
+              ],
+              "subjectId": "mathematics"
             },
             {
               "id": "math-found-numbers-3",
@@ -4136,7 +4647,12 @@
                   }
                 ],
                 "focusIndex": 0
-              }
+              },
+              "version": "1.0.0",
+              "skillIds": [
+                "math-grade-1:math-found-numbers-3"
+              ],
+              "subjectId": "mathematics"
             },
             {
               "id": "math-found-numbers-4",
@@ -4175,7 +4691,12 @@
                   }
                 ],
                 "focusIndex": 0
-              }
+              },
+              "version": "1.0.0",
+              "skillIds": [
+                "math-grade-1:math-found-numbers-4"
+              ],
+              "subjectId": "mathematics"
             }
           ]
         },
@@ -4220,7 +4741,12 @@
                   }
                 ],
                 "focusIndex": 0
-              }
+              },
+              "version": "1.0.0",
+              "skillIds": [
+                "math-grade-1:math-found-shapes-1"
+              ],
+              "subjectId": "mathematics"
             },
             {
               "id": "math-found-shapes-2",
@@ -4259,7 +4785,12 @@
                   }
                 ],
                 "focusIndex": 0
-              }
+              },
+              "version": "1.0.0",
+              "skillIds": [
+                "math-grade-1:math-found-shapes-2"
+              ],
+              "subjectId": "mathematics"
             },
             {
               "id": "math-found-shapes-3",
@@ -4298,7 +4829,12 @@
                   }
                 ],
                 "focusIndex": 0
-              }
+              },
+              "version": "1.0.0",
+              "skillIds": [
+                "math-grade-1:math-found-shapes-3"
+              ],
+              "subjectId": "mathematics"
             },
             {
               "id": "math-found-shapes-4",
@@ -4337,7 +4873,12 @@
                   }
                 ],
                 "focusIndex": 0
-              }
+              },
+              "version": "1.0.0",
+              "skillIds": [
+                "math-grade-1:math-found-shapes-4"
+              ],
+              "subjectId": "mathematics"
             }
           ]
         },
@@ -4382,7 +4923,12 @@
                   }
                 ],
                 "focusIndex": 0
-              }
+              },
+              "version": "1.0.0",
+              "skillIds": [
+                "math-grade-1:math-grade-count-1"
+              ],
+              "subjectId": "mathematics"
             },
             {
               "id": "math-grade-count-2",
@@ -4421,7 +4967,12 @@
                   }
                 ],
                 "focusIndex": 0
-              }
+              },
+              "version": "1.0.0",
+              "skillIds": [
+                "math-grade-1:math-grade-count-2"
+              ],
+              "subjectId": "mathematics"
             },
             {
               "id": "math-grade-count-3",
@@ -4460,7 +5011,12 @@
                   }
                 ],
                 "focusIndex": 0
-              }
+              },
+              "version": "1.0.0",
+              "skillIds": [
+                "math-grade-1:math-grade-count-3"
+              ],
+              "subjectId": "mathematics"
             },
             {
               "id": "math-grade-count-4",
@@ -4499,7 +5055,12 @@
                   }
                 ],
                 "focusIndex": 0
-              }
+              },
+              "version": "1.0.0",
+              "skillIds": [
+                "math-grade-1:math-grade-count-4"
+              ],
+              "subjectId": "mathematics"
             }
           ]
         },
@@ -4544,7 +5105,12 @@
                   }
                 ],
                 "focusIndex": 0
-              }
+              },
+              "version": "1.0.0",
+              "skillIds": [
+                "math-grade-1:math-grade-place-1"
+              ],
+              "subjectId": "mathematics"
             },
             {
               "id": "math-grade-place-2",
@@ -4583,7 +5149,12 @@
                   }
                 ],
                 "focusIndex": 0
-              }
+              },
+              "version": "1.0.0",
+              "skillIds": [
+                "math-grade-1:math-grade-place-2"
+              ],
+              "subjectId": "mathematics"
             },
             {
               "id": "math-grade-place-3",
@@ -4622,7 +5193,12 @@
                   }
                 ],
                 "focusIndex": 0
-              }
+              },
+              "version": "1.0.0",
+              "skillIds": [
+                "math-grade-1:math-grade-place-3"
+              ],
+              "subjectId": "mathematics"
             },
             {
               "id": "math-grade-place-4",
@@ -4661,7 +5237,12 @@
                   }
                 ],
                 "focusIndex": 0
-              }
+              },
+              "version": "1.0.0",
+              "skillIds": [
+                "math-grade-1:math-grade-place-4"
+              ],
+              "subjectId": "mathematics"
             }
           ]
         },
@@ -4706,7 +5287,12 @@
                   }
                 ],
                 "focusIndex": 0
-              }
+              },
+              "version": "1.0.0",
+              "skillIds": [
+                "math-grade-1:math-grade-add-1"
+              ],
+              "subjectId": "mathematics"
             },
             {
               "id": "math-grade-add-2",
@@ -4745,7 +5331,12 @@
                   }
                 ],
                 "focusIndex": 0
-              }
+              },
+              "version": "1.0.0",
+              "skillIds": [
+                "math-grade-1:math-grade-add-2"
+              ],
+              "subjectId": "mathematics"
             },
             {
               "id": "math-grade-add-3",
@@ -4784,7 +5375,12 @@
                   }
                 ],
                 "focusIndex": 0
-              }
+              },
+              "version": "1.0.0",
+              "skillIds": [
+                "math-grade-1:math-grade-add-3"
+              ],
+              "subjectId": "mathematics"
             },
             {
               "id": "math-grade-add-4",
@@ -4823,7 +5419,12 @@
                   }
                 ],
                 "focusIndex": 0
-              }
+              },
+              "version": "1.0.0",
+              "skillIds": [
+                "math-grade-1:math-grade-add-4"
+              ],
+              "subjectId": "mathematics"
             }
           ]
         },
@@ -4868,7 +5469,12 @@
                   }
                 ],
                 "focusIndex": 0
-              }
+              },
+              "version": "1.0.0",
+              "skillIds": [
+                "math-grade-1:math-grade-subtract-1"
+              ],
+              "subjectId": "mathematics"
             },
             {
               "id": "math-grade-subtract-2",
@@ -4907,7 +5513,12 @@
                   }
                 ],
                 "focusIndex": 0
-              }
+              },
+              "version": "1.0.0",
+              "skillIds": [
+                "math-grade-1:math-grade-subtract-2"
+              ],
+              "subjectId": "mathematics"
             },
             {
               "id": "math-grade-subtract-3",
@@ -4946,7 +5557,12 @@
                   }
                 ],
                 "focusIndex": 0
-              }
+              },
+              "version": "1.0.0",
+              "skillIds": [
+                "math-grade-1:math-grade-subtract-3"
+              ],
+              "subjectId": "mathematics"
             },
             {
               "id": "math-grade-subtract-4",
@@ -4985,7 +5601,12 @@
                   }
                 ],
                 "focusIndex": 0
-              }
+              },
+              "version": "1.0.0",
+              "skillIds": [
+                "math-grade-1:math-grade-subtract-4"
+              ],
+              "subjectId": "mathematics"
             }
           ]
         },
@@ -5030,7 +5651,12 @@
                   }
                 ],
                 "focusIndex": 0
-              }
+              },
+              "version": "1.0.0",
+              "skillIds": [
+                "math-grade-1:math-grade-problems-1"
+              ],
+              "subjectId": "mathematics"
             },
             {
               "id": "math-grade-problems-2",
@@ -5069,7 +5695,12 @@
                   }
                 ],
                 "focusIndex": 0
-              }
+              },
+              "version": "1.0.0",
+              "skillIds": [
+                "math-grade-1:math-grade-problems-2"
+              ],
+              "subjectId": "mathematics"
             },
             {
               "id": "math-grade-problems-3",
@@ -5108,7 +5739,12 @@
                   }
                 ],
                 "focusIndex": 0
-              }
+              },
+              "version": "1.0.0",
+              "skillIds": [
+                "math-grade-1:math-grade-problems-3"
+              ],
+              "subjectId": "mathematics"
             },
             {
               "id": "math-grade-problems-4",
@@ -5147,7 +5783,12 @@
                   }
                 ],
                 "focusIndex": 0
-              }
+              },
+              "version": "1.0.0",
+              "skillIds": [
+                "math-grade-1:math-grade-problems-4"
+              ],
+              "subjectId": "mathematics"
             }
           ]
         },
@@ -5192,7 +5833,12 @@
                   }
                 ],
                 "focusIndex": 0
-              }
+              },
+              "version": "1.0.0",
+              "skillIds": [
+                "math-grade-1:math-grade-geometry-1"
+              ],
+              "subjectId": "mathematics"
             },
             {
               "id": "math-grade-geometry-2",
@@ -5231,7 +5877,12 @@
                   }
                 ],
                 "focusIndex": 0
-              }
+              },
+              "version": "1.0.0",
+              "skillIds": [
+                "math-grade-1:math-grade-geometry-2"
+              ],
+              "subjectId": "mathematics"
             },
             {
               "id": "math-grade-geometry-3",
@@ -5270,7 +5921,12 @@
                   }
                 ],
                 "focusIndex": 0
-              }
+              },
+              "version": "1.0.0",
+              "skillIds": [
+                "math-grade-1:math-grade-geometry-3"
+              ],
+              "subjectId": "mathematics"
             },
             {
               "id": "math-grade-geometry-4",
@@ -5309,7 +5965,12 @@
                   }
                 ],
                 "focusIndex": 0
-              }
+              },
+              "version": "1.0.0",
+              "skillIds": [
+                "math-grade-1:math-grade-geometry-4"
+              ],
+              "subjectId": "mathematics"
             }
           ]
         },
@@ -5354,7 +6015,12 @@
                   }
                 ],
                 "focusIndex": 0
-              }
+              },
+              "version": "1.0.0",
+              "skillIds": [
+                "math-grade-1:math-grade-measure-1"
+              ],
+              "subjectId": "mathematics"
             },
             {
               "id": "math-grade-measure-2",
@@ -5393,7 +6059,12 @@
                   }
                 ],
                 "focusIndex": 0
-              }
+              },
+              "version": "1.0.0",
+              "skillIds": [
+                "math-grade-1:math-grade-measure-2"
+              ],
+              "subjectId": "mathematics"
             },
             {
               "id": "math-grade-measure-3",
@@ -5432,7 +6103,12 @@
                   }
                 ],
                 "focusIndex": 0
-              }
+              },
+              "version": "1.0.0",
+              "skillIds": [
+                "math-grade-1:math-grade-measure-3"
+              ],
+              "subjectId": "mathematics"
             },
             {
               "id": "math-grade-measure-4",
@@ -5471,7 +6147,12 @@
                   }
                 ],
                 "focusIndex": 0
-              }
+              },
+              "version": "1.0.0",
+              "skillIds": [
+                "math-grade-1:math-grade-measure-4"
+              ],
+              "subjectId": "mathematics"
             }
           ]
         },
@@ -5516,7 +6197,12 @@
                   }
                 ],
                 "focusIndex": 0
-              }
+              },
+              "version": "1.0.0",
+              "skillIds": [
+                "math-grade-1:math-grade-time-data-1"
+              ],
+              "subjectId": "mathematics"
             },
             {
               "id": "math-grade-time-data-2",
@@ -5555,7 +6241,12 @@
                   }
                 ],
                 "focusIndex": 0
-              }
+              },
+              "version": "1.0.0",
+              "skillIds": [
+                "math-grade-1:math-grade-time-data-2"
+              ],
+              "subjectId": "mathematics"
             },
             {
               "id": "math-grade-time-data-3",
@@ -5594,7 +6285,12 @@
                   }
                 ],
                 "focusIndex": 0
-              }
+              },
+              "version": "1.0.0",
+              "skillIds": [
+                "math-grade-1:math-grade-time-data-3"
+              ],
+              "subjectId": "mathematics"
             },
             {
               "id": "math-grade-time-data-4",
@@ -5633,11 +6329,1305 @@
                   }
                 ],
                 "focusIndex": 0
-              }
+              },
+              "version": "1.0.0",
+              "skillIds": [
+                "math-grade-1:math-grade-time-data-4"
+              ],
+              "subjectId": "mathematics"
             }
           ]
         }
-      ]
+      ],
+      "subjectId": "mathematics"
     }
+  ],
+  "schemaVersion": 2,
+  "curriculumVersion": "2.0.0",
+  "subjects": [
+    {
+      "id": "english",
+      "title": "English"
+    },
+    {
+      "id": "mathematics",
+      "title": "Mathematics"
+    }
+  ],
+  "skills": [
+    {
+      "id": "foundation:hello-1",
+      "title": "Hello, bye",
+      "subjectId": "english",
+      "lessonIds": [
+        "hello-1"
+      ],
+      "prerequisiteSkillIds": []
+    },
+    {
+      "id": "foundation:hello-2",
+      "title": "How are you? I am happy / fine",
+      "subjectId": "english",
+      "lessonIds": [
+        "hello-2"
+      ],
+      "prerequisiteSkillIds": []
+    },
+    {
+      "id": "foundation:hello-3",
+      "title": "Please, thank you",
+      "subjectId": "english",
+      "lessonIds": [
+        "hello-3"
+      ],
+      "prerequisiteSkillIds": []
+    },
+    {
+      "id": "foundation:hello-4",
+      "title": "Yes, no, I don't know",
+      "subjectId": "english",
+      "lessonIds": [
+        "hello-4"
+      ],
+      "prerequisiteSkillIds": []
+    },
+    {
+      "id": "foundation:class-1",
+      "title": "Listen, look, repeat",
+      "subjectId": "english",
+      "lessonIds": [
+        "class-1"
+      ],
+      "prerequisiteSkillIds": []
+    },
+    {
+      "id": "foundation:class-2",
+      "title": "Stand up, sit down",
+      "subjectId": "english",
+      "lessonIds": [
+        "class-2"
+      ],
+      "prerequisiteSkillIds": []
+    },
+    {
+      "id": "foundation:class-3",
+      "title": "Show me, give me",
+      "subjectId": "english",
+      "lessonIds": [
+        "class-3"
+      ],
+      "prerequisiteSkillIds": []
+    },
+    {
+      "id": "foundation:class-4",
+      "title": "Open, close",
+      "subjectId": "english",
+      "lessonIds": [
+        "class-4"
+      ],
+      "prerequisiteSkillIds": []
+    },
+    {
+      "id": "foundation:color-1",
+      "title": "red, blue, yellow",
+      "subjectId": "english",
+      "lessonIds": [
+        "color-1"
+      ],
+      "prerequisiteSkillIds": []
+    },
+    {
+      "id": "foundation:color-2",
+      "title": "green, black, white",
+      "subjectId": "english",
+      "lessonIds": [
+        "color-2"
+      ],
+      "prerequisiteSkillIds": []
+    },
+    {
+      "id": "foundation:color-3",
+      "title": "circle, square, star",
+      "subjectId": "english",
+      "lessonIds": [
+        "color-3"
+      ],
+      "prerequisiteSkillIds": []
+    },
+    {
+      "id": "foundation:color-4",
+      "title": "What color is it? It is...",
+      "subjectId": "english",
+      "lessonIds": [
+        "color-4"
+      ],
+      "prerequisiteSkillIds": []
+    },
+    {
+      "id": "foundation:num-1",
+      "title": "one, two, three",
+      "subjectId": "english",
+      "lessonIds": [
+        "num-1"
+      ],
+      "prerequisiteSkillIds": []
+    },
+    {
+      "id": "foundation:num-2",
+      "title": "four, five",
+      "subjectId": "english",
+      "lessonIds": [
+        "num-2"
+      ],
+      "prerequisiteSkillIds": []
+    },
+    {
+      "id": "foundation:num-3",
+      "title": "six, seven, eight",
+      "subjectId": "english",
+      "lessonIds": [
+        "num-3"
+      ],
+      "prerequisiteSkillIds": []
+    },
+    {
+      "id": "foundation:num-4",
+      "title": "nine, ten; how many?",
+      "subjectId": "english",
+      "lessonIds": [
+        "num-4"
+      ],
+      "prerequisiteSkillIds": []
+    },
+    {
+      "id": "foundation:people-1",
+      "title": "mother, father, sister, brother",
+      "subjectId": "english",
+      "lessonIds": [
+        "people-1"
+      ],
+      "prerequisiteSkillIds": []
+    },
+    {
+      "id": "foundation:people-2",
+      "title": "baby, friend, teacher",
+      "subjectId": "english",
+      "lessonIds": [
+        "people-2"
+      ],
+      "prerequisiteSkillIds": []
+    },
+    {
+      "id": "foundation:people-3",
+      "title": "This is my...",
+      "subjectId": "english",
+      "lessonIds": [
+        "people-3"
+      ],
+      "prerequisiteSkillIds": []
+    },
+    {
+      "id": "foundation:people-4",
+      "title": "he, she; who is this?",
+      "subjectId": "english",
+      "lessonIds": [
+        "people-4"
+      ],
+      "prerequisiteSkillIds": []
+    },
+    {
+      "id": "foundation:body-1",
+      "title": "head, eyes, ears, nose, mouth",
+      "subjectId": "english",
+      "lessonIds": [
+        "body-1"
+      ],
+      "prerequisiteSkillIds": []
+    },
+    {
+      "id": "foundation:body-2",
+      "title": "hands, arms, legs, feet",
+      "subjectId": "english",
+      "lessonIds": [
+        "body-2"
+      ],
+      "prerequisiteSkillIds": []
+    },
+    {
+      "id": "foundation:body-3",
+      "title": "clap, jump, walk, stop",
+      "subjectId": "english",
+      "lessonIds": [
+        "body-3"
+      ],
+      "prerequisiteSkillIds": []
+    },
+    {
+      "id": "foundation:body-4",
+      "title": "I can...",
+      "subjectId": "english",
+      "lessonIds": [
+        "body-4"
+      ],
+      "prerequisiteSkillIds": []
+    },
+    {
+      "id": "foundation:animal-1",
+      "title": "cat, dog, bird",
+      "subjectId": "english",
+      "lessonIds": [
+        "animal-1"
+      ],
+      "prerequisiteSkillIds": []
+    },
+    {
+      "id": "foundation:animal-2",
+      "title": "fish, rabbit, duck",
+      "subjectId": "english",
+      "lessonIds": [
+        "animal-2"
+      ],
+      "prerequisiteSkillIds": []
+    },
+    {
+      "id": "foundation:animal-3",
+      "title": "lion, elephant, monkey",
+      "subjectId": "english",
+      "lessonIds": [
+        "animal-3"
+      ],
+      "prerequisiteSkillIds": []
+    },
+    {
+      "id": "foundation:animal-4",
+      "title": "big, small; it is a...",
+      "subjectId": "english",
+      "lessonIds": [
+        "animal-4"
+      ],
+      "prerequisiteSkillIds": []
+    },
+    {
+      "id": "foundation:food-1",
+      "title": "apple, banana, orange",
+      "subjectId": "english",
+      "lessonIds": [
+        "food-1"
+      ],
+      "prerequisiteSkillIds": []
+    },
+    {
+      "id": "foundation:food-2",
+      "title": "bread, cheese, milk",
+      "subjectId": "english",
+      "lessonIds": [
+        "food-2"
+      ],
+      "prerequisiteSkillIds": []
+    },
+    {
+      "id": "foundation:food-3",
+      "title": "I like..., I don't like...",
+      "subjectId": "english",
+      "lessonIds": [
+        "food-3"
+      ],
+      "prerequisiteSkillIds": []
+    },
+    {
+      "id": "foundation:food-4",
+      "title": "I am hungry/thirsty; please",
+      "subjectId": "english",
+      "lessonIds": [
+        "food-4"
+      ],
+      "prerequisiteSkillIds": []
+    },
+    {
+      "id": "foundation:alpha-1",
+      "title": "letter sounds A-F with familiar words",
+      "subjectId": "english",
+      "lessonIds": [
+        "alpha-1"
+      ],
+      "prerequisiteSkillIds": []
+    },
+    {
+      "id": "foundation:alpha-2",
+      "title": "letter sounds G-L with familiar words",
+      "subjectId": "english",
+      "lessonIds": [
+        "alpha-2"
+      ],
+      "prerequisiteSkillIds": []
+    },
+    {
+      "id": "foundation:alpha-3",
+      "title": "letter sounds M-R with familiar words",
+      "subjectId": "english",
+      "lessonIds": [
+        "alpha-3"
+      ],
+      "prerequisiteSkillIds": []
+    },
+    {
+      "id": "foundation:alpha-4",
+      "title": "letter sounds S-Z with familiar words",
+      "subjectId": "english",
+      "lessonIds": [
+        "alpha-4"
+      ],
+      "prerequisiteSkillIds": []
+    },
+    {
+      "id": "foundation:sound-1",
+      "title": "same and different beginning sounds",
+      "subjectId": "english",
+      "lessonIds": [
+        "sound-1"
+      ],
+      "prerequisiteSkillIds": []
+    },
+    {
+      "id": "foundation:sound-2",
+      "title": "rhymes: cat/hat, sun/fun",
+      "subjectId": "english",
+      "lessonIds": [
+        "sound-2"
+      ],
+      "prerequisiteSkillIds": []
+    },
+    {
+      "id": "foundation:sound-3",
+      "title": "hear the first sound in a word",
+      "subjectId": "english",
+      "lessonIds": [
+        "sound-3"
+      ],
+      "prerequisiteSkillIds": []
+    },
+    {
+      "id": "foundation:sound-4",
+      "title": "blend two and three sounds orally",
+      "subjectId": "english",
+      "lessonIds": [
+        "sound-4"
+      ],
+      "prerequisiteSkillIds": []
+    },
+    {
+      "id": "foundation:first-1",
+      "title": "oral blending of simple CVC words: cat, dog, sun",
+      "subjectId": "english",
+      "lessonIds": [
+        "first-1"
+      ],
+      "prerequisiteSkillIds": []
+    },
+    {
+      "id": "foundation:first-2",
+      "title": "CVC words with short a: cat, hat, map",
+      "subjectId": "english",
+      "lessonIds": [
+        "first-2"
+      ],
+      "prerequisiteSkillIds": []
+    },
+    {
+      "id": "foundation:first-3",
+      "title": "CVC words with short i/o: sit, pin, dog, pot",
+      "subjectId": "english",
+      "lessonIds": [
+        "first-3"
+      ],
+      "prerequisiteSkillIds": []
+    },
+    {
+      "id": "foundation:first-4",
+      "title": "simple spoken chunks: I see..., It is a...",
+      "subjectId": "english",
+      "lessonIds": [
+        "first-4"
+      ],
+      "prerequisiteSkillIds": []
+    },
+    {
+      "id": "foundation:home-1",
+      "title": "bed, door, chair",
+      "subjectId": "english",
+      "lessonIds": [
+        "home-1"
+      ],
+      "prerequisiteSkillIds": []
+    },
+    {
+      "id": "foundation:home-2",
+      "title": "shirt, shoes, hat",
+      "subjectId": "english",
+      "lessonIds": [
+        "home-2"
+      ],
+      "prerequisiteSkillIds": []
+    },
+    {
+      "id": "foundation:home-3",
+      "title": "sunny, rainy, hot, cold",
+      "subjectId": "english",
+      "lessonIds": [
+        "home-3"
+      ],
+      "prerequisiteSkillIds": []
+    },
+    {
+      "id": "foundation:home-4",
+      "title": "Where is...? Here it is!",
+      "subjectId": "english",
+      "lessonIds": [
+        "home-4"
+      ],
+      "prerequisiteSkillIds": []
+    },
+    {
+      "id": "connect-plus-1:cp1-me-1",
+      "title": "التحية والتعارف",
+      "subjectId": "english",
+      "lessonIds": [
+        "cp1-me-1"
+      ],
+      "prerequisiteSkillIds": []
+    },
+    {
+      "id": "connect-plus-1:cp1-me-2",
+      "title": "أنا عندي كام سنة؟",
+      "subjectId": "english",
+      "lessonIds": [
+        "cp1-me-2"
+      ],
+      "prerequisiteSkillIds": []
+    },
+    {
+      "id": "connect-plus-1:cp1-me-3",
+      "title": "أجزاء الجسم وأصواتها",
+      "subjectId": "english",
+      "lessonIds": [
+        "cp1-me-3"
+      ],
+      "prerequisiteSkillIds": []
+    },
+    {
+      "id": "connect-plus-1:cp1-me-4",
+      "title": "جرامر: my وyour",
+      "subjectId": "english",
+      "lessonIds": [
+        "cp1-me-4"
+      ],
+      "prerequisiteSkillIds": []
+    },
+    {
+      "id": "connect-plus-1:cp1-family-1",
+      "title": "أفراد الأسرة",
+      "subjectId": "english",
+      "lessonIds": [
+        "cp1-family-1"
+      ],
+      "prerequisiteSkillIds": []
+    },
+    {
+      "id": "connect-plus-1:cp1-family-2",
+      "title": "جرامر: he وshe",
+      "subjectId": "english",
+      "lessonIds": [
+        "cp1-family-2"
+      ],
+      "prerequisiteSkillIds": []
+    },
+    {
+      "id": "connect-plus-1:cp1-family-3",
+      "title": "فونكس: أصوات الأسرة",
+      "subjectId": "english",
+      "lessonIds": [
+        "cp1-family-3"
+      ],
+      "prerequisiteSkillIds": []
+    },
+    {
+      "id": "connect-plus-1:cp1-family-4",
+      "title": "جرامر: his وher",
+      "subjectId": "english",
+      "lessonIds": [
+        "cp1-family-4"
+      ],
+      "prerequisiteSkillIds": []
+    },
+    {
+      "id": "connect-plus-1:cp1-community-1",
+      "title": "المدرسة والمجتمع",
+      "subjectId": "english",
+      "lessonIds": [
+        "cp1-community-1"
+      ],
+      "prerequisiteSkillIds": []
+    },
+    {
+      "id": "connect-plus-1:cp1-community-2",
+      "title": "جرامر: a وan",
+      "subjectId": "english",
+      "lessonIds": [
+        "cp1-community-2"
+      ],
+      "prerequisiteSkillIds": []
+    },
+    {
+      "id": "connect-plus-1:cp1-community-3",
+      "title": "فونكس: أصوات المدرسة",
+      "subjectId": "english",
+      "lessonIds": [
+        "cp1-community-3"
+      ],
+      "prerequisiteSkillIds": []
+    },
+    {
+      "id": "connect-plus-1:cp1-community-4",
+      "title": "جرامر: فين الحاجة؟",
+      "subjectId": "english",
+      "lessonIds": [
+        "cp1-community-4"
+      ],
+      "prerequisiteSkillIds": []
+    },
+    {
+      "id": "connect-plus-1:cp1-farm-1",
+      "title": "حيوانات المزرعة",
+      "subjectId": "english",
+      "lessonIds": [
+        "cp1-farm-1"
+      ],
+      "prerequisiteSkillIds": []
+    },
+    {
+      "id": "connect-plus-1:cp1-farm-2",
+      "title": "جرامر: مفرد وجمع",
+      "subjectId": "english",
+      "lessonIds": [
+        "cp1-farm-2"
+      ],
+      "prerequisiteSkillIds": []
+    },
+    {
+      "id": "connect-plus-1:cp1-farm-3",
+      "title": "فونكس: صوت a القصير",
+      "subjectId": "english",
+      "lessonIds": [
+        "cp1-farm-3"
+      ],
+      "prerequisiteSkillIds": []
+    },
+    {
+      "id": "connect-plus-1:cp1-farm-4",
+      "title": "جرامر: It is وThey are",
+      "subjectId": "english",
+      "lessonIds": [
+        "cp1-farm-4"
+      ],
+      "prerequisiteSkillIds": []
+    },
+    {
+      "id": "connect-plus-1:cp1-transport-1",
+      "title": "وسائل المواصلات",
+      "subjectId": "english",
+      "lessonIds": [
+        "cp1-transport-1"
+      ],
+      "prerequisiteSkillIds": []
+    },
+    {
+      "id": "connect-plus-1:cp1-transport-2",
+      "title": "جرامر: I can وI can’t",
+      "subjectId": "english",
+      "lessonIds": [
+        "cp1-transport-2"
+      ],
+      "prerequisiteSkillIds": []
+    },
+    {
+      "id": "connect-plus-1:cp1-transport-3",
+      "title": "فونكس: أصوات الحركة",
+      "subjectId": "english",
+      "lessonIds": [
+        "cp1-transport-3"
+      ],
+      "prerequisiteSkillIds": []
+    },
+    {
+      "id": "connect-plus-1:cp1-transport-4",
+      "title": "جرامر: أروح بإيه؟",
+      "subjectId": "english",
+      "lessonIds": [
+        "cp1-transport-4"
+      ],
+      "prerequisiteSkillIds": []
+    },
+    {
+      "id": "connect-plus-1:cp1-world-1",
+      "title": "الطبيعة والألوان",
+      "subjectId": "english",
+      "lessonIds": [
+        "cp1-world-1"
+      ],
+      "prerequisiteSkillIds": []
+    },
+    {
+      "id": "connect-plus-1:cp1-world-2",
+      "title": "جرامر: this وthat",
+      "subjectId": "english",
+      "lessonIds": [
+        "cp1-world-2"
+      ],
+      "prerequisiteSkillIds": []
+    },
+    {
+      "id": "connect-plus-1:cp1-world-3",
+      "title": "فونكس: أصوات الطبيعة",
+      "subjectId": "english",
+      "lessonIds": [
+        "cp1-world-3"
+      ],
+      "prerequisiteSkillIds": []
+    },
+    {
+      "id": "connect-plus-1:cp1-world-4",
+      "title": "جرامر: It is + وصف",
+      "subjectId": "english",
+      "lessonIds": [
+        "cp1-world-4"
+      ],
+      "prerequisiteSkillIds": []
+    },
+    {
+      "id": "connect-plus-1:cp1-shopping-1",
+      "title": "ملابس وألوان",
+      "subjectId": "english",
+      "lessonIds": [
+        "cp1-shopping-1"
+      ],
+      "prerequisiteSkillIds": []
+    },
+    {
+      "id": "connect-plus-1:cp1-shopping-2",
+      "title": "جرامر: this وthese",
+      "subjectId": "english",
+      "lessonIds": [
+        "cp1-shopping-2"
+      ],
+      "prerequisiteSkillIds": []
+    },
+    {
+      "id": "connect-plus-1:cp1-shopping-3",
+      "title": "فونكس: sh وch",
+      "subjectId": "english",
+      "lessonIds": [
+        "cp1-shopping-3"
+      ],
+      "prerequisiteSkillIds": []
+    },
+    {
+      "id": "connect-plus-1:cp1-shopping-4",
+      "title": "جرامر: I want",
+      "subjectId": "english",
+      "lessonIds": [
+        "cp1-shopping-4"
+      ],
+      "prerequisiteSkillIds": []
+    },
+    {
+      "id": "connect-plus-1:cp1-work-1",
+      "title": "المهن والأدوات",
+      "subjectId": "english",
+      "lessonIds": [
+        "cp1-work-1"
+      ],
+      "prerequisiteSkillIds": []
+    },
+    {
+      "id": "connect-plus-1:cp1-work-2",
+      "title": "جرامر: he/she is",
+      "subjectId": "english",
+      "lessonIds": [
+        "cp1-work-2"
+      ],
+      "prerequisiteSkillIds": []
+    },
+    {
+      "id": "connect-plus-1:cp1-work-3",
+      "title": "فونكس: أصوات المهن",
+      "subjectId": "english",
+      "lessonIds": [
+        "cp1-work-3"
+      ],
+      "prerequisiteSkillIds": []
+    },
+    {
+      "id": "connect-plus-1:cp1-work-4",
+      "title": "جرامر: المضارع البسيط",
+      "subjectId": "english",
+      "lessonIds": [
+        "cp1-work-4"
+      ],
+      "prerequisiteSkillIds": []
+    },
+    {
+      "id": "connect-plus-1:cp1-market-1",
+      "title": "فواكه وخضار",
+      "subjectId": "english",
+      "lessonIds": [
+        "cp1-market-1"
+      ],
+      "prerequisiteSkillIds": []
+    },
+    {
+      "id": "connect-plus-1:cp1-market-2",
+      "title": "جرامر: How many?",
+      "subjectId": "english",
+      "lessonIds": [
+        "cp1-market-2"
+      ],
+      "prerequisiteSkillIds": []
+    },
+    {
+      "id": "connect-plus-1:cp1-market-3",
+      "title": "فونكس: أصوات الأكل",
+      "subjectId": "english",
+      "lessonIds": [
+        "cp1-market-3"
+      ],
+      "prerequisiteSkillIds": []
+    },
+    {
+      "id": "connect-plus-1:cp1-market-4",
+      "title": "جرامر: some وa",
+      "subjectId": "english",
+      "lessonIds": [
+        "cp1-market-4"
+      ],
+      "prerequisiteSkillIds": []
+    },
+    {
+      "id": "connect-plus-1:cp1-out-1",
+      "title": "أماكن الخروج",
+      "subjectId": "english",
+      "lessonIds": [
+        "cp1-out-1"
+      ],
+      "prerequisiteSkillIds": []
+    },
+    {
+      "id": "connect-plus-1:cp1-out-2",
+      "title": "جرامر: there is وthere are",
+      "subjectId": "english",
+      "lessonIds": [
+        "cp1-out-2"
+      ],
+      "prerequisiteSkillIds": []
+    },
+    {
+      "id": "connect-plus-1:cp1-out-3",
+      "title": "فونكس: أصوات الأماكن",
+      "subjectId": "english",
+      "lessonIds": [
+        "cp1-out-3"
+      ],
+      "prerequisiteSkillIds": []
+    },
+    {
+      "id": "connect-plus-1:cp1-out-4",
+      "title": "جرامر: أسأل عن المكان",
+      "subjectId": "english",
+      "lessonIds": [
+        "cp1-out-4"
+      ],
+      "prerequisiteSkillIds": []
+    },
+    {
+      "id": "connect-plus-1:cp1-time-1",
+      "title": "الساعة بالتمام",
+      "subjectId": "english",
+      "lessonIds": [
+        "cp1-time-1"
+      ],
+      "prerequisiteSkillIds": []
+    },
+    {
+      "id": "connect-plus-1:cp1-time-2",
+      "title": "جرامر: أوقات يومي",
+      "subjectId": "english",
+      "lessonIds": [
+        "cp1-time-2"
+      ],
+      "prerequisiteSkillIds": []
+    },
+    {
+      "id": "connect-plus-1:cp1-time-3",
+      "title": "فونكس: أصوات الوقت",
+      "subjectId": "english",
+      "lessonIds": [
+        "cp1-time-3"
+      ],
+      "prerequisiteSkillIds": []
+    },
+    {
+      "id": "connect-plus-1:cp1-time-4",
+      "title": "مراجعة: أسأل وأجاوب عن الوقت",
+      "subjectId": "english",
+      "lessonIds": [
+        "cp1-time-4"
+      ],
+      "prerequisiteSkillIds": []
+    },
+    {
+      "id": "connect-plus-1:cp1-free-1",
+      "title": "هواياتي",
+      "subjectId": "english",
+      "lessonIds": [
+        "cp1-free-1"
+      ],
+      "prerequisiteSkillIds": []
+    },
+    {
+      "id": "connect-plus-1:cp1-free-2",
+      "title": "جرامر: I like / I don’t like",
+      "subjectId": "english",
+      "lessonIds": [
+        "cp1-free-2"
+      ],
+      "prerequisiteSkillIds": []
+    },
+    {
+      "id": "connect-plus-1:cp1-free-3",
+      "title": "فونكس: ندمج أصوات قصيرة",
+      "subjectId": "english",
+      "lessonIds": [
+        "cp1-free-3"
+      ],
+      "prerequisiteSkillIds": []
+    },
+    {
+      "id": "connect-plus-1:cp1-free-4",
+      "title": "مراجعة مفتوحة: أنا أقدر وأحب",
+      "subjectId": "english",
+      "lessonIds": [
+        "cp1-free-4"
+      ],
+      "prerequisiteSkillIds": []
+    },
+    {
+      "id": "math-grade-1:math-found-count-1",
+      "title": "نعدّ حاجات حقيقية",
+      "subjectId": "mathematics",
+      "lessonIds": [
+        "math-found-count-1"
+      ],
+      "prerequisiteSkillIds": []
+    },
+    {
+      "id": "math-grade-1:math-found-count-2",
+      "title": "واحد لكل شيء",
+      "subjectId": "mathematics",
+      "lessonIds": [
+        "math-found-count-2"
+      ],
+      "prerequisiteSkillIds": []
+    },
+    {
+      "id": "math-grade-1:math-found-count-3",
+      "title": "مين عنده أكتر؟",
+      "subjectId": "mathematics",
+      "lessonIds": [
+        "math-found-count-3"
+      ],
+      "prerequisiteSkillIds": []
+    },
+    {
+      "id": "math-grade-1:math-found-count-4",
+      "title": "يعني إيه مفيش؟",
+      "subjectId": "mathematics",
+      "lessonIds": [
+        "math-found-count-4"
+      ],
+      "prerequisiteSkillIds": []
+    },
+    {
+      "id": "math-grade-1:math-found-numbers-1",
+      "title": "نتعرف على الأرقام",
+      "subjectId": "mathematics",
+      "lessonIds": [
+        "math-found-numbers-1"
+      ],
+      "prerequisiteSkillIds": []
+    },
+    {
+      "id": "math-grade-1:math-found-numbers-2",
+      "title": "نرتب الأرقام",
+      "subjectId": "mathematics",
+      "lessonIds": [
+        "math-found-numbers-2"
+      ],
+      "prerequisiteSkillIds": []
+    },
+    {
+      "id": "math-grade-1:math-found-numbers-3",
+      "title": "نكمل العدد الناقص",
+      "subjectId": "mathematics",
+      "lessonIds": [
+        "math-found-numbers-3"
+      ],
+      "prerequisiteSkillIds": []
+    },
+    {
+      "id": "math-grade-1:math-found-numbers-4",
+      "title": "نعدّ لحد عشرة",
+      "subjectId": "mathematics",
+      "lessonIds": [
+        "math-found-numbers-4"
+      ],
+      "prerequisiteSkillIds": []
+    },
+    {
+      "id": "math-grade-1:math-found-shapes-1",
+      "title": "الدائرة والمربع",
+      "subjectId": "mathematics",
+      "lessonIds": [
+        "math-found-shapes-1"
+      ],
+      "prerequisiteSkillIds": []
+    },
+    {
+      "id": "math-grade-1:math-found-shapes-2",
+      "title": "المثلث والمستطيل",
+      "subjectId": "mathematics",
+      "lessonIds": [
+        "math-found-shapes-2"
+      ],
+      "prerequisiteSkillIds": []
+    },
+    {
+      "id": "math-grade-1:math-found-shapes-3",
+      "title": "فوق وتحت وجنب",
+      "subjectId": "mathematics",
+      "lessonIds": [
+        "math-found-shapes-3"
+      ],
+      "prerequisiteSkillIds": []
+    },
+    {
+      "id": "math-grade-1:math-found-shapes-4",
+      "title": "نمط بيتكرر",
+      "subjectId": "mathematics",
+      "lessonIds": [
+        "math-found-shapes-4"
+      ],
+      "prerequisiteSkillIds": []
+    },
+    {
+      "id": "math-grade-1:math-grade-count-1",
+      "title": "نعدّ من ١١ إلى ١٥",
+      "subjectId": "mathematics",
+      "lessonIds": [
+        "math-grade-count-1"
+      ],
+      "prerequisiteSkillIds": []
+    },
+    {
+      "id": "math-grade-1:math-grade-count-2",
+      "title": "نعدّ من ١٦ إلى ٢٠",
+      "subjectId": "mathematics",
+      "lessonIds": [
+        "math-grade-count-2"
+      ],
+      "prerequisiteSkillIds": []
+    },
+    {
+      "id": "math-grade-1:math-grade-count-3",
+      "title": "قبل وبعد وبين",
+      "subjectId": "mathematics",
+      "lessonIds": [
+        "math-grade-count-3"
+      ],
+      "prerequisiteSkillIds": []
+    },
+    {
+      "id": "math-grade-1:math-grade-count-4",
+      "title": "نقارن الأعداد",
+      "subjectId": "mathematics",
+      "lessonIds": [
+        "math-grade-count-4"
+      ],
+      "prerequisiteSkillIds": []
+    },
+    {
+      "id": "math-grade-1:math-grade-place-1",
+      "title": "عشرة واحدة",
+      "subjectId": "mathematics",
+      "lessonIds": [
+        "math-grade-place-1"
+      ],
+      "prerequisiteSkillIds": []
+    },
+    {
+      "id": "math-grade-1:math-grade-place-2",
+      "title": "العشرات والآحاد",
+      "subjectId": "mathematics",
+      "lessonIds": [
+        "math-grade-place-2"
+      ],
+      "prerequisiteSkillIds": []
+    },
+    {
+      "id": "math-grade-1:math-grade-place-3",
+      "title": "نكوّن العدد",
+      "subjectId": "mathematics",
+      "lessonIds": [
+        "math-grade-place-3"
+      ],
+      "prerequisiteSkillIds": []
+    },
+    {
+      "id": "math-grade-1:math-grade-place-4",
+      "title": "نفك العدد",
+      "subjectId": "mathematics",
+      "lessonIds": [
+        "math-grade-place-4"
+      ],
+      "prerequisiteSkillIds": []
+    },
+    {
+      "id": "math-grade-1:math-grade-add-1",
+      "title": "الجمع يعني نزود",
+      "subjectId": "mathematics",
+      "lessonIds": [
+        "math-grade-add-1"
+      ],
+      "prerequisiteSkillIds": []
+    },
+    {
+      "id": "math-grade-1:math-grade-add-2",
+      "title": "نجمع بالصور",
+      "subjectId": "mathematics",
+      "lessonIds": [
+        "math-grade-add-2"
+      ],
+      "prerequisiteSkillIds": []
+    },
+    {
+      "id": "math-grade-1:math-grade-add-3",
+      "title": "نجمع حتى ١٠",
+      "subjectId": "mathematics",
+      "lessonIds": [
+        "math-grade-add-3"
+      ],
+      "prerequisiteSkillIds": []
+    },
+    {
+      "id": "math-grade-1:math-grade-add-4",
+      "title": "نكمل العشرة",
+      "subjectId": "mathematics",
+      "lessonIds": [
+        "math-grade-add-4"
+      ],
+      "prerequisiteSkillIds": []
+    },
+    {
+      "id": "math-grade-1:math-grade-subtract-1",
+      "title": "الطرح يعني ناخد",
+      "subjectId": "mathematics",
+      "lessonIds": [
+        "math-grade-subtract-1"
+      ],
+      "prerequisiteSkillIds": []
+    },
+    {
+      "id": "math-grade-1:math-grade-subtract-2",
+      "title": "نطرح بالصور",
+      "subjectId": "mathematics",
+      "lessonIds": [
+        "math-grade-subtract-2"
+      ],
+      "prerequisiteSkillIds": []
+    },
+    {
+      "id": "math-grade-1:math-grade-subtract-3",
+      "title": "نطرح حتى ١٠",
+      "subjectId": "mathematics",
+      "lessonIds": [
+        "math-grade-subtract-3"
+      ],
+      "prerequisiteSkillIds": []
+    },
+    {
+      "id": "math-grade-1:math-grade-subtract-4",
+      "title": "الجمع والطرح أصحاب",
+      "subjectId": "mathematics",
+      "lessonIds": [
+        "math-grade-subtract-4"
+      ],
+      "prerequisiteSkillIds": []
+    },
+    {
+      "id": "math-grade-1:math-grade-problems-1",
+      "title": "مسألة جمع من الحياة",
+      "subjectId": "mathematics",
+      "lessonIds": [
+        "math-grade-problems-1"
+      ],
+      "prerequisiteSkillIds": []
+    },
+    {
+      "id": "math-grade-1:math-grade-problems-2",
+      "title": "مسألة طرح من الحياة",
+      "subjectId": "mathematics",
+      "lessonIds": [
+        "math-grade-problems-2"
+      ],
+      "prerequisiteSkillIds": []
+    },
+    {
+      "id": "math-grade-1:math-grade-problems-3",
+      "title": "نختار العملية المناسبة",
+      "subjectId": "mathematics",
+      "lessonIds": [
+        "math-grade-problems-3"
+      ],
+      "prerequisiteSkillIds": []
+    },
+    {
+      "id": "math-grade-1:math-grade-problems-4",
+      "title": "نحكي المسألة بالرسم",
+      "subjectId": "mathematics",
+      "lessonIds": [
+        "math-grade-problems-4"
+      ],
+      "prerequisiteSkillIds": []
+    },
+    {
+      "id": "math-grade-1:math-grade-geometry-1",
+      "title": "أشكال مسطحة",
+      "subjectId": "mathematics",
+      "lessonIds": [
+        "math-grade-geometry-1"
+      ],
+      "prerequisiteSkillIds": []
+    },
+    {
+      "id": "math-grade-1:math-grade-geometry-2",
+      "title": "أشكال لها أركان",
+      "subjectId": "mathematics",
+      "lessonIds": [
+        "math-grade-geometry-2"
+      ],
+      "prerequisiteSkillIds": []
+    },
+    {
+      "id": "math-grade-1:math-grade-geometry-3",
+      "title": "مجسمات حوالينا",
+      "subjectId": "mathematics",
+      "lessonIds": [
+        "math-grade-geometry-3"
+      ],
+      "prerequisiteSkillIds": []
+    },
+    {
+      "id": "math-grade-1:math-grade-geometry-4",
+      "title": "نبني شكل من أشكال",
+      "subjectId": "mathematics",
+      "lessonIds": [
+        "math-grade-geometry-4"
+      ],
+      "prerequisiteSkillIds": []
+    },
+    {
+      "id": "math-grade-1:math-grade-measure-1",
+      "title": "أطول وأقصر",
+      "subjectId": "mathematics",
+      "lessonIds": [
+        "math-grade-measure-1"
+      ],
+      "prerequisiteSkillIds": []
+    },
+    {
+      "id": "math-grade-1:math-grade-measure-2",
+      "title": "أثقل وأخف",
+      "subjectId": "mathematics",
+      "lessonIds": [
+        "math-grade-measure-2"
+      ],
+      "prerequisiteSkillIds": []
+    },
+    {
+      "id": "math-grade-1:math-grade-measure-3",
+      "title": "أكثر وأقل في السعة",
+      "subjectId": "mathematics",
+      "lessonIds": [
+        "math-grade-measure-3"
+      ],
+      "prerequisiteSkillIds": []
+    },
+    {
+      "id": "math-grade-1:math-grade-measure-4",
+      "title": "نقيس بوحدات بسيطة",
+      "subjectId": "mathematics",
+      "lessonIds": [
+        "math-grade-measure-4"
+      ],
+      "prerequisiteSkillIds": []
+    },
+    {
+      "id": "math-grade-1:math-grade-time-data-1",
+      "title": "الصبح والليل",
+      "subjectId": "mathematics",
+      "lessonIds": [
+        "math-grade-time-data-1"
+      ],
+      "prerequisiteSkillIds": []
+    },
+    {
+      "id": "math-grade-1:math-grade-time-data-2",
+      "title": "أيام الأسبوع",
+      "subjectId": "mathematics",
+      "lessonIds": [
+        "math-grade-time-data-2"
+      ],
+      "prerequisiteSkillIds": []
+    },
+    {
+      "id": "math-grade-1:math-grade-time-data-3",
+      "title": "نجمع ونقارن بيانات",
+      "subjectId": "mathematics",
+      "lessonIds": [
+        "math-grade-time-data-3"
+      ],
+      "prerequisiteSkillIds": []
+    },
+    {
+      "id": "math-grade-1:math-grade-time-data-4",
+      "title": "مراجعة ماث بحكاية",
+      "subjectId": "mathematics",
+      "lessonIds": [
+        "math-grade-time-data-4"
+      ],
+      "prerequisiteSkillIds": []
+    }
+  ],
+  "versionHistory": [
+    {
+      "version": "2.0.0",
+      "date": "2026-11-27",
+      "note": "Added versioned curriculum metadata and stable lesson-to-skill references without changing lesson ids or content."
+    }
+  ],
+  "strands": [
+    "speaking",
+    "grammar",
+    "phonics",
+    "review",
+    "math"
   ]
 }

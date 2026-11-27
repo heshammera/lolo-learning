@@ -11,11 +11,12 @@
 - [x] Scope lesson timers to their session, abort stale setup, and close voice sessions on app background.
 - [x] Integrate official branding into web, manifest/favicon, Android adaptive icons and splash.
 - [x] Build and smoke-check local web/API and Android app.
-- [x] Push only the development branch; do not modify `main` or production deployment.
+- [x] Preserve the original baseline in `backup/pre-lolo-v2`; promote V2 to `main` after the user explicitly requested it.
 - [x] Add deterministic assessment for advanced writing, math, ordering, confidence bands, question/attempt IDs, and idempotency.
 - [x] Add a bounded oral listen-and-repeat assessment sourced from lesson-board tokens; locally grade OpenAI transcripts and prevent OpenAI from auto-responding before the app score.
 - [ ] Add authored open-comprehension questions, reliable pronunciation evaluation, and equivalent app-controlled grading for Gemini; do not treat ASR transcript match as pronunciation mastery.
-- [ ] Add versioned curriculum schemas, validators, skill mapping, mastery states, and spaced review.
+- [x] Add versioned curriculum metadata, lesson versions, one-to-one skill references, and validation for IDs, required fields, skill references, prerequisites, cycles, and authored question formats.
+- [ ] Add authored question banks, validated prerequisite graph, explainable mastery state, and spaced-review scheduling.
 
 ## Ordered milestones from the master prompt
 
@@ -35,5 +36,7 @@ Each milestone has its own acceptance checks. Do not make a database, a paid ser
 ## Assessment Engine acceptance boundary
 
 The first assessment module is wired into advanced handwriting, letter/word ordering, multiple-choice writing activities, and math-writing questions. It provides deterministic answer normalization and grading, per-question and per-attempt identifiers, and in-memory idempotency. Writing-path reports retain the evaluation outcome and confidence.
+
+Curriculum schema v2 adds a content version, a version for each lesson, a global subject/skill registry, and stable lesson-to-skill references without changing lesson IDs or curriculum text. The validator rejects malformed records, duplicate IDs, missing references, invalid question answer sets, unsupported strands, and skill dependency cycles. It reports missing authored question banks/accessibility metadata as warnings because these have not been created yet. Prerequisite lists are deliberately empty until a curriculum editor validates dependencies; one lesson objective is not treated as a proven prerequisite for another.
 
 Oral quizzes now use up to five lesson-board words/numbers, deduplicated and locally matched against the recognized OpenAI transcript; OpenAI VAD remains active but automatic responses are disabled in test mode, and app-initiated responses disallow tools for that turn. The transcript is a rough recognition signal, not reliable pronunciation or comprehension grading. Gemini still depends on model tool-calling for quiz flow. This does **not** make model-led live lessons or mastery trustworthy: regular lesson answers still use model claims and feedback parsing. Client-side progress also remains editable by the device owner.

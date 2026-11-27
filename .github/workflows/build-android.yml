@@ -9,6 +9,9 @@ on:
       - 'scripts/generate_brand_assets.py'
       - 'app.js'
       - 'assessment-engine.js'
+      - 'curriculum-engine.js'
+      - 'curriculum.json'
+      - 'scripts/**'
       - 'index.html'
       - 'server.py'
       - 'tests/**'
@@ -45,6 +48,8 @@ jobs:
           python3 -m unittest discover -s tests -v
           node tests/storage.test.cjs
           node tests/assessment-engine.test.cjs
+          node tests/curriculum-engine.test.cjs
+          node scripts/validate-curriculum.js
           node tests/session-timers.test.cjs
       - name: Build debug APK
         run: |

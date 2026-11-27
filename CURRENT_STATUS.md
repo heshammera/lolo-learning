@@ -1,9 +1,10 @@
 # Current Status
 
 - Baseline: `458ae22`.
-- Current work: Phase 0/1 safeguards completed for the current scope; Phase 5/6 has begun with an independent deterministic assessment module for advanced writing/maths on `development/lolo-v2`.
+- Current work: Phase 0/1 safeguards, brand, writing/math assessment, OpenAI transcript-gated oral repeat tests, and curriculum schema v2/validation are implemented. Curriculum schema work is being prepared on `main` as requested.
 - Backup: remote `backup/pre-lolo-v2` points to the pre-change baseline.
-- Main/production: unchanged; no Vercel deployment performed.
-- Verification: 7 Python tests and 3 Node test files pass; Python/JavaScript syntax, `git diff --check`, and local HTTP smoke checks pass. GitHub Actions run `45937031309` passed tests and the Android build. Live oral scoring is not yet independent.
+- Branches: `main` at `b9c5850` has the promoted V2 work; `development/lolo-v2` retains `021a931`; backup remains `458ae22`.
+- Vercel: main deployment for `b9c5850` completed successfully. The current curriculum-schema changes are local/uncommitted and have not been pushed yet.
+- Verification for current local work: 9 Python tests, 4 Node test files, curriculum validation, Python/JavaScript syntax, and `git diff --check` pass. No live AI calls were made.
 - Android: latest workflow run `45937031309` passed. Artifact is saved under ignored local output `outputs/lolo-android-apk/ci-45937031309/app-debug.apk` (SHA256 recorded in the changelog).
 - See `docs/CHANGELOG_V2.md` for before/after detail and `docs/NEXT_ACTION.md` for the next milestone.

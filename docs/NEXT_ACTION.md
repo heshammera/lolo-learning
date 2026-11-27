@@ -1,5 +1,5 @@
 # Next Action
 
-1. Extend the bounded oral repeat test into authored comprehension questions and safer pronunciation feedback; add app-controlled Gemini grading before treating its results as equivalent to OpenAI.
-2. Add curriculum validation and explicit skill/mastery records before introducing adaptive review scheduling.
-3. Keep `main`/production unchanged until explicitly requested; retain the rollback branch.
+1. Author age-appropriate question banks and accessibility metadata for each learning track; validate the prerequisite graph with an educator before enabling lesson gates.
+2. Add explicit skill mastery states and spaced review using assessment evidence, then connect due-review scheduling without removing the parent's free lesson choice.
+3. Keep `backup/pre-lolo-v2` intact and promote completed milestones to `main` as the user requested.
