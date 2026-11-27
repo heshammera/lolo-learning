@@ -16,6 +16,9 @@
     {id:'science-drag',type:'drag-drop',version:1,prompt:'ضعي كل كائن في مجموعته.',config:{items:items('قطة','وردة','سمكة'),groups:items('حيوان','نبات'),assignments:{i1:'i1',i2:'i2',i3:'i1'}}},
     {id:'math-shape',type:'geometry',version:1,prompt:'اختاري الشكل الذي له ثلاثة أضلاع.',config:{answer:'triangle'}},
     {id:'math-equation',type:'equations',version:1,prompt:'أوجدي قيمة س.',config:{coefficient:2,constant:3,result:11}},
+    {id:'game-memory',type:'memory-game',version:1,prompt:'اعثري على البطاقات المتطابقة.',config:{items:items('🍎','🍌','🍇'),maxTurns:12}},
+    {id:'game-puzzle',type:'puzzle',version:1,prompt:'رتبي الأعداد من الأصغر إلى الأكبر.',config:{items:items('٣','١','٢'),answer:['i2','i3','i1']}},
+    {id:'game-maze',type:'maze',version:1,prompt:'ساعدي لولو في الوصول إلى النجمة.',config:{grid:['S..#','##.#','...G']}},
   ];
   const api={status:'draft',lessons:[{id:'science-draft-plants',activities:activities.slice(0,4)},{id:'science-draft-animals',activities:activities.slice(4)}]};
   if(typeof window!=='undefined')window.LoloActivityPilot=api;

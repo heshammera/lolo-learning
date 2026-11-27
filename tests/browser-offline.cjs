@@ -114,6 +114,18 @@ async function verifyPractice(page){
     await activity.getByLabel('مجموعة سمكة',{exact:true}).selectOption('i1');
     await activity.locator('button[type="submit"]').click();
     assert.match(await activity.locator('form > p[role="status"]').textContent(),/أحسنت/);
+    await page.locator('#activityPreviewSelect').selectOption('game-memory');
+    const cards=activity.locator('.activity-memory-grid button');
+    const observed=new Map();
+    // Discover cards via actual clicks; solve from observed labels, no hidden-answer DOM.
+    for(let i=0;i<6;i+=2){
+      await cards.nth(i).click();const a=await cards.nth(i).textContent();observed.set(i,a);
+      await cards.nth(i+1).click();const b=await cards.nth(i+1).textContent();observed.set(i+1,b);
+    }
+    const pairs=new Map();for(const [i,label] of observed){if(!pairs.has(label))pairs.set(label,[]);pairs.get(label).push(i);}
+    for(const indices of pairs.values()){assert.equal(indices.length,2);if(!(await cards.nth(indices[0]).isDisabled())){await cards.nth(indices[0]).click();await cards.nth(indices[1]).click();}}
+    await activity.locator('button[type="submit"]').click();
+    assert.match(await activity.locator('form > p[role="status"]').textContent(),/أحسنت/);
     assert.equal(await page.evaluate(()=>window.LoloStorage.getJSON('lolo-mastered',[]).length),0);
     await page.locator('#localProfileName').fill('Second learner');
     await page.locator('#localProfileForm button[type="submit"]').click();

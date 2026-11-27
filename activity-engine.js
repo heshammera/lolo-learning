@@ -5,8 +5,9 @@
     ['sequence','ترتيب العناصر'],['match','توصيل العناصر'],['numeric','إجابة رقمية'],['classify','تصنيف العناصر'],
     ['fill-blank','أكمل الفراغ'],['free-text','إجابة نصية قصيرة'],['number-line','خط الأعداد'],['fractions','الكسور المكافئة'],
     ['drag-drop','السحب والإفلات'],['geometry','الأشكال الهندسية'],['equations','المعادلات الخطية'],
+    ['memory-game','لعبة الذاكرة'],['puzzle','بازل الترتيب'],['maze','المتاهة'],
   ].map(([id,label])=>[id,Object.freeze({id,label,version:1,offline:true,evaluator:'deterministic',renderer:'generic-v1'})])));
-  const planned=Object.freeze(['image-hotspot','speech-repeat','phoneme-score','dictation','conversation','trace','free-drawing','coloring','science-simulation','interactive-story','reading-aloud','memory-game','puzzle','maze','homework-upload']);
+  const planned=Object.freeze(['image-hotspot','speech-repeat','phoneme-score','dictation','conversation','trace','free-drawing','coloring','science-simulation','interactive-story','reading-aloud','homework-upload']);
   const plain=v=>v!==null&&typeof v==='object'&&!Array.isArray(v)&&[Object.prototype,null].includes(Object.getPrototypeOf(v));
   const exact=(o,keys)=>plain(o)&&Object.keys(o).length===keys.length&&keys.every(k=>Object.hasOwn(o,k));
   const id=v=>typeof v==='string'&&/^[a-zA-Z0-9][a-zA-Z0-9_-]{0,63}$/.test(v);
@@ -25,6 +26,38 @@
   const shapes=Object.freeze({circle:'دائرة: شكل مستدير بلا أضلاع',triangle:'مثلث: ثلاثة أضلاع',square:'مربع: أربعة أضلاع متساوية وأربع زوايا قائمة',rectangle:'مستطيل: ضلعان طويلان وضلعان قصيران وأربع زوايا قائمة',pentagon:'خماسي: خمسة أضلاع'});
   const shapeId=v=>typeof v==='string'&&Object.hasOwn(shapes,v);
   const equation=c=>exact(c,['coefficient','constant','result'])&&integer(c.coefficient)&&c.coefficient>=1&&c.coefficient<=100&&integer(c.constant)&&integer(c.result)&&(c.result-c.constant)%c.coefficient===0&&integer((c.result-c.constant)/c.coefficient);
+  const directions=Object.freeze({up:[-1,0],down:[1,0],left:[0,-1],right:[0,1]});
+  function mazeLayout(c){
+    if(!exact(c,['grid'])||!Array.isArray(c.grid)||c.grid.length<3||c.grid.length>8||!c.grid.every(r=>typeof r==='string'&&/^[.#SG]{3,8}$/.test(r)&&r.length===c.grid[0].length))return null;
+    const cells=c.grid.join('');if(cells.split('S').length!==2||cells.split('G').length!==2)return null;
+    const width=c.grid[0].length,at=ch=>[Math.floor(cells.indexOf(ch)/width),cells.indexOf(ch)%width];
+    return {start:at('S'),goal:at('G')};
+  }
+  function mazeStep(c,pos,dir){
+    if(typeof dir!=='string'||!Object.hasOwn(directions,dir))return null;
+    const delta=directions[dir],next=[pos[0]+delta[0],pos[1]+delta[1]];
+    const cell=c.grid[next[0]]?.[next[1]];
+    return cell&&cell!=='#'?next:null;
+  }
+  const samePos=(a,b)=>a[0]===b[0]&&a[1]===b[1];
+  function validMaze(c){
+    const layout=mazeLayout(c);if(!layout)return false;
+    const queue=[layout.start],seen=new Set([layout.start.join(',')]);
+    for(let i=0;i<queue.length;i++){
+      if(samePos(queue[i],layout.goal))return true;
+      for(const dir of Object.keys(directions)){const next=mazeStep(c,queue[i],dir);if(next&&!seen.has(next.join(','))){seen.add(next.join(','));queue.push(next);}}
+    }
+    return false;
+  }
+  function memoryResult(c,turns){
+    if(!Array.isArray(turns)||turns.length>c.maxTurns)return null;
+    const cards=new Map(c.items.flatMap(o=>[[o.id+':a',o.id],[o.id+':b',o.id]])),matched=new Set();
+    for(const turn of turns){
+      if(matched.size===cards.size||!Array.isArray(turn)||turn.length!==2||turn[0]===turn[1]||!turn.every(x=>cards.has(x)&&!matched.has(x)))return null;
+      if(cards.get(turn[0])===cards.get(turn[1]))turn.forEach(x=>matched.add(x));
+    }
+    return {matched,done:matched.size===cards.size||turns.length===c.maxTurns,correct:matched.size===cards.size};
+  }
   function validate(activity){
     if(!exact(activity,['id','type','version','prompt','config'])||!id(activity.id)||!text(activity.prompt))return {valid:false,code:'INVALID_ACTIVITY'};
     if(typeof activity.type!=='string'||!Object.hasOwn(types,activity.type)||activity.version!==1)return {valid:false,code:'UNSUPPORTED_ACTIVITY'};
@@ -42,6 +75,9 @@
       case 'fractions':valid=exact(c,['numerator','denominator'])&&fraction(c);break;
       case 'geometry':valid=exact(c,['answer'])&&shapeId(c.answer);break;
       case 'equations':valid=equation(c);break;
+      case 'memory-game':valid=exact(c,['items','maxTurns'])&&entries(c.items,2,6)&&integer(c.maxTurns)&&c.maxTurns>=c.items.length&&c.maxTurns<=40;break;
+      case 'puzzle':valid=exact(c,['items','answer'])&&entries(c.items,3,8)&&sameSet(c.answer,c.items.map(o=>o.id))&&!c.answer.every((x,i)=>x===c.items[i].id);break;
+      case 'maze':valid=validMaze(c);break;
       case 'drag-drop':
       case 'classify':valid=exact(c,['items','groups','assignments'])&&entries(c.items)&&entries(c.groups,2,6)&&plain(c.assignments)&&sameSet(Object.keys(c.assignments),c.items.map(o=>o.id))&&Object.values(c.assignments).every(a=>c.groups.some(g=>g.id===a));break;
     }
@@ -67,6 +103,14 @@
       case 'fill-blank':
       case 'free-text':resolved=answerText(response);correct=resolved&&c.answers.some(a=>normalize(a)===normalize(response));break;
       case 'number-line':resolved=onLine(c,response);correct=resolved&&response===c.answer;break;
+      case 'memory-game':{const r=memoryResult(c,response);resolved=!!r?.done;correct=!!r?.correct;break;}
+      case 'puzzle':resolved=sameSet(response,c.items.map(o=>o.id));correct=resolved&&response.every((x,i)=>x===c.answer[i]);break;
+      case 'maze':{
+        if(!Array.isArray(response)||response.length>100)break;
+        const layout=mazeLayout(c);let pos=layout.start,legal=true;
+        for(const dir of response){if(samePos(pos,layout.goal)){legal=false;break;}const next=mazeStep(c,pos,dir);if(!next){legal=false;break;}pos=next;}
+        resolved=legal&&(samePos(pos,layout.goal)||response.length===100);correct=resolved&&samePos(pos,layout.goal);break;
+      }
       case 'geometry':resolved=shapeId(response);correct=response===c.answer;break;
       case 'equations':resolved=integer(response);correct=resolved&&c.coefficient*response+c.constant===c.result;break;
       case 'fractions':resolved=fraction(response);correct=resolved&&response.numerator*c.denominator===c.numerator*response.denominator;break;
@@ -98,7 +142,7 @@
     const fieldset=doc.createElement('fieldset'),legend=doc.createElement('legend');
     legend.textContent=activity.prompt;fieldset.append(legend);form.append(fieldset);
     const controls=[];
-    let dragAssignments=null;
+    let dragAssignments=null,gameResponse=null;
     function optionList(options,kind){
       for(const o of options){
         const label=doc.createElement('label'),input=doc.createElement('input');
@@ -167,6 +211,76 @@
       const heading=doc.createElement('p');heading.textContent='بديل السحب باستخدام قوائم الاختيار:';
       board.append(notice,pool,targets,heading,fallback);fieldset.append(board);refresh();
     }
+    function gameNotice(board,message){const n=doc.createElement('p');n.setAttribute('aria-live','polite');n.textContent=message;board.append(n);return n;}
+    function gameButton(parent,label,handler){const b=doc.createElement('button');b.type='button';b.textContent=label;b.onclick=handler;parent.append(b);return b;}
+    function memoryBoard(){
+      const board=doc.createElement('div'),grid=doc.createElement('div');grid.className='activity-memory-grid';
+      const cards=c.items.flatMap(o=>[{id:o.id+':a',label:o.label},{id:o.id+':b',label:o.label}]);
+      // Shuffle positions each time; correct result is validated from actual pair history.
+      for(let i=cards.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[cards[i],cards[j]]=[cards[j],cards[i]];}
+      const notice=gameNotice(board,'اكشفي بطاقتين متطابقتين.'),turns=[],buttons=[];
+      let open=[],matched=new Set(),done=false;gameResponse=()=>turns.map(t=>t.slice());
+      function draw(){
+        for(const [i,b] of buttons.entries()){
+          const card=cards[i],visible=matched.has(card.id)||open.includes(card.id);
+          b.textContent=visible?card.label:'؟';b.setAttribute('aria-label','بطاقة '+(i+1)+(visible?': '+card.label:' مخفية'));
+          b.disabled=done||matched.has(card.id);b.setAttribute('aria-pressed',String(visible));b.dataset.matched=String(matched.has(card.id));
+        }
+      }
+      cards.forEach((card,i)=>{
+        const b=gameButton(grid,'؟',()=>{
+          if(done||fieldset.disabled||matched.has(card.id))return;
+          if(open.length===2)open=[];
+          if(open.includes(card.id))return;
+          open.push(card.id);
+          if(open.length===2){
+            turns.push(open.slice());const result=memoryResult(c,turns);matched=result.matched;done=result.done;
+            notice.textContent=done?(result.correct?'اكتملت الأزواج! تحققي من النتيجة.':'انتهت المحاولات. تحققي من النتيجة.'):'أزواج مكتملة '+matched.size/2+' من '+c.items.length+' · المحاولات '+turns.length+' من '+c.maxTurns;
+          }
+          draw();
+        });b.dataset.cardIndex=String(i);buttons.push(b);
+      });
+      board.append(grid);fieldset.append(board);draw();
+    }
+    function puzzleBoard(){
+      const board=doc.createElement('div'),grid=doc.createElement('div');grid.className='activity-puzzle-grid';
+      const order=c.items.map(o=>o.id);let selected=-1;
+      const notice=gameNotice(board,'اختاري قطعتين لتبديل مكانهما، ثم تحققي من الترتيب.');
+      gameResponse=()=>order.slice();
+      const buttons=order.map((_,i)=>gameButton(grid,'',()=>{
+        if(fieldset.disabled)return;
+        if(selected===i)selected=-1;
+        else if(selected<0)selected=i;
+        else{[order[selected],order[i]]=[order[i],order[selected]];selected=-1;}
+        draw();
+      }));
+      function draw(){buttons.forEach((b,i)=>{b.textContent=c.items.find(o=>o.id===order[i]).label;b.setAttribute('aria-label','القطعة '+(i+1)+': '+b.textContent);b.setAttribute('aria-pressed',String(selected===i));});notice.textContent=selected<0?'اختاري قطعتين لتبديل مكانهما.':'اختاري موضع القطعة الأخرى.';}
+      board.append(grid);fieldset.append(board);draw();
+    }
+    function mazeBoard(){
+      const board=doc.createElement('div'),grid=doc.createElement('div');grid.className='activity-maze-grid';grid.dir='ltr';
+      const layout=mazeLayout(c),moves=[],cells=[],buttons=[];let pos=layout.start.slice(),done=false;
+      gameResponse=()=>moves.slice();
+      const notice=gameNotice(board,'حرّكي لولو إلى النجمة عبر الممرات.');
+      for(const [y,row] of c.grid.entries()){
+        const line=doc.createElement('div');line.className='activity-maze-row';
+        for(const [x,ch] of Array.from(row).entries()){const cell=doc.createElement('span');cell.className='activity-maze-cell';cell.dataset.wall=String(ch==='#');line.append(cell);cells.push({cell,y,x,ch});}
+        grid.append(line);
+      }
+      function move(dir){
+        if(done||fieldset.disabled)return;const next=mazeStep(c,pos,dir);
+        if(!next){notice.textContent='هذا الطريق مغلق. جربي اتجاهًا آخر.';return;}
+        pos=next;moves.push(dir);done=samePos(pos,layout.goal)||moves.length===100;draw();
+      }
+      const arrows=doc.createElement('div');arrows.className='activity-maze-arrows';
+      for(const [dir,label] of [['up','↑ أعلى'],['left','← يسار'],['down','↓ أسفل'],['right','→ يمين']]){const b=gameButton(arrows,label,()=>move(dir));b.dataset.direction=dir;buttons.push(b);}
+      function draw(){
+        for(const {cell,y,x,ch} of cells){const here=y===pos[0]&&x===pos[1];cell.textContent=here?'🦉':ch==='G'?'⭐':ch==='#'?'■':'';cell.dataset.player=String(here);cell.setAttribute('aria-hidden','true');}
+        buttons.forEach(b=>b.disabled=done);
+        notice.textContent=done?(samePos(pos,layout.goal)?'وصلتِ! تحققي من النتيجة.':'انتهت الحركات. تحققي من النتيجة.'):'الصف '+(pos[0]+1)+'، العمود '+(pos[1]+1)+' · الحركات '+moves.length+' من 100';
+      }
+      board.append(grid,arrows);fieldset.append(board);draw();
+    }
     if(activity.type==='choice'||activity.type==='multi-choice')optionList(c.options,activity.type==='choice'?'radio':'checkbox');
     else if(activity.type==='true-false')optionList([{id:'true',label:'صح'},{id:'false',label:'خطأ'}],'radio');
     else if(activity.type==='numeric'){
@@ -194,6 +308,9 @@
       const equationText=doc.createElement('p');equationText.dir='ltr';equationText.className='activity-equation';equationText.textContent=c.coefficient+' × x '+(c.constant<0?'− '+Math.abs(c.constant):'+ '+c.constant)+' = '+c.result;fieldset.append(equationText);
       const input=doc.createElement('input');input.type='number';input.step='1';input.setAttribute('aria-label','قيمة س');fieldset.append(input);controls.push(input);
     }else if(activity.type==='drag-drop')dragBoard();
+    else if(activity.type==='memory-game')memoryBoard();
+    else if(activity.type==='puzzle')puzzleBoard();
+    else if(activity.type==='maze')mazeBoard();
     else if(activity.type==='sequence')c.items.forEach((_,i)=>selector('المكان '+(i+1),c.items));
     else if(activity.type==='match')c.left.forEach(o=>selector(o.label,c.right));
     else if(activity.type==='classify')c.items.forEach(o=>selector(o.label,c.groups));
@@ -212,6 +329,7 @@
       else if(activity.type==='geometry')response=controls.find(x=>x.checked)?.value;
       else if(activity.type==='equations')response=controls[0].value.trim()===''?null:Number(controls[0].value);
       else if(activity.type==='drag-drop')response=Object.fromEntries(dragAssignments);
+      else if(gameResponse)response=gameResponse();
       else if(activity.type==='sequence')response=controls.map(x=>x.value);
       else response=Object.fromEntries((activity.type==='match'?c.left:c.items).map((o,i)=>[o.id,controls[i].value]));
       const result=evaluate(activity,response);

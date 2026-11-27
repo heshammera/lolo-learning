@@ -84,7 +84,21 @@
           const group=el('fieldset');group.append(el('legend','الإجابات الصحيحة (اثنتان أو أكثر)'));box.append(group);
           for(const o of c.options){const l=el('label'),i=el('input');i.type='checkbox';i.checked=c.answers.includes(o.id);i.disabled=!permitted();l.append(i,doc.createTextNode(o.label));group.append(l);i.onchange=()=>{if(!permitted())return;c.answers=c.options.filter(x=>x.id===o.id?i.checked:c.answers.includes(x.id)).map(x=>x.id);sync();};}
         }
-      }else if(a.type==='sequence'){
+      }else if(a.type==='memory-game'){
+        list(box,'البطاقات',c.items,6);field(box,'أقصى عدد للمحاولات',c.maxTurns,v=>c.maxTurns=v,{type:'number'});
+        box.append(el('p','كل بطاقة تظهر مرتين؛ من ٢ إلى ٦ أزواج، وبحد أقصى ٤٠ محاولة.'));
+      }else if(a.type==='maze'){
+        box.append(el('p','اختاري نوع كل خلية. يجب وجود بداية واحدة وهدف واحد وطريق مفتوح بينهما.'));
+        const kinds=[{id:'.',label:'ممر'},{id:'#',label:'جدار'},{id:'S',label:'بداية'},{id:'G',label:'هدف'}];
+        c.grid.forEach((row,y)=>{
+          const cells=el('div');cells.className='cms-row';box.append(cells);
+          Array.from(row).forEach((ch,x)=>select(cells,'صف '+(y+1)+' عمود '+(x+1),ch,kinds,v=>{c.grid[y]=c.grid[y].slice(0,x)+(v||'.')+c.grid[y].slice(x+1);}));
+        });
+        const addRow=button(box,'إضافة صف',()=>{c.grid.push('.'.repeat(c.grid[0].length));rebuild();});addRow.disabled=c.grid.length>=8;
+        const delRow=button(box,'حذف آخر صف',()=>{c.grid.pop();rebuild();});delRow.disabled=c.grid.length<=3;
+        const addCol=button(box,'إضافة عمود',()=>{c.grid=c.grid.map(row=>row+'.');rebuild();});addCol.disabled=c.grid[0].length>=8;
+        const delCol=button(box,'حذف آخر عمود',()=>{c.grid=c.grid.map(row=>row.slice(0,-1));rebuild();});delCol.disabled=c.grid[0].length<=3;
+      }else if(a.type==='sequence'||a.type==='puzzle'){
         list(box,'العناصر',c.items);
         c.answer=c.items.map((_,i)=>c.answer[i]||'');
         c.items.forEach((_,i)=>select(box,'الترتيب الصحيح '+(i+1),c.answer[i],c.items,v=>c.answer[i]=v));

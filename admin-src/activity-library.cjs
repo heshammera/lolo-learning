@@ -31,9 +31,9 @@ const definitions=[
   ['science-simulation','science','محاكاة علمية','تجربة افتراضية بضوابط محددة مسبقًا.',['simulation-runtime'],[]],
   ['interactive-story','reading','قصة تفاعلية','مسارات قراءة واختيارات قصصية.',['media'],[]],
   ['reading-aloud','reading','القراءة الجهرية','قياس القراءة بمؤشرات مدروسة.',['microphone','consent'],[]],
-  ['memory-game','games','لعبة الذاكرة','مطابقة البطاقات بالذاكرة.',['game-runtime'],[]],
-  ['puzzle','games','البازل','تركيب قطع أو عناصر.',['game-runtime'],[]],
-  ['maze','games','المتاهة','التنقل داخل مسار محدد.',['game-runtime'],[]],
+  ['memory-game','games','لعبة الذاكرة','كشف أزواج بطاقات نصية أو رموز ضمن عدد محاولات محدد.',[],['items','maxTurns']],
+  ['puzzle','games','بازل الترتيب','تبديل قطع نصية أو رموز حتى الوصول إلى ترتيب معتمد.',[],['items','answer']],
+  ['maze','games','المتاهة','شبكة ممرات قابلة للتعديل والتحقق من إمكانية الوصول.',[],['grid']],
   ['homework-upload','homework','رفع الواجبات','رفع ملف بإذن ولي الأمر ومراجعة الخصوصية.',['network','consent','secure-upload'],[]],
 ];
 const examples=new Map(pilot.lessons.flatMap(l=>l.activities).map(a=>[a.type,a]));

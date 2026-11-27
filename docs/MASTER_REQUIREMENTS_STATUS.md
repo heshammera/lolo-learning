@@ -63,3 +63,5 @@ Checkpoint promoted at 2352edc. Signed UI E2E reached offline resume and score b
 Delivery and signed E2E promoted at 41114e6 after successful Android and family checks. Candidate expansion adds four bounded offline activity contracts, matching authoring fields and tests (11 implemented / 18 planned). Free-text means accepted short answers only; essay review remains pending. Production catalog/trust and device verification still pending.
 
 Four additional offline contracts at 617b9f7 passed admin and Android test/build steps (final artifact publication pending when checked). Candidate adds pointer drag/drop, shape identification and bounded linear equations (14/29) with editor and tests. General geometry/algebra, real touch device, production delivery and remaining 15 types remain open.
+
+Interaction expansion promoted at a771b7d after both CI workflows. Games candidate adds memory, ordering puzzle and maze with visual authoring and offline validation (17 implemented / 12 planned if verified). Image jigsaws and comprehensive game metrics remain future extensions. Production delivery and actual device checks remain open.

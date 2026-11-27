@@ -2,10 +2,10 @@ const {test}=require('node:test');
 const assert=require('node:assert/strict');
 const engine=require('../activity-engine.js'),pilot=require('../activity-pilot.js');
 const activities=pilot.lessons.flatMap(l=>l.activities);
-test('all fourteen contracts validate and grade without provider calls',()=>{
+test('all seventeen contracts validate and grade without provider calls',()=>{
   assert.equal(engine.checkLessons(pilot.lessons).compatible,true);
-  const answers=['i1',true,['i2','i1'],['i2','i1','i3'],{i1:'i2',i2:'i1'},3,{i1:'i1',i2:'i2',i3:'i1'},'الماء','قطة',4,{numerator:2,denominator:4},{i1:'i1',i2:'i2',i3:'i1'},'triangle',4];
-  const wrong=['i2',false,['i1'],['i1','i2','i3'],{i1:'i1',i2:'i2'},4,{i1:'i2',i2:'i2',i3:'i1'},'الحجارة','ماء',5,{numerator:1,denominator:3},{i1:'i2',i2:'i2',i3:'i1'},'circle',3];
+  const answers=['i1',true,['i2','i1'],['i2','i1','i3'],{i1:'i2',i2:'i1'},3,{i1:'i1',i2:'i2',i3:'i1'},'الماء','قطة',4,{numerator:2,denominator:4},{i1:'i1',i2:'i2',i3:'i1'},'triangle',4,[['i1:a','i1:b'],['i2:a','i2:b'],['i3:a','i3:b']],['i2','i3','i1'],['right','right','down','down','right']];
+  const wrong=['i2',false,['i1'],['i1','i2','i3'],{i1:'i1',i2:'i2'},4,{i1:'i2',i2:'i2',i3:'i1'},'الحجارة','ماء',5,{numerator:1,denominator:3},{i1:'i2',i2:'i2',i3:'i1'},'circle',3,Array.from({length:12},()=>['i1:a','i2:b']),['i1','i2','i3'],Array.from({length:100},(_,i)=>i%2?'left':'right')];
   activities.forEach((a,i)=>{assert.equal(engine.evaluate(a,answers[i]).status,'correct');assert.equal(engine.evaluate(a,wrong[i]).status,'incorrect');assert.equal(engine.evaluate(a,null).status,'unresolved');});
 });
 test('unknown activities, versions, duplicate IDs and incompatible targets block publication',()=>{
@@ -44,4 +44,18 @@ test('interaction contracts fail closed on malformed assignments, shapes and equ
   assert.equal(engine.evaluate(eq,'4').status,'unresolved');
   assert.equal(engine.evaluate(eq,4).status,'correct');
   assert.equal(engine.evaluate({...eq,config:{coefficient:2,constant:-3,result:-11}},-4).status,'correct');
+});
+
+test('game contracts validate replay, bounded turns, solvability and order',()=>{
+ const [memory,puzzle,maze]=activities.slice(14);
+ assert.equal(engine.evaluate(memory,[['i1:a','i1:b']]).status,'unresolved');
+ assert.equal(engine.evaluate(memory,[['i1:a','i1:b'],['i1:a','i1:b']]).status,'unresolved');
+ assert.equal(engine.evaluate(memory,[['i1:a','i1:a']]).status,'unresolved');
+ assert.equal(engine.validate({...memory,config:{...memory.config,maxTurns:1}}).valid,false);
+ assert.equal(engine.validate({...puzzle,config:{...puzzle.config,answer:['i1','i2','i3']}}).valid,false);
+ assert.equal(engine.evaluate(puzzle,['i1','i1','i3']).status,'unresolved');
+ assert.equal(engine.validate({...maze,config:{grid:['S##','###','##G']}}).valid,false);
+ assert.equal(engine.validate({...maze,config:{grid:['S.G','S..','...']}}).valid,false);
+ assert.equal(engine.evaluate(maze,['down']).status,'unresolved');
+ assert.equal(engine.evaluate(maze,['right','right','down','down','right','left']).status,'unresolved');
 });

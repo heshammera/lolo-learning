@@ -1,2 +1,2 @@
 # Next Action
-Confirm artifact and final CI for 617b9f7, promote verified branch, then verify interactions CI. Next games, visual science and drawing contracts; consent-aware voice activities and all V2 requirements remain. Actual touch/device and production delivery tests pending.
+Verify game unit/browser/admin and Android CI before promotion. Next visual science and drawing, story and consent-aware voice contracts, followed by remaining V2 and production gates. Full direct download UI E2E, key lifecycle, real-device review remain open.
