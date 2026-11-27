@@ -49,6 +49,17 @@ class ApiInputTests(unittest.TestCase):
         finally:
             response.close()
 
+    def test_unsupported_content_type_is_rejected(self):
+        request = Request(self.base_url + "/api/provider-token", data=b"not-json", headers={"Content-Type": "text/plain"})
+        try:
+            response = urlopen(request)
+        except HTTPError as error:
+            response = error
+        try:
+            self.assertEqual(response.status, 415)
+        finally:
+            response.close()
+
     def test_array_body_is_rejected_as_client_error(self):
         status, headers = self.post_status("/api/provider-token", [])
         self.assertEqual(status, 400)
@@ -67,6 +78,10 @@ class ApiInputTests(unittest.TestCase):
         error.exception.close()
         with urlopen(self.base_url + "/assets/branding/icons/lolo-icon.webp") as icon:
             self.assertEqual(icon.headers.get("Content-Type"), "image/webp")
+        for filename in ("storage.js", "session-timers.js"):
+            with urlopen(self.base_url + "/" + filename) as script:
+                self.assertEqual(script.status, 200)
+                self.assertIn("javascript", script.headers.get("Content-Type", ""))
 
     def test_provider_route_throttles_repeated_requests(self):
         old_limits = server.Handler.API_LIMITS

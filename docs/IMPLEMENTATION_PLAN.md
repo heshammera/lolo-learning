@@ -6,7 +6,9 @@
 - [x] Inspect repository, runtime boundaries, curriculum, API entry points, and Android wrapper.
 - [x] Record counts, baseline syntax checks, and known test gaps.
 - [x] Create a remote rollback branch at the pre-change commit.
-- [ ] Complete scoped API validation, local bind default, and rate-limit tests.
+- [x] Complete scoped API validation, local bind default, and rate-limit tests.
+- [x] Harden local progress reads/writes against corrupt JSON and unavailable storage.
+- [x] Scope lesson timers to their session, abort stale setup, and close voice sessions on app background.
 - [ ] Integrate official branding into web, manifest/favicon, Android adaptive icons and splash.
 - [ ] Build and smoke-check local web/API and Android app.
 - [ ] Push only the development branch; do not modify `main` or production deployment.

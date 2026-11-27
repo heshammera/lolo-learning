@@ -19,6 +19,13 @@ HOST = os.environ.get("HOST", "127.0.0.1")
 _RATE_LIMIT_SECRET = secrets.token_bytes(32)
 
 
+def bounded_env_int(name, default, minimum=1, maximum=1000):
+    try:
+        return max(minimum, min(maximum, int(os.environ.get(name, default))))
+    except (TypeError, ValueError):
+        return default
+
+
 class SlidingWindowRateLimiter:
     """Small process-local safety limit; production needs a shared edge limiter."""
 
@@ -242,9 +249,9 @@ def live_config(lesson_id, mode="lesson", already_mastered=False, excellence_cou
 
 class Handler(BaseHTTPRequestHandler):
     API_LIMITS = {
-        "/api/provider-token": (10, 60),
-        "/api/onboarding-audio": (8, 60),
-        "/api/challenge-audio": (8, 60),
+        "/api/provider-token": (bounded_env_int("PROVIDER_TOKEN_RATE_LIMIT_PER_MINUTE", 20), 60),
+        "/api/onboarding-audio": (bounded_env_int("TTS_RATE_LIMIT_PER_MINUTE", 8), 60),
+        "/api/challenge-audio": (bounded_env_int("TTS_RATE_LIMIT_PER_MINUTE", 8), 60),
     }
 
     def end_headers(self):
@@ -266,6 +273,8 @@ class Handler(BaseHTTPRequestHandler):
         route = self.path.split("?", 1)[0]
         if route not in self.API_LIMITS or self.path != route:
             return self.send_json(404, {"error": "Not found"})
+        if self.headers.get("Content-Type", "").split(";", 1)[0].strip().lower() != "application/json":
+            return self.send_json(415, {"error": "نوع الطلب غير مدعوم."})
         limit, window = self.API_LIMITS[route]
         forwarded_ip = self.headers.get("x-real-ip") if os.environ.get("VERCEL") else None
         source_ip = forwarded_ip or self.client_address[0]
@@ -543,7 +552,7 @@ class Handler(BaseHTTPRequestHandler):
         if path == "/api/status":
             return self.send_json(200, {"providers": [name for name, configured in (("gemini", GEMINI_API_KEY), ("openai", OPENAI_API_KEY and OPENAI_ENABLED), ("gemini-backup", GEMINI_BACKUP_API_KEY)) if configured]})
         relative = "index.html" if path == "/" else path.lstrip("/")
-        allowed_files = {"index.html", "curriculum.json", "pcm-processor.js", "app.js", "brand.js", "favicon.ico", "favicon-16x16.png", "favicon-32x32.png", "favicon-48x48.png", "apple-touch-icon.png", "site.webmanifest"}
+        allowed_files = {"index.html", "curriculum.json", "pcm-processor.js", "app.js", "storage.js", "session-timers.js", "brand.js", "favicon.ico", "favicon-16x16.png", "favicon-32x32.png", "favicon-48x48.png", "apple-touch-icon.png", "site.webmanifest"}
         is_brand_asset = relative.startswith("assets/branding/") and Path(relative).suffix.lower() in {".png", ".webp", ".json"}
         if relative not in allowed_files and not is_brand_asset:
             return self.send_json(404, {"error": "Not found"})

@@ -9,7 +9,8 @@
 
 ## Current deterministic checks
 
-- Python `unittest` for limiter behavior, API input rejection, response security headers, public asset routing, and `.env` non-public routing.
+- Python `unittest` for limiter behavior, API input rejection, response security headers, public asset routing, and `.env` non-public routing (6 tests).
+- Node tests for safe local storage and stale session timer callbacks (2 test files).
 - Python bytecode syntax compilation for serverless handlers.
 - Node syntax checks for frontend files.
 - Android Gradle debug build and resource validation.

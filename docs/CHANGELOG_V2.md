@@ -44,3 +44,11 @@
 - **Before:** Android workflow used `checkout@v4`, `setup-node@v4`, `setup-java@v4`, and `upload-artifact@v4`; the successful build reported deprecated Node 20 runtimes and deprecated setup-java v4.
 - **After:** workflow uses current major releases (`checkout@v7`, `setup-node@v7`, `setup-java@v6`, `upload-artifact@v7`) to use supported Node 24 runtimes.
 - **Verification:** a new Android workflow run is required; not yet verified.
+
+## Milestone 1.1 — Resilient local progress and session timers
+
+- **Before:** one invalid JSON value in `localStorage` could throw during app startup; quota/security errors from writes were uncaught. **After:** `storage.js` safely reads, checks the top-level data shape, preserves malformed values in place, and reports storage failures without crashing the app.
+- **Before:** the lesson-duration timeout created an untracked goodbye timeout. That timeout could fire during a later session and stop the new lesson. **After:** a session timer registry invalidates all pending callbacks when a session ends or a new session begins; asynchronous token/transport setup is cancelled or ignored when its session is stale.
+- **Before:** leaving the page or backgrounding the app could leave voice resources active. **After:** active sessions close on page hide/background, microphone tracks/audio connections are closed, and late microphone permission results are stopped.
+- Added automated Node tests for corrupt storage, quota failures, and stale session timers. Added the tests to the Android CI workflow.
+- **Verification:** 7 Python security/API tests and 2 Node resilience tests pass; Python and JavaScript syntax checks pass; local HTTP smoke checks cover the app shell, curriculum, PWA/brand assets, and both new scripts; Android resource/build validation is tracked in the CI run after push. No live AI calls are used.

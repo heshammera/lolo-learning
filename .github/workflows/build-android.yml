@@ -34,6 +34,11 @@ jobs:
           java-version: 21
       - name: Install packages
         run: npm ci
+      - name: Run local security and storage tests
+        run: |
+          python3 -m unittest discover -s ../tests -v
+          node ../tests/storage.test.cjs
+          node ../tests/session-timers.test.cjs
       - name: Build debug APK
         run: |
           npx cap sync android
