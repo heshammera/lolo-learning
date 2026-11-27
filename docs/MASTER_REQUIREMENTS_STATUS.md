@@ -54,3 +54,5 @@ Visual editor promoted at 3e33a65 after passing browser and Android CI. Review t
 CMS review and signed package verified/promoted at 829bc63. Candidate active release export with server permission, persistent sequence and IndexedDB signed package staging, no production key or learner activation. Real download/UI/subject catalog and remaining activities pending.
 
 Content export/install promoted at d7e5747 after all three CI workflows. Additional curriculum runtime candidate: parent-gated signed file import, verified installed list, explicit scope and offline session practice. Empty pinned keys disable production; no network download, saved new curriculum progress or real device test. Prior V2 requirements remain.
+
+Content runtime promoted at bbc65d8 after family/Android CI. Checkpoint candidate: per-local-profile, per-release/sequence/scope, resume after each resolved response, bounded local practice results only. Full signed import UI E2E, live delivery, consent, advanced activities and remaining master requirements still open.

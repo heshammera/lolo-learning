@@ -3159,7 +3159,8 @@ window.addEventListener('offline',resetCloudFamily);
 window.addEventListener('online',()=>{if(parentGate.isUnlocked())renderCloudFamily();});
 // Additional signed curricula remain separate from existing learning paths and mastery.
 const extraStore=window.LoloContentInstall.create({trustedKeys:window.LoloContentTrust});
-let extraGeneration=0,extraPackage=null,extraSession=null,extraBusy=false;
+const extraProgress=window.LoloContentProgress.create(storage);
+let extraGeneration=0,extraPackage=null,extraSession=null,extraBusy=false,extraContext=null,extraSaved=false;
 const extraAllowed=()=>parentGate.isUnlocked()&&$('#parentSheet').classList.contains('open')&&storage.profiles.activeId&&storage.profiles.selectedId()===storage.profiles.activeId;
 const extraTrusted=()=>Object.keys(window.LoloContentTrust).length>0;
 function clearExtraParent(){
@@ -3223,29 +3224,41 @@ function renderExtraPractice(){
   const session=extraSession;if(!session)return;
   const state=session.state(),step=session.current(),body=$('#extraPracticeBody');
   body.replaceChildren();$('#extraPracticeNext').hidden=true;
-  if(state.done){$('#extraPracticeProgress').textContent='انتهى التدريب';$('#extraPracticeGoal').textContent='أجبت بشكل صحيح على '+state.correct+' من '+state.attempted+' نشاط. النتيجة تدريبية فقط وغير محفوظة.';return;}
+  if(state.done){$('#extraPracticeProgress').textContent='انتهى التدريب';$('#extraPracticeGoal').textContent='أجبت بشكل صحيح على '+state.correct+' من '+state.attempted+' نشاط. النتيجة تدريبية فقط وليست دليل إتقان.';return;}
   if(!step)return;
   $('#extraPracticeTitle').textContent=step.lessonTitle;$('#extraPracticeGoal').textContent=step.goal;
   $('#extraPracticeProgress').textContent='النشاط '+(state.index+1)+' من '+state.total;
   window.LoloActivities.render(step.activity,body,result=>{
-    if(extraSession!==session||!session.record(step.activity.id,result))return;
+    if(extraSession!==session||!extraContext||!extraProgress.allowed()||!session.record(step.activity.id,result))return;
+    const c=extraContext;extraSaved=extraProgress.save(c.package,c.scope,c.unit,c.lesson,session.results());
+    $('#extraPracticeSaved').textContent=extraSaved?'تم حفظ التقدم على هذا الجهاز.':'تعذر حفظ التقدم؛ يمكنك إكمال التدريب لكن قد لا يُحفظ.';
     $('#extraPracticeNext').hidden=false;
   });
 }
 $('#extraStart').onclick=async()=>{
   if(!extraAllowed()||extraBusy||!extraPackage||$('#extraStart').disabled)return;
   const generation=extraGeneration,id=extraPackage.draftId,scope=$('#extraScope').value,unit=$('#extraUnit').value,lesson=$('#extraLesson').value;
-  const latest=await extraStore.read(id);
+  extraBusy=true;$('#extraStart').disabled=true;
+  let latest;
+  try{latest=await extraStore.read(id);}finally{extraBusy=false;if(extraAllowed())renderExtraScope();}
   if(generation!==extraGeneration||!extraAllowed()||!latest.valid||latest.package.sequence!==extraPackage?.sequence){if(extraAllowed())$('#extraContentStatus').textContent='المنهج تغيّر أو تعذر التحقق منه. اختاريه مرة أخرى.';return;}
-  const session=window.LoloContentRuntime.create(latest.package,scope,unit,lesson);
+  const saved=extraProgress.load(latest.package,scope,unit,lesson);
+  if(!saved.valid){$('#extraContentStatus').textContent='تعذر قراءة سجل التقدم لهذا المنهج؛ لم يتم تغييره.';return;}
+  let prior=[];
+  if(saved.results.length&&!saved.completed&&confirm('استكمال التدريب من آخر نشاط محفوظ؟ اختر إلغاء للبدء من جديد.'))prior=saved.results;
+  else if(saved.results.length&&!confirm('بدء محاولة جديدة واستبدال سجل هذا النطاق؟'))return;
+  if(generation!==extraGeneration||!extraAllowed())return;
+  const session=window.LoloContentRuntime.create(latest.package,scope,unit,lesson,prior);
   if(!session)return;
+  extraContext={package:latest.package,scope,unit,lesson};extraSaved=extraProgress.save(latest.package,scope,unit,lesson,prior);
+  $('#extraPracticeSaved').textContent=extraSaved?'التقدم محفوظ محليًا.':'تعذر حفظ التقدم على الجهاز.';
   if(isActive||isStarting)stopSession();
   closeParentSettings();extraSession=session;renderExtraPractice();$('#extraPractice').showModal();
 };
-$('#extraPracticeNext').onclick=()=>{if(extraSession?.advance())renderExtraPractice();};
+$('#extraPracticeNext').onclick=()=>{if(!extraProgress.allowed()){$('#extraPractice').close();return;}if(extraSession?.advance())renderExtraPractice();};
 $('#extraPracticeClose').onclick=$('#extraPracticeBack').onclick=()=>$('#extraPractice').close();
-$('#extraPractice').addEventListener('close',()=>{extraSession?.stop();extraSession=null;$('#extraPracticeBody').replaceChildren();});
-window.addEventListener('pagehide',()=>{extraSession?.stop();extraSession=null;});
+$('#extraPractice').addEventListener('close',()=>{extraSession?.stop();extraSession=null;extraContext=null;$('#extraPracticeBody').replaceChildren();});
+window.addEventListener('pagehide',()=>{extraSession?.stop();extraSession=null;extraContext=null;});
 function renderActivityPreview(){
   if(!parentGate.isUnlocked())return;
   const engine=window.LoloActivities,pilot=window.LoloActivityPilot;

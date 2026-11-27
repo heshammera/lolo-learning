@@ -1,2 +1,2 @@
 # Next Action
-Verify generic scope runtime and student UI CI. Add signed fixture browser E2E, persistent isolated progress, delivery manifest/HTTPS and operator-approved trust setup, then broaden Activity Library and remaining V2. No live publishing or production keys yet.
+Verify checkpoints and signed fixture full UI E2E, then authenticated distribution manifest/HTTPS trust provisioning, isolated progress sync, remaining activity contracts and V2 requirements. Maintain exact evidence and no production activation without security/consent gates.

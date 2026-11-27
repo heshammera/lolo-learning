@@ -52,6 +52,7 @@ function loadStorage(map = new Map(), setThrows = false) {
     assert.equal(second.profiles.activeId,child.id);
     assert.deepEqual(second.getJSON('lolo-mastered',[]),[]);
     assert.equal(second.get('lolo-parent-gate-v1'),'shared-pin');
+    second.set('lolo-extra-practice-v1','{"version":1,"entries":[]}');
     second.set('lolo-mastered','["hello-2"]');
     second.set('lolo-parent-settings','{"sessionMinutes":5}');
     assert.equal(second.profiles.rename(child.id,'Second'),true);
@@ -59,10 +60,12 @@ function loadStorage(map = new Map(), setThrows = false) {
     const first=loadStorage(map).storage;
     assert.deepEqual(first.getJSON('lolo-mastered',[]),['hello-1']);
     assert.deepEqual(first.getJSON('lolo-parent-settings',{}),{});
+    assert.equal(first.get('lolo-extra-practice-v1'),null);
     assert.equal(first.profiles.select(child.id),true);
     const restored=loadStorage(map).storage;
     assert.deepEqual(restored.getJSON('lolo-mastered',[]),['hello-2']);
     assert.equal(restored.getJSON('lolo-parent-settings',{}).sessionMinutes,5);
+    assert.equal(restored.get('lolo-extra-practice-v1'),'{"version":1,"entries":[]}');
   }
   {
     const {storage,map}=loadStorage(new Map([['lolo-local-profiles-v1','{broken'],['lolo-mastered','["hello-1"]']]));

@@ -1,0 +1,26 @@
+const {test}=require('node:test');
+const assert=require('node:assert/strict');
+const progress=require('../content-progress.js'),runtime=require('../content-runtime.js');
+const p={draftId:'11111111-1111-4111-8111-111111111111',releaseId:'22222222-2222-4222-8222-222222222222',sequence:1,content:{schemaVersion:1,subjectId:'science',gradeId:'grade-1',title:'Science',units:[{id:'u',title:'Plants',lessons:[{id:'l',title:'Water',goal:'Recognize water',activities:['a','b'].map(id=>({id,type:'true-false',version:1,prompt:'Plants need water',config:{answer:true}}))}]}]}};
+test('checkpoint resumes only the exact release and scope; failed save retains prior',()=>{
+ let raw=null,selected='default',fail=false;
+ const storage={profiles:{activeId:'default',selectedId:()=>selected},get:()=>raw,set:(_,v)=>{if(fail)return false;raw=v;return true;}};
+ const tracker=progress.create(storage);
+ assert.deepEqual(tracker.load(p,'lesson','u','l'),{valid:true,results:[],completed:false});
+ const s=runtime.create(p,'lesson','u','l');s.record('a',{status:'correct'});
+ assert.equal(tracker.save(p,'lesson','u','l',s.results()),true);
+ const saved=tracker.load(p,'lesson','u','l');
+ assert.equal(saved.results.length,1);assert.equal(saved.completed,false);
+ const resumed=runtime.create(p,'lesson','u','l',saved.results);
+ assert.equal(resumed.current().activity.id,'b');
+ assert.equal(resumed.record('b',{status:'incorrect'}),true);
+ fail=true;assert.equal(tracker.save(p,'lesson','u','l',resumed.results()),false);
+ assert.equal(tracker.load(p,'lesson','u','l').results.length,1);
+ fail=false;assert.equal(tracker.save(p,'lesson','u','l',resumed.results()),true);
+ assert.equal(tracker.load(p,'lesson','u','l').completed,true);
+ assert.equal(tracker.load({...p,sequence:2},'lesson','u','l').results.length,0);
+ assert.equal(tracker.load(p,'curriculum').results.length,0);
+ assert.equal(tracker.save(p,'lesson','u','l',[{activityId:'b',status:'correct'}]),false);
+ selected='other';assert.equal(tracker.save(p,'lesson','u','l',[]),false);
+ selected='default';raw='{broken';assert.equal(tracker.load(p,'lesson','u','l').valid,false);assert.equal(tracker.save(p,'lesson','u','l',[]),false);
+});

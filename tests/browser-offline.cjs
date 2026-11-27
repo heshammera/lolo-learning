@@ -86,6 +86,8 @@ async function verifyPractice(page){
     await page.locator('#parentGateSetup button[type="submit"]').click();
     await page.locator('#parentGateRecoveryDone').click();
     await page.locator('#parentSettingsTab').click();
+    assert.equal(await page.locator('#extraImport').isDisabled(),true);
+    assert.equal(await page.locator('#extraStart').isDisabled(),true);
     const activity=page.locator('#activityPreviewContent');
     await page.locator('#activityPreviewSelect').selectOption('science-choice');
     await activity.locator('input[value="i1"]').check();
