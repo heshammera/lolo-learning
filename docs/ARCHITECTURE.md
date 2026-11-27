@@ -4,7 +4,7 @@
 
 ```text
 Browser / Android Capacitor WebView
-  ├── index.html + app.js + pcm-processor.js
+  ├── index.html + app.js + pcm-processor.js + assessment-engine.js
   ├── curriculum.json
   └── localStorage (lesson progress, tests, settings)
           │ same-origin JSON requests
@@ -22,6 +22,7 @@ Gemini Live / Gemini backup / OpenAI Realtime
 
 - `curriculum.json` is the curriculum source of truth.
 - Browser UI and client persistence are trusted only for convenience, not authoritative scoring or identity.
+- `assessment-engine.js` normalizes and checks supported writing/math responses, but is not yet the source of truth for model-led oral sessions or authoritative server-side results.
 - API provider keys remain server-only. Browser sessions receive short-lived tokens.
 - Android `appId` remains `com.heshammera.lolo`; Android currently loads the hosted site.
 

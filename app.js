@@ -1,5 +1,6 @@
 const $ = selector => document.querySelector(selector);
 const storage = window.LoloStorage;
+const assessmentEngine = window.LoloAssessment.create();
 const sessionTimers = window.LoloSessionTimers.create();
 window.addEventListener('lolo-storage-warning', event => showError(event.detail));
 if (storage.get('lolo-welcome-tour-v1-complete') === 'true' && storage.get('lolo-selected-program')) $('#app')?.classList.add('ready');
@@ -499,7 +500,11 @@ function renderWritingPath(program) {
       report.appendChild(line);
       for (const item of result.items || []) {
         const answer = document.createElement('p'); answer.className = `writing-result-item ${item.correct ? 'correct' : 'wrong'}`;
-        answer.textContent = `${item.prompt} · ${item.correct ? '✅ صح' : `❌ الإجابة: ${item.expected}`}`;
+        const childAnswer = item.answer ? ` · إجابة الطفلة: ${item.answer}` : '';
+        const score = Number.isFinite(item.score) ? ` · قرب التتبع: ${item.score}%` : '';
+        const attemptCount = Array.isArray(item.attempts) ? item.attempts.length : 1;
+        const resultLabel = item.correct ? '✅ صح' : item.status === 'partial' ? '🟠 قريبة وتحتاج تدريب' : `❌ الإجابة: ${item.expected}`;
+        answer.textContent = `${item.prompt} · ${resultLabel}${childAnswer}${score} · ${attemptCount} محاولة`;
         report.appendChild(answer);
       }
     }
@@ -635,7 +640,8 @@ function startWritingPath(program, stageIndex) {
   if (!writingStageUnlocked(program, stageIndex)) return;
   if (isActive || isStarting) stopSession();
   const items = program.subject === 'math' ? buildMathWritingTasks(program, stageIndex) : buildEnglishWritingTasks(program, stageIndex);
-  traceState = {mode:'advanced', programId:program.id, stageIndex, items, index:0, results:[], attempts:0, selected:[]};
+  const assessmentId = window.LoloAssessment.createAssessmentId();
+  traceState = {mode:'advanced', programId:program.id, stageIndex, assessmentId, items:items.map((item, index) => ({...item, questionId:`${assessmentId}:q${index + 1}`, attempts:[]})), index:0, results:[], attempts:0, selected:[]};
   $('#parentSheet').classList.remove('open');
   $('#traceSheet').classList.add('open'); $('#traceSheet').setAttribute('aria-hidden','false');
   $('#traceTitle').textContent = program.subject === 'math' ? '🔢 تحدّي الماث' : '✍️ تحدّي الكتابة';
@@ -700,7 +706,7 @@ function renderWritingTask() {
       for (const choice of item.options) {
         const value = typeof choice === 'string' ? choice : choice.value;
         const label = typeof choice === 'string' ? choice : choice.label;
-        addWritingChoice(label, () => submitWritingAnswer(value === item.target, value));
+        addWritingChoice(label, () => submitWritingAnswer(null, value));
       }
     }
   }
@@ -731,27 +737,47 @@ function updateOrderDisplay() {
 function checkWritingDraw() {
   if (!traceState || traceState.mode !== 'advanced') return;
   const item = traceState.items[traceState.index];
-  if (item.type === 'order') { submitWritingAnswer(true, item.target); return; }
+  if (item.type === 'order') { submitWritingAnswer(null, traceState.selected.map(tile=>tile.value).join('')); return; }
   if (!traceState.hasStroke) { $('#traceFeedback').textContent='جربي تكتبي الإجابة الأول 🌼'; return; }
   const score = gradeTrace(); traceState.attempts++;
+  const expected = item.expected ?? item.target;
+  const evaluation = assessmentEngine.grade({
+    questionId:item.questionId,
+    attemptId:`${item.questionId}:attempt-${item.attempts.length + 1}`,
+    kind:'handwriting', answer:'', expected:item.target,
+    acceptedAnswers:item.acceptedAnswers || [item.target], quality:score,
+  });
+  item.attempts.push(evaluation);
   if (score < 48 && traceState.attempts < 2) {
     $('#traceFeedback').textContent='قريبة، امسحي وجربي تاني. ركّزي في شكل الحرف أو الرقم 💛';
     speakTraceFeedback('قريبة، جربي تاني يا بطلة'); drawTraceTarget(); return;
   }
-  submitWritingAnswer(score >= 62, item.target, score);
+  submitWritingAnswer(null, item.target, score, evaluation);
 }
-function submitWritingAnswer(correct, answer, score = null) {
+function submitWritingAnswer(_callerCorrect, answer, score = null, recordedEvaluation = null) {
   const state = traceState, item = state?.items[state.index];
   if (!state || state.mode !== 'advanced' || state.waiting) return;
   if (item.type === 'order' && state.selected.length !== item.target.length) {
     $('#traceFeedback').textContent='استخدمي كل الحروف الأول، وبعدها اضغطي «قيّمي كتابتي» 💛'; return;
   }
   state.waiting = true;
-  const finalCorrect = item.type === 'order' ? state.selected.map(tile=>tile.value).join('') === item.target : correct;
-  const childAnswer = item.type === 'order' ? state.selected.map(tile=>tile.value).join('') : String(answer);
-  state.results.push({prompt:item.prompt, answer:childAnswer, expected:item.expected || item.target, correct:finalCorrect, score});
+  const childAnswer = score === null ? String(answer) : 'كتبت بإصبعها';
+  const expected = item.expected ?? item.target;
+  const answerKey = item.target ?? expected;
+  const evaluation = recordedEvaluation || assessmentEngine.grade({
+    questionId:item.questionId,
+    attemptId:`${item.questionId}:attempt-${item.attempts.length + 1}`,
+    kind:score === null ? (item.lang === 'ar-EG' && /^\d+$/.test(String(expected)) ? 'math' : 'text') : 'handwriting',
+    answer:childAnswer,
+    expected:answerKey,
+    acceptedAnswers:item.acceptedAnswers || [answerKey],
+    quality:score,
+  });
+  if (!recordedEvaluation) item.attempts.push(evaluation);
+  const finalCorrect = evaluation.isCorrect === true;
+  state.results.push({questionId:evaluation.questionId, attemptId:evaluation.attemptId, attempts:item.attempts, prompt:item.prompt, answer:childAnswer, expected, correct:finalCorrect, status:evaluation.status, confidence:evaluation.confidence, score:evaluation.score});
   $('#traceChoices').querySelectorAll('button').forEach(button=>button.disabled=true);
-  const feedback = finalCorrect ? 'برافو! إجابة ممتازة ⭐' : `الإجابة الصح ${item.expected || item.target}. نكمل ونتعلمها سوا 🌱`;
+  const feedback = evaluation.status === 'partial' ? 'قريبة جدًا! شكل كتابتك محتاج محاولة كمان 🌼' : finalCorrect ? 'برافو! إجابة ممتازة ⭐' : `الإجابة الصح ${expected}. نكمل ونتعلمها سوا 🌱`;
   $('#traceFeedback').textContent = score === null ? feedback : `${feedback} · ${score}%`;
   speakTraceFeedback(feedback);
   setTimeout(() => {

@@ -71,6 +71,8 @@ python3 server.py
 
 أضيفت هوية LOLO الرسمية إلى `assets/branding/`، ويمكن إعادة توليد ملفات الويب وAndroid عبر `python3 scripts/generate_brand_assets.py` (يتطلب Pillow من `requirements-dev.txt`).
 
-اختبارات الأساس المحلية: `python3 -m unittest discover -s tests -v` و`node tests/storage.test.cjs` و`node tests/session-timers.test.cjs`، مع `python3 -m py_compile server.py api/*.py` وفحص JavaScript باستخدام Node. لا تشغّل اختبارات AI باتصالات حية؛ قد تستخدم رصيد المزود.
+اختبارات الأساس المحلية: `python3 -m unittest discover -s tests -v` و`node tests/storage.test.cjs` و`node tests/assessment-engine.test.cjs` و`node tests/session-timers.test.cjs`، مع `python3 -m py_compile server.py api/*.py` وفحص JavaScript باستخدام Node. لا تشغّل اختبارات AI باتصالات حية؛ قد تستخدم رصيد المزود.
+
+تحديات الكتابة والماث المتقدمة تستخدم محرك تقييم مستقلًا لتطبيع الإجابات ومراجعة ترتيب الكلمات والأرقام وجودة تتبع الحروف، مع معرف لكل سؤال ومحاولة ومنع لتسجيل المحاولة مرتين. التقييم الصوتي المفتوح ما زال يستخدم المسار القديم ولم يتم اعتماده كتقييم مستقل بعد.
 
 تنبيه أمني: تحديد الطلبات الحالي داخل الذاكرة حماية مبدئية لكل عملية فقط، وليس بديلاً عن تحديد مركزي مشترك قبل فتح API للجمهور.

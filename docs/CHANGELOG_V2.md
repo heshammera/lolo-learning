@@ -58,3 +58,10 @@
 - **Before:** the workflow ran Python tests from inside `android-apk`, so `server.py` was outside Python's import path and the security test module could not load.
 - **After:** the workflow changes to the repository root before running Python and Node tests, then returns to the existing Android build step.
 - **Verification:** GitHub Actions run `45935676035` passed all 7 Python tests, both Node tests, the Android debug build, and APK upload. Downloaded artifact SHA256: `e51aa09ae6fe2dfadf3af90d4f5f1874d92aee1401b034a4f65c03a30277e4fd`.
+
+## Milestone 1.3 — Independent assessment for advanced writing and math
+
+- **Before:** advanced writing activities compared answer strings or used drawing-overlap heuristics inline; results had no shared question/attempt IDs, did not normalize spoken-style number forms, and parent details omitted the child's actual response and retry count. Duplicate attempts were guarded only by UI state.
+- **After:** `assessment-engine.js` normalizes English text and Arabic/English numerals and number words, scores answer variants against local expected answers, classifies handwriting similarity as incorrect/partial/correct with a conservative confidence marker, assigns question/attempt IDs, and makes duplicate attempt IDs idempotent. The advanced writing/maths path now consumes its decision and preserves each tracing retry. Parent results show the child's response, retry count, and trace similarity.
+- **Scope limit:** this engine is currently wired only to advanced writing/math activities. Live spoken lessons and oral quizzes still accept AI-declared correctness and need a curriculum-authored assessment contract. Browser-local results remain editable.
+- **Verification:** 7 Python tests, all 3 Node test files, Python/JavaScript syntax checks, `git diff --check`, and local HTTP checks for the app, curriculum, and assessment module pass. New CI run is pending; no paid/live AI calls are involved.

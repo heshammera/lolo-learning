@@ -11,3 +11,4 @@
 
 - Added baseline docs, API input validation and in-process rate limiting, local-only server binding, security headers, official branding across web/Android, storage recovery handling, and generation-scoped session timers.
 - Built an updated Android debug APK from GitHub Actions.
+- Added the first independent assessment module for advanced writing/math activities: normalized answers, math word/digit parsing, partial handwriting feedback, question/attempt IDs, duplicate protection, and richer parent results. Live oral scoring remains open.

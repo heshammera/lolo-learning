@@ -25,4 +25,4 @@
 
 ## Current work status
 
-Phase 0 audit and Phase 1 foundational safeguards are underway. Local edits are isolated on `development/lolo-v2`; the remote backup branch `backup/pre-lolo-v2` points to the baseline commit. Production `main` has not been changed or deployed.
+Phase 0 / Phase 1 foundational safeguards and the brand integration have been implemented and validated in earlier milestones. Phase 5/6 work has started with a client-side deterministic assessment module for advanced writing/maths activities. Spoken assessment and trusted server-side scoring are still open. Work remains isolated on `development/lolo-v2`; `backup/pre-lolo-v2` and production `main` remain at the baseline, and no production deployment has been made.

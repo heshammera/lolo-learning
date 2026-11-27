@@ -7,6 +7,11 @@ on:
       - 'android-apk/**'
       - 'assets/branding/**'
       - 'scripts/generate_brand_assets.py'
+      - 'app.js'
+      - 'assessment-engine.js'
+      - 'index.html'
+      - 'server.py'
+      - 'tests/**'
       - '.github/workflows/build-android.yml'
 
 permissions:
@@ -39,6 +44,7 @@ jobs:
           cd ..
           python3 -m unittest discover -s tests -v
           node tests/storage.test.cjs
+          node tests/assessment-engine.test.cjs
           node tests/session-timers.test.cjs
       - name: Build debug APK
         run: |
