@@ -9,3 +9,5 @@
 - Main remains 20dbc12. Visual editor browser failure addressed in 3e33a65; rerun pending. CMS review/release candidate verification/cms-review-20261127; local-only staged publication. CI pending.
 
 - Main 3e33a65 (visual editor verified). CMS review cleanup corrected on verification/cms-review-20261127. Signed package foundation candidate verification/content-packages-20261127; CI pending, no active download or production keys.
+
+- Main 829bc63 after family, admin and Android checks. Content installation candidate verification/content-install-20261127; staging exporter and atomic device storage; CI pending, no live delivery.

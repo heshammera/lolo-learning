@@ -21,6 +21,7 @@ on:
       - 'activity-pilot.js'
       - 'content-schema.js'
       - 'content-package.js'
+      - 'content-install.js'
       - 'admin-src/**'
       - 'progress_sync.py'
       - 'offline-assets.js'
@@ -88,6 +89,7 @@ jobs:
           npm install --prefix "$RUNNER_TEMP/lolo-browser-tests" --no-package-lock --no-save playwright@1.56.1
           "$RUNNER_TEMP/lolo-browser-tests/node_modules/.bin/playwright" install --with-deps chromium
           NODE_PATH="$RUNNER_TEMP/lolo-browser-tests/node_modules" node tests/browser-offline.cjs
+          NODE_PATH="$RUNNER_TEMP/lolo-browser-tests/node_modules" node tests/content-install-browser.cjs
       - name: Build debug APK
         run: |
           npm run prepare:web

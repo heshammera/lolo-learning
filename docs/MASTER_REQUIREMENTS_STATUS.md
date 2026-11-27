@@ -50,3 +50,5 @@ CMS draft foundation promoted at 20dbc12 after admin and Android checks. Visual 
 Visual editor first CI failed browser locator; accessible select labels fixed in 3e33a65 (not yet verified). Staged CMS review/release candidate adds separate reviewer, revisioned transitions, snapshot history and rollback; no student publishing or production service. All prior requirements retained.
 
 Visual editor promoted at 3e33a65 after passing browser and Android CI. Review tests failed during fixture cleanup; fixed in 11324ce, rerun pending. Content package candidate adds shared schema, pinned-key verification and P-256 signing primitive; no delivery or production key configured.
+
+CMS review and signed package verified/promoted at 829bc63. Candidate active release export with server permission, persistent sequence and IndexedDB signed package staging, no production key or learner activation. Real download/UI/subject catalog and remaining activities pending.

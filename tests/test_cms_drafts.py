@@ -35,6 +35,7 @@ class DraftTests(unittest.TestCase):
     def tearDown(self):
         with self.store.connect() as db:
             for user in self.users:
+                db.execute("DELETE FROM lolo_cms_delivery_sequence WHERE draft_id IN (SELECT id FROM lolo_cms_drafts WHERE created_by=%s)",(user,))
                 db.execute("DELETE FROM lolo_cms_active_release WHERE draft_id IN (SELECT id FROM lolo_cms_drafts WHERE created_by=%s)",(user,))
                 db.execute("DELETE FROM lolo_cms_releases WHERE draft_id IN (SELECT id FROM lolo_cms_drafts WHERE created_by=%s)",(user,))
                 db.execute("DELETE FROM lolo_cms_drafts WHERE created_by=%s",(user,))
@@ -92,3 +93,36 @@ class DraftTests(unittest.TestCase):
         with self.store.connect() as db:
             original=db.execute("SELECT content->>'title' FROM lolo_cms_releases WHERE id=%s",(first,)).fetchone()[0]
         self.assertEqual(original,"Synthetic science")
+
+    def test_active_export_sequence_and_rollback(self):
+        from content_packages import export_active
+        from cryptography.hazmat.primitives.asymmetric import ec
+        import base64,json
+        editor,teacher,owner=self.tokens
+        key=ec.generate_private_key(ec.SECP256R1())
+        d=sample();ident=self.cms.save(editor,None,0,d)["id"]
+        def export(token,release):
+            return export_active(self.store,token,ident,release,"fixture",key)
+        def denied(fn,status):
+            with self.assertRaises(FamilyError) as e:fn()
+            self.assertEqual(e.exception.status,status)
+        def payload(envelope):
+            s=envelope["payload"]
+            return json.loads(base64.urlsafe_b64decode(s+"="*(-len(s)%4)))
+        denied(lambda:export(owner,str(uuid.uuid4())),409)
+        self.cms.transition(editor,ident,1,"submit")
+        self.cms.transition(teacher,ident,2,"approve")
+        first=self.cms.transition(owner,ident,3,"publish")["releaseId"]
+        denied(lambda:export(editor,first),403)
+        self.assertEqual(payload(export(owner,first))["sequence"],1)
+        self.cms.transition(editor,ident,4,"reopen")
+        d["title"]="Updated"
+        self.cms.save(editor,ident,5,d)
+        self.cms.transition(editor,ident,6,"submit")
+        self.cms.transition(teacher,ident,7,"approve")
+        second=self.cms.transition(owner,ident,8,"publish")["releaseId"]
+        denied(lambda:export(owner,first),409)
+        self.assertEqual(payload(export(owner,second))["sequence"],2)
+        self.cms.rollback(owner,ident,first,second)
+        restored=payload(export(owner,first))
+        self.assertEqual((restored["version"],restored["sequence"],restored["content"]["title"]),(1,3,"Synthetic science"))

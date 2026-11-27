@@ -1,2 +1,2 @@
 # Next Action
-Verify review and package CI; only promote passing commits. Implement approved-release export with monotonic delivery sequence, pinned public key configuration and atomic offline installation, then learner runtime and remaining activities/V2. Production CMS and cloud remain disabled.
+Verify active export/IndexedDB CI. Next explicit trusted key deployment, signed package import/download UI gated by parent, generic learner lesson/path runtime isolated from existing progress, delivery manifest and remaining V2. Production admin still local-only.

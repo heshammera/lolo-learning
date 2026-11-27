@@ -12,6 +12,7 @@ from pathlib import Path
 
 from admin_identity import AdminStore, FamilyError
 from cms_drafts import Drafts
+from content_packages import export_active
 ROOT = Path(__file__).resolve().parent
 COOKIE = "lolo_admin_session"
 ASSETS = {"/":("index.html","text/html; charset=utf-8"),
@@ -29,11 +30,12 @@ def load_library():
 
 class AdminServer(ThreadingHTTPServer):
     daemon_threads=True
-    def __init__(self,port,store,library):
+    def __init__(self,port,store,library,signing=None):
         super().__init__(("127.0.0.1",port),Handler)
         self.store=store
         self.library=library
         self.drafts=Drafts(store)
+        self.signing=signing
         self.host="127.0.0.1:"+str(self.server_port)
         self.origin="http://"+self.host
         self.attempts=deque()
@@ -161,6 +163,13 @@ class Handler(BaseHTTPRequestHandler):
                     result=self.server.drafts.save(self.token(),body["id"],body["revision"],body["content"])
                     return self.reply(200 if result["saved"] else 422,result)
                 raise FamilyError(400,"Invalid fields.")
+            if self.path=="/api/draft/export":
+                self.server.store.inspect(self.token(),"curriculum:publish")
+                if not self.server.signing:raise FamilyError(503,"Signing disabled.")
+                body=self.json_body()
+                if set(body)!={"id","expectedRelease"}:raise FamilyError(400,"Invalid fields.")
+                key_id,key=self.server.signing
+                return self.reply(200,export_active(self.server.store,self.token(),body["id"],body["expectedRelease"],key_id,key))
             if self.path=="/api/logout":
                 if self.json_body()!={}:raise FamilyError(400,"Invalid fields.")
                 try:self.server.store.logout(self.token())
@@ -178,7 +187,17 @@ def main():
     if not dsn or dsn==os.environ.get("LOLO_DATABASE_URL"):
         raise RuntimeError("Separate admin database required.")
     store=AdminStore(dsn,os.environ.get("LOLO_ADMIN_ENCRYPTION_KEY"))
-    with AdminServer(int(os.environ.get("LOLO_ADMIN_PORT","4180")),store,load_library()) as server:
+    signing=None
+    if os.environ.get("LOLO_ADMIN_STAGING_EXPORT")=="true":
+        from cryptography.hazmat.primitives import serialization
+        from cryptography.hazmat.primitives.asymmetric import ec
+        key_file=Path(os.environ["LOLO_ADMIN_SIGNING_KEY_FILE"])
+        # Private key file must be supplied by the operator, outside the repository.
+        if key_file.resolve().is_relative_to(ROOT.parent):raise RuntimeError("Key must be outside repository.")
+        key=serialization.load_pem_private_key(key_file.read_bytes(),password=None)
+        if not isinstance(key,ec.EllipticCurvePrivateKey) or not isinstance(key.curve,ec.SECP256R1):raise RuntimeError("P-256 key required.")
+        signing=(os.environ["LOLO_ADMIN_SIGNING_KEY_ID"],key)
+    with AdminServer(int(os.environ.get("LOLO_ADMIN_PORT","4180")),store,load_library(),signing) as server:
         print("Local-only admin: "+server.origin,flush=True)
         server.serve_forever()
 
