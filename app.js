@@ -3,6 +3,7 @@ const storage = window.LoloStorage;
 const assessmentEngine = window.LoloAssessment.create();
 const curriculumEngine = window.LoloCurriculum;
 const learningEngine = window.LoloLearning;
+const parentGate = window.LoloParentGate.create(storage);
 const sessionTimers = window.LoloSessionTimers.create();
 window.addEventListener('lolo-storage-warning', event => showError(event.detail));
 if (storage.get('lolo-welcome-tour-v1-complete') === 'true' && storage.get('lolo-selected-program')) $('#app')?.classList.add('ready');
@@ -19,6 +20,10 @@ let traceSpeechRequestId = 0;
 let traceSpeechAudio = null;
 let lessonStats = storage.getJSON('lolo-lesson-stats', {});
 let skillProgress = learningEngine.createStore(storage.getJSON('lolo-skill-progress-v1', {}));
+let parentGatePurpose = {type: 'open', tab: 'settings'};
+let parentGateAutoLockTimer = null;
+let parentGateRecoveryPurpose = 'open';
+let parentGateReturnFocus = null;
 const DEFAULT_PARENT_SETTINGS = {sessionMinutes: 10, speechPace: 'slow', hintLevel: 'gentle', repeatWords: true, rewardEnabled: true, rewardSeconds: 9, learningPath: 'selected'};
 let parentSettings = {...DEFAULT_PARENT_SETTINGS, ...storage.getJSON('lolo-parent-settings', {})};
 let sessionMode = 'lesson';
@@ -646,7 +651,7 @@ function startWritingPath(program, stageIndex) {
   const items = program.subject === 'math' ? buildMathWritingTasks(program, stageIndex) : buildEnglishWritingTasks(program, stageIndex);
   const assessmentId = window.LoloAssessment.createAssessmentId();
   traceState = {mode:'advanced', programId:program.id, stageIndex, assessmentId, items:items.map((item, index) => ({...item, questionId:`${assessmentId}:q${index + 1}`, attempts:[]})), index:0, results:[], attempts:0, selected:[]};
-  $('#parentSheet').classList.remove('open');
+  closeParentSettings();
   $('#traceSheet').classList.add('open'); $('#traceSheet').setAttribute('aria-hidden','false');
   $('#traceTitle').textContent = program.subject === 'math' ? '🔢 تحدّي الماث' : '✍️ تحدّي الكتابة';
   $('#traceVisual').hidden = true; $('#traceHear').hidden = true; $('#traceChoices').hidden = true;
@@ -858,7 +863,7 @@ function startTraceTest(lessonId) {
   if (isActive || isStarting) stopSession();
   const prompts = Array.from({length: 5}, (_, index) => targets[index % targets.length]);
   traceState = {lesson, prompts, scores: [], index: 0};
-  $('#parentSheet').classList.remove('open');
+  closeParentSettings();
   $('#traceSheet').classList.add('open');
   $('#traceSheet').setAttribute('aria-hidden', 'false');
   $('#traceTitle').textContent = '✍️ نكتب ونتعلّم';
@@ -2650,13 +2655,82 @@ function showParentTab(tab) {
   $('#parentScroll').scrollTop = 0;
 }
 
-function openParentSettings(tab = 'settings') {
+function setParentGateView(view, title, intro = '') {
+  if ($('#parentGate').hidden) parentGateReturnFocus = document.activeElement;
+  $('#parentGate').hidden = false;
+  document.body.classList.add('parent-gate-open');
+  $('#parentGate').setAttribute('aria-hidden', 'false');
+  $('#parentGateTitle').textContent = title;
+  $('#parentGateIntro').textContent = intro;
+  $('#parentGateStatus').textContent = '';
+  document.querySelectorAll('[data-gate-view]').forEach(element => { element.hidden = element.dataset.gateView !== view; });
+  const firstInput = $(`#parentGate [data-gate-view="${view}"] input`);
+  firstInput?.focus();
+}
+
+function closeParentGateModal(restoreFocus = true) {
+  $('#parentGate').hidden = true;
+  $('#parentGate').setAttribute('aria-hidden', 'true');
+  document.body.classList.remove('parent-gate-open');
+  $('#parentGate').querySelectorAll('input').forEach(input => { input.value = ''; });
+  $('#parentGateStatus').textContent = '';
+  const returnFocus = parentGateReturnFocus;
+  parentGateReturnFocus = null;
+  if (restoreFocus && returnFocus?.isConnected && typeof returnFocus.focus === 'function') returnFocus.focus();
+}
+
+function closeParentSettings() {
+  clearTimeout(parentGateAutoLockTimer);
+  parentGateAutoLockTimer = null;
+  parentGate.lock();
+  $('#parentSheet').classList.remove('open');
+  $('#parentSheet').setAttribute('aria-hidden', 'true');
+}
+
+function scheduleParentAutoLock() {
+  clearTimeout(parentGateAutoLockTimer);
+  parentGateAutoLockTimer = setTimeout(() => {
+    if (!parentGate.isUnlocked()) {
+      closeParentSettings();
+      $('#parentProgress').textContent = 'اتقفلت لوحة وليّ الأمر بعد فترة من غير استخدام.';
+    }
+  }, parentGate.autoLockMs + 50);
+}
+
+function showParentGate(view, title, intro) {
+  setParentGateView(view, title, intro);
+}
+
+function displayRecoveryCode(code, purpose) {
+  parentGateRecoveryPurpose = purpose;
+  $('#parentGateRecoveryOutput').textContent = code;
+  setParentGateView('recovery-display', 'احتفظي برمز الاستعادة', 'اكتبي الرمز في مكان آمن. مش هنقدر نعرضه مرة تانية.');
+  $('#parentGateRecoveryDone').focus();
+}
+
+function parentGateError(result) {
+  const messages = {
+    PIN_FORMAT: 'اكتبي ٦ أرقام بالضبط.', PIN_MISMATCH: 'الرقمان مش متطابقين.',
+    INCORRECT_PIN: 'الرقم السري مش صحيح.', INCORRECT_RECOVERY_CODE: 'رمز الاستعادة مش صحيح.',
+    LOCKED: `المحاولات كتير. استني ${Math.max(1, Math.ceil((result.retryAfterMs || 60000) / 60000))} دقيقة وجربي تاني.`,
+    STORAGE_UNAVAILABLE: 'تعذر حفظ الحماية على الجهاز. تأكدي من مساحة التخزين وجربي تاني.',
+    SECURE_CRYPTO_UNAVAILABLE: 'المتصفح لا يدعم الحماية المشفرة المطلوبة. افتحي التطبيق من رابط آمن أو localhost.',
+    ALREADY_CONFIGURED: 'الحماية متفعلة بالفعل. اكتبي الرقم السري لفتح اللوحة.',
+    NOT_CONFIGURED: 'الحماية غير مضبوطة. ابدئي بإعداد رقم سري جديد.',
+  };
+  $('#parentGateStatus').textContent = messages[result?.reason] || 'ماقدرناش نكمل العملية. راجعي البيانات وجربي تاني.';
+}
+
+function showParentSettingsUnlocked(tab = 'settings') {
+  if (!parentGate.isUnlocked()) return openParentSettings(tab);
   $('#parentSheet').classList.add('open');
   $('#parentSheet').setAttribute('aria-hidden', 'false');
   showParentTab(tab);
+  $('#parentClose').focus();
   syncParentSettingsUI();
   renderParentReport();
   $('#parentProgress').textContent = `${parentProgressSummary()} تقدري تختاري أي درس أو تعيدي دروس سابقة في أي وقت.`;
+  scheduleParentAutoLock();
   fetch('/api/status').then(response => response.json()).then(status => {
     const labels = {gemini: 'Gemini الأساسي', openai: 'OpenAI', 'gemini-backup': 'Gemini الاحتياطي'};
     const enabled = (status.providers || []).map(provider => labels[provider]);
@@ -2665,8 +2739,92 @@ function openParentSettings(tab = 'settings') {
       : 'لا توجد مفاتيح API. أضيفيها إلى .env ثم أعيدي تشغيل الخادم.';
   }).catch(() => $('#apiState').textContent = 'تعذر فحص حالة الخادم.');
 }
+
+function openParentSettings(tab = 'settings') {
+  parentGatePurpose = {type: 'open', tab};
+  if (parentGate.isUnlocked()) return showParentSettingsUnlocked(tab);
+  if (parentGate.isConfigured()) showParentGate('verify', 'لوحة وليّ الأمر', 'أدخلي الرقم السري عشان تفتحي الإعدادات أو تختاري درسًا.');
+  else showParentGate('setup', 'إعداد حماية وليّ الأمر', 'اختاري رقمًا سريًا واحفظي رمز الاستعادة في مكان آمن.');
+}
+
+$('#parentGateSetup').addEventListener('submit', async event => {
+  event.preventDefault();
+  try {
+    const result = await parentGate.setup($('#parentGateSetupPin').value, $('#parentGateSetupConfirm').value);
+    if (!result.ok) return parentGateError(result);
+    displayRecoveryCode(result.recoveryCode, 'open');
+  } catch (error) {
+    parentGateError({reason: error.message});
+  }
+});
+$('#parentGateVerify').addEventListener('submit', async event => {
+  event.preventDefault();
+  try {
+    const result = await parentGate.verifyPin($('#parentGatePin').value);
+    if (!result.ok) return parentGateError(result);
+    closeParentGateModal(false);
+    if (parentGatePurpose.type === 'open') showParentSettingsUnlocked(parentGatePurpose.tab);
+    else if (parentGatePurpose.type === 'action') {
+      scheduleParentAutoLock();
+      runParentSensitiveAction(parentGatePurpose.action);
+    }
+  } catch (error) {
+    parentGateError({reason: error.message});
+  }
+});
+$('#parentGateRecover').addEventListener('submit', async event => {
+  event.preventDefault();
+  try {
+    const result = await parentGate.recover($('#parentGateRecoveryCode').value, $('#parentGateRecoveryPin').value, $('#parentGateRecoveryConfirm').value);
+    if (!result.ok) return parentGateError(result);
+    displayRecoveryCode(result.recoveryCode, 'open');
+  } catch (error) {
+    parentGateError({reason: error.message});
+  }
+});
+$('#parentGateChange').addEventListener('submit', async event => {
+  event.preventDefault();
+  try {
+    const result = await parentGate.changePin($('#parentGateCurrentPin').value, $('#parentGateNewPin').value, $('#parentGateNewConfirm').value);
+    if (!result.ok) return parentGateError(result);
+    displayRecoveryCode(result.recoveryCode, 'return');
+  } catch (error) {
+    parentGateError({reason: error.message});
+  }
+});
+$('#parentGateForgot').onclick = () => {
+  parentGatePurpose = {type: 'open', tab: 'settings'};
+  setParentGateView('recover', 'استعادة الرقم السري', 'أدخلي رمز الاستعادة واختاري رقمًا سريًا جديدًا.');
+};
+document.querySelectorAll('[data-gate-back]').forEach(button => { button.onclick = () => setParentGateView('verify', 'لوحة وليّ الأمر', 'أدخلي الرقم السري عشان تفتحي الإعدادات أو تختاري درسًا.'); });
+document.querySelectorAll('[data-gate-cancel]').forEach(button => { button.onclick = closeParentGateModal; });
+$('#parentGateRecoveryDone').onclick = () => {
+  const purpose = parentGateRecoveryPurpose;
+  closeParentGateModal(false);
+  if (purpose === 'open') showParentSettingsUnlocked(parentGatePurpose.tab);
+  else { $('#parentClose').focus(); scheduleParentAutoLock(); }
+};
+
+function requestParentSensitiveAction(action) {
+  if (!parentGate.isConfigured()) return openParentSettings('settings');
+  parentGatePurpose = {type: 'action', action};
+  showParentGate('verify', 'تأكيد وليّ الأمر', 'أدخلي الرقم السري لتأكيد العملية.');
+}
+
+function runParentSensitiveAction(action) {
+  if (action === 'clear-answer-history') return clearAnswerHistory();
+  if (action === 'reset-course') return resetCourseProgress();
+}
 $('#parentOpen').onclick = () => openParentSettings('settings');
 $('#parentOpenWelcome').onclick = () => openParentSettings('settings');
+$('#changeParentPin').onclick = () => {
+  if (!parentGate.isUnlocked()) return openParentSettings('settings');
+  parentGatePurpose = {type: 'change'};
+  showParentGate('change', 'تغيير الرقم السري', 'أدخلي الرقم الحالي ثم اختاري رقمًا جديدًا.');
+};
+$('#lockParentGate').onclick = () => { closeParentSettings(); closeParentGateModal(); };
+$('#parentSheet').addEventListener('click', () => { parentGate.touch(); if (parentGate.isUnlocked()) scheduleParentAutoLock(); });
+$('#parentSheet').addEventListener('keydown', () => { parentGate.touch(); if (parentGate.isUnlocked()) scheduleParentAutoLock(); });
 $('#parentLessonsTab').onclick = () => showParentTab('lessons');
 $('#parentSettingsTab').onclick = () => showParentTab('settings');
 for (const id of ['learningPath', 'sessionMinutes', 'speechPace', 'hintLevel', 'rewardSeconds']) $(`#${id}`).onchange = saveParentSettings;
@@ -2698,13 +2856,12 @@ $('#welcomeAudio').onended = () => {
 };
 $('#welcomeStart').onclick = enterAppFromWelcome;
 $('#parentClose').onclick = () => {
-  $('#parentSheet').classList.remove('open');
-  $('#parentSheet').setAttribute('aria-hidden', 'true');
+  closeParentSettings();
 };
 $('#parentSheet').onclick = event => {
   if (event.target === $('#parentSheet')) $('#parentClose').click();
 };
-$('#resetCourse').onclick = () => {
+function resetCourseProgress() {
   if (!confirm('نرجع تقدم الدروس للبداية؟')) return;
   stopSession();
   mastered.clear();
@@ -2734,8 +2891,8 @@ $('#resetCourse').onclick = () => {
   updateDashboardLesson();
   refreshLessonPicker(currentLesson?.programId, currentLesson?.unitId);
   renderParentReport();
-};
-$('#clearAnswerHistory').onclick = () => {
+}
+function clearAnswerHistory() {
   if (!confirm('نمسح سجل الإجابات وتفاصيل الاختبارات؟ تقدم الدروس والشارات هيفضلوا محفوظين.')) return;
   lessonStats = {};
   testResults = {};
@@ -2748,7 +2905,35 @@ $('#clearAnswerHistory').onclick = () => {
   updateProgress();
   refreshLessonPicker(currentLesson?.programId, currentLesson?.unitId);
   renderParentReport();
-};
+}
+$('#resetCourse').onclick = () => requestParentSensitiveAction('reset-course');
+$('#clearAnswerHistory').onclick = () => requestParentSensitiveAction('clear-answer-history');
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'hidden') {
+    parentGate.lock();
+    clearTimeout(parentGateAutoLockTimer);
+    parentGateAutoLockTimer = null;
+    $('#parentSheet').classList.remove('open');
+    $('#parentSheet').setAttribute('aria-hidden', 'true');
+    closeParentGateModal();
+  }
+});
+document.addEventListener('keydown', event => {
+  if ($('#parentGate').hidden) return;
+  if (event.key === 'Escape') { event.preventDefault(); closeParentGateModal(); return; }
+  if (event.key !== 'Tab') return;
+  const focusable = [...$('#parentGate').querySelectorAll('input:not(:disabled),button:not(:disabled)')].filter(element => !element.closest('[hidden]'));
+  if (!focusable.length) return;
+  const first = focusable[0]; const last = focusable.at(-1);
+  if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+  else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+});
+window.addEventListener('storage', event => {
+  if (event.key && event.key !== window.LoloParentGate.PIN_KEY) return;
+  parentGate.lock();
+  closeParentSettings();
+  closeParentGateModal(false);
+});
 
 if (location.protocol === 'file:') {
   location.replace('http://localhost:4173/');

@@ -1,5 +1,12 @@
 # V2 Change Log
 
+## Local milestone — Device-local parent PIN barrier (not deployed)
+
+- **Before:** opening parent settings and invoking sensitive local reset actions did not require a PIN.
+- **After:** added first-use PIN setup, salted PBKDF2-SHA256 PIN/recovery hashes, attempt throttling, automatic inactivity lock, PIN change/recovery, and fresh PIN checks before clearing local learning history. The modal supports Arabic-Indic digits and keyboard focus management. Parent settings are gated, including the parent settings surface opened from app flows.
+- **Scope limit:** this is a local device barrier. It is not identity verification, server-side authorization, consent, or durable recovery; clearing browser storage can remove both gate and local learning data.
+- **Verification:** deterministic tests cover PIN validation/hash storage, verification, lockout, auto-lock, recovery rotation, PIN change, and storage errors. No live AI calls or secrets are used.
+
 ## Milestone 0.1 — Baseline, initial safeguards, and official brand
 
 **Date:** 2026-11-27

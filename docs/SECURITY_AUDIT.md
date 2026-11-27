@@ -8,7 +8,7 @@
 |---|---|---|---|
 | SEC-01 | P1 | Public `/api/provider-token`, `/api/onboarding-audio`, and `/api/challenge-audio` can invoke paid provider APIs; no durable limiter or account identity existed at baseline. Routes are dispatched in `server.py:265`; short-lived limits now live in `server.py:22` and are applied before dispatch. | Added bounded in-process per-route limits and JSON/type checks. This is only a defense-in-depth limit; production acceptance still requires a shared edge or datastore limiter and alerting. |
 | SEC-02 | P1 | Live lessons still accept model `is_correct` and tutor-feedback parsing. Browser `localStorage` is editable. | Oral tests no longer accept a model-submitted score. OpenAI oral tests disable automatic responses and grade recognized transcripts locally against lesson-board tokens. Gemini still depends on model tool calls; ASR can misrecognize speech and local storage is editable. Do not treat conversational mastery or pronunciation as independently verified. |
-| SEC-03 | P1 | No authenticated parent identity, parental gate, consent workflow, or durable child data governance exists. | Open: required before multi-user/commercial launch; define minimum data collection and vendor review first. |
+| SEC-03 | P1 | No authenticated parent identity, consent workflow, or durable child data governance exists. | A device-local PIN gate now protects parent settings and destructive actions. It is a local access barrier only: browser storage can be edited/cleared, and it does not establish identity or provide server-side authorization. Consent and durable governance remain open before multi-user/commercial launch. |
 | SEC-04 | P1 | TTS responses are held in process memory; this is bounded for challenge prompts but not a distributed cache. | Open: evaluate cache privacy, TTL, budget, and provider retention before external shared storage. |
 | SEC-05 | P2 | Baseline local server bound to `0.0.0.0`, unnecessarily exposing local API routes on the LAN. | Fixed: default bind is `127.0.0.1`; explicit `HOST` override is needed for a LAN test. |
 | SEC-06 | P2 | Baseline logged truncated upstream Gemini token error response bodies. | Fixed: log only the upstream HTTP status; never print token/credential response bodies. |
@@ -22,7 +22,10 @@
 - Provider responses expose short-lived session tokens, not provider API keys.
 - New process-local throttles use an ephemeral HMAC of the client address rather than storing raw IP values.
 - Provider-backed test calls are not part of the automated suite.
+- The parent PIN and recovery code are stored only as salted PBKDF2-SHA256 hashes in browser storage; this reduces casual exposure but does not prevent a device owner from editing or deleting local state.
 
 ## Production limitation
 
 Vercel serverless instances do not share process memory reliably. The in-process limiter is not sufficient as the sole cost-control layer for public production traffic. Configure a shared edge/WAF or durable rate-limit store before broad public access, then verify real behavior with a safe staging deployment.
+
+The local parental PIN gate is not an authenticated account system and must not be represented as one. Clearing browser storage can remove the gate and local learning data; no server-side identity, recovery, or cross-device enforcement exists.

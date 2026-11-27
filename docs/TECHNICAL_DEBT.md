@@ -5,7 +5,7 @@
 | TD-01 | P1 | `app.js` owns UI, provider transport, assessment, curriculum selection, persistence, writing canvas, and games in one file. | Extract modules gradually with behavior tests; retain the current entry point during migration. |
 | TD-02 | P1 | Model tool calls currently carry answer correctness and mastery evidence; no independent assessment catalog exists. | Define typed question/answer criteria per lesson before changing score semantics. |
 | TD-03 | P1 | LocalStorage has no schema version, migration layer, cross-device sync, or user identity. | Add versioned storage adapters and migration tests; later decide whether accounts are needed. |
-| TD-04 | P1 | No parent authentication/gate and no documented consent lifecycle. | Product/legal/privacy decision before production accounts or analytics. |
+| TD-04 | P1 | A local parent PIN gate protects settings, but there is no authenticated parent identity, server-side authorization, consent lifecycle, or recoverable account. | Keep the local gate described as a device barrier only; define identity, consent, and data governance before production accounts or analytics. |
 | TD-05 | P1 | API throttling is process-local and resets between serverless instances. | Add shared edge throttling before exposing public API endpoints broadly. |
 | TD-06 | P2 | Curriculum JSON is not schema-validated in CI; lesson structure is implicit. | Publish JSON Schema and validate all lessons before introducing curriculum editing. |
 | TD-07 | P2 | No tests for UI, voice fallbacks, storage migrations, curriculum, or scoring at baseline. | Add deterministic backend tests first, then browser interaction tests with mocked provider transport. |

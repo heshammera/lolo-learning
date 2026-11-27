@@ -11,6 +11,7 @@ on:
       - 'assessment-engine.js'
       - 'curriculum-engine.js'
       - 'learning-engine.js'
+      - 'parent-gate.js'
       - 'curriculum.json'
       - 'scripts/**'
       - 'index.html'
@@ -51,6 +52,7 @@ jobs:
           node tests/assessment-engine.test.cjs
           node tests/curriculum-engine.test.cjs
           node tests/learning-engine.test.cjs
+          node tests/parent-gate.test.cjs
           node scripts/validate-curriculum.js
           node tests/session-timers.test.cjs
       - name: Build debug APK

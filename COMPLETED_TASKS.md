@@ -1,5 +1,7 @@
 # Completed Tasks
 
+- Local branch `codex/lolo-v2-next`: added a device-local parent PIN gate for parent settings and sensitive local reset actions. Includes salted PIN/recovery hashes, throttling, auto-lock, recovery/PIN change flows, and deterministic tests. Not deployed; not server authentication.
+
 ## Pre-V2 baseline
 
 - Added the Capacitor Android shell and GitHub Actions debug APK workflow (baseline history).

@@ -2,7 +2,8 @@
 
 **Reviewed:** 2026-11-27
 **Baseline:** `458ae22` (`Ignore downloaded Android APK artifact`)
-**Working branch:** `main` (all completed changes are pushed to the Vercel-linked branch)
+**Stable branch:** `main` (Vercel-linked)
+**Working branch:** `codex/lolo-v2-next` (local parental PIN milestone in progress)
 
 ## Product and runtime
 
@@ -10,6 +11,7 @@
 - Python standard-library server: `server.py`; Vercel Python endpoints import its handler from `api/`.
 - Curriculum data: `curriculum.json` (schema 2, content version 2.1.0: 12 foundation units, 12 Connect Plus units, 11 Math units, 140 lessons, and 140 lesson-linked skills; skill evidence is explicitly recognized-token matching).
 - Learning progress and parent settings are stored in browser `localStorage`.
+- Parent settings and destructive actions are protected by a device-local PIN gate on the current working branch; it is not server-side identity/authentication.
 - Realtime speech uses short-lived provider tokens issued server-side; provider order and features are controlled in `app.js` / `server.py`.
 - Android is a Capacitor shell (`android-apk/`) targeting the hosted Vercel URL; package ID is `com.heshammera.lolo`.
 - No application database, user accounts, durable cross-device progress, or checked-in automated browser suite is present at baseline.
@@ -25,4 +27,4 @@
 
 ## Current work status
 
-Phase 0 / Phase 1 safeguards, branding, deterministic writing/math grading, and a bounded lesson-token oral repeat test are implemented. OpenAI oral-test replies are gated by local transcript grading. Curriculum schema v2.1.0 adds a registry for evidence types. The skill-progress engine records introductions, deterministic answer outcomes, completed listen-and-repeat test scores, and review dates locally; it does not evaluate pronunciation or comprehension. Commit `0a43371` is deployed on `main`; GitHub Actions run `45942643151` passed tests and Android build. The public Vercel app serves curriculum 2.1.0 and the new learning engine. `backup/pre-lolo-v2` remains at `458ae22`.
+Phase 0 / Phase 1 safeguards, branding, deterministic writing/math grading, and a bounded lesson-token oral repeat test are implemented. OpenAI oral-test replies are gated by local transcript grading. Curriculum schema v2.1.0 adds a registry for evidence types. The skill-progress engine records introductions, deterministic answer outcomes, completed listen-and-repeat test scores, and review dates locally; it does not evaluate pronunciation or comprehension. Commit `0a43371` is deployed on `main`; GitHub Actions run `45942643151` passed tests and Android build. The public Vercel app serves curriculum 2.1.0 and the new learning engine. `backup/pre-lolo-v2` remains at `458ae22`. Current local milestone adds the device-local parent PIN barrier; it is not deployed until verified and promoted.
