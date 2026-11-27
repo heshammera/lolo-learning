@@ -9,6 +9,7 @@ on:
       - 'scripts/generate_brand_assets.py'
       - 'app.js'
       - 'assessment-engine.js'
+      - 'subject-catalog.js'
       - 'visual-question-bank.js'
       - 'visual-assessment-engine.js'
       - 'curriculum-engine.js'
@@ -57,7 +58,7 @@ jobs:
           python3 -m unittest discover -s tests -v
           node tests/storage.test.cjs
           node tests/assessment-engine.test.cjs
-          node --test tests/visual-assessment.test.cjs
+          node --test tests/visual-assessment.test.cjs tests/subject-catalog.test.cjs
           node tests/curriculum-engine.test.cjs
           node tests/learning-engine.test.cjs
           node --test tests/learning-path-engine.test.cjs

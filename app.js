@@ -4,6 +4,7 @@ const assessmentEngine = window.LoloAssessment.create();
 const curriculumEngine = window.LoloCurriculum;
 const learningEngine = window.LoloLearning;
 const pathEngine = window.LoloLearningPath;
+const subjectCatalog=window.LoloSubjectCatalog;
 const visualAssessment=window.LoloVisualAssessment;
 const visualBank=window.LoloVisualBank;
 const VISUAL_HISTORY_KEY='lolo-visual-assessment-v1';
@@ -83,20 +84,7 @@ const playingSources = new Set();
 let welcomeStep = 0;
 const welcomeAudioCache = new Map();
 
-function allLessons() {
-  if (!course) return [];
-  const programs = [
-    {id: 'foundation', title: 'تأسيس من الصفر', units: course.units},
-    ...(course.programs || []),
-  ];
-  return programs.flatMap(program => program.units.flatMap(unit => unit.lessons.map(lesson => ({
-    ...lesson,
-    programId: program.id,
-    programTitle: program.title,
-    unitTitle: unit.title,
-    unitId: unit.id,
-  }))));
-}
+function allLessons() { return subjectCatalog.lessons(course); }
 
 function nextLesson() {
   const selectedProgram = storage.get('lolo-path-program') || storage.get('lolo-selected-program');
@@ -112,12 +100,8 @@ function nextLesson() {
   return null;
 }
 
-function programList() {
-  return [
-    {id: 'foundation', title: 'تأسيس من الصفر', curriculumLabel: 'تأسيس من الصفر', gradeId: 'foundation', gradeLabel: 'مرحلة التأسيس', units: course?.units || []},
-    ...(course?.programs || []),
-  ];
-}
+function programList() { return subjectCatalog.programs(course); }
+function lessonSubject(lesson){return subjectCatalog.forProgram(programList().find(p=>p.id===lesson?.programId),course);}
 
 function gradeList() {
   const grades = new Map();
@@ -380,6 +364,8 @@ function renderProgramTests(program) {
       button.textContent = result ? `${result.passed ? '🏆' : '💪'} ${Math.round(result.correct / result.total * 100)}% · ${result.correct}/${result.total}` : 'ابدئي الاختبار';
       button.setAttribute('aria-label', `اختبار ${lesson.title || lesson.focus}`);
       button.onclick = () => chooseLesson(lesson.id, 'test');
+      button.disabled=!subjectCatalog.forProgram(program,course).spokenRepeat;
+      if(button.disabled)button.textContent='الصوت غير متاح';
       const traceResult = traceResults[lesson.id];
       const targets = traceTargets(lesson);
       if (targets.length) {
@@ -391,6 +377,13 @@ function renderProgramTests(program) {
         traceButton.onclick = () => startTraceTest(lesson.id);
         row.append(label, button, traceButton);
       } else row.append(label, button);
+      if(visualBankReady&&visualBank.bank[lesson.id]){
+        const visualButton=document.createElement('button');visualButton.type='button';visualButton.className='trace-test-button';
+        visualButton.textContent='⭐ فهم بالصور';
+        visualButton.setAttribute('aria-label',`تحدي الفهم ${lesson.title||lesson.focus}`);
+        visualButton.onclick=()=>{if(!parentGate.isUnlocked())return openParentSettings('lessons');closeParentSettings();openVisualQuiz(lesson.id);};
+        row.appendChild(visualButton);
+      }
       group.appendChild(row);
       if (traceResult) {
         const traceDetails = document.createElement('details');
@@ -461,8 +454,9 @@ const MATH_WRITING_STAGES = [
   {title: 'المسائل المصوّرة', hint: 'اسمعي الحكاية، وعدّي الصور، واختاري الإجابة.'},
 ];
 
-function writingStages(program) { return program.subject === 'math' ? MATH_WRITING_STAGES : ENGLISH_WRITING_STAGES; }
+function writingStages(program) { const mode=subjectCatalog.forProgram(program,course).writing; return mode==='math'?MATH_WRITING_STAGES:mode==='english'?ENGLISH_WRITING_STAGES:[]; }
 function writingStageUnlocked(program, index) {
+  if(!Number.isInteger(index)||index<0||index>=writingStages(program).length)return false;
   if (writingPathOverrides[program.id]) return true;
   if (index === 0) {
     const prerequisitePrograms = program.subject === 'math' ? [program.id] : [program.id, 'foundation'];
@@ -476,6 +470,7 @@ function renderWritingPath(program) {
   if (!root) return;
   root.replaceChildren();
   const stages = writingStages(program);
+  if(!stages.length)return;
   const section = document.createElement('section'); section.className = 'writing-path';
   const heading = document.createElement('h3'); heading.textContent = program.subject === 'math' ? '🔢 مسار تحديات الماث' : '✍️ مسار الكتابة المتقدمة';
   const intro = document.createElement('p'); intro.textContent = program.subject === 'math'
@@ -837,8 +832,9 @@ function showPickerTab(tab) {
 }
 
 function traceTargets(lesson) {
+  if(!subjectCatalog.profile(lesson?.subjectId,course).writing)return [];
   const focus = [lesson.focus, lesson.title, lesson.goal, ...(lesson.board?.tokens || []).map(token => token.text)].filter(Boolean).join(' ');
-  if (lesson.subject === 'math' || lesson.strand === 'math' || lesson.programId === 'math') {
+  if (subjectCatalog.profile(lesson.subjectId,course).writing==='math') {
     const digits = [...focus.matchAll(/[0-9٠-٩]+/g)].flatMap(match => [...match[0]].map(digit => digit.replace(/[٠-٩]/g, value => String('٠١٢٣٤٥٦٧٨٩'.indexOf(value)))));
     const numberWords = {zero:'0',one:'1',two:'2',three:'3',four:'4',five:'5',six:'6',seven:'7',eight:'8',nine:'9',ten:'10'};
     for (const word of focus.toLowerCase().match(/[a-z]+/g) || []) if (numberWords[word]) digits.push(numberWords[word]);
@@ -1085,6 +1081,7 @@ function chooseLesson(lessonId, mode = 'lesson', requestedPath = null) {
   }
   const lesson = allLessons().find(item => item.id === lessonId);
   if (!lesson) return;
+  if(mode==='test'&&!lessonSubject(lesson).spokenRepeat){setStatus('الاختبار الصوتي غير متاح لهذه المادة.');return;}
   const speakingAssessment = mode === 'test' ? assessmentEngine.createSpokenAssessment(lesson) : null;
   if (speakingAssessment && !speakingAssessment.supported) {
     showError('الاختبار الصوتي لهذا الدرس لسه محتاج كلمات واضحة في المنهج.');
@@ -1165,8 +1162,9 @@ function updateDashboardLesson() {
   if (!currentLesson) return;
   const icons = {math: '🔢', phonics: '🔊', grammar: '🧩', speaking: '🗣️', review: '⭐'};
   const program = programList().find(item => item.id === currentLesson.programId);
-  const subjectName = program?.subject === 'math' ? 'ماث' : currentLesson.programId === 'foundation' ? 'تأسيس إنجليزي' : 'إنجليزي';
-  $('#dashboardLessonIcon').textContent = icons[currentLesson.strand] || '🌱';
+  const profile=subjectCatalog.forProgram(program,course);
+  const subjectName=currentLesson.programId==='foundation'?'تأسيس إنجليزي':profile.label;
+  $('#dashboardLessonIcon').textContent = icons[currentLesson.strand] || (currentLesson.programId==='foundation'?'🌱':profile.icon);
   $('#dashboardLessonTitle').textContent = currentLesson.title || currentLesson.focus;
   $('#dashboardMode').textContent = `${subjectName} · ${sessionMode === 'test' ? 'اختبار شفهي' : 'الدرس الجاي'}`;
   renderPathStatus();
@@ -1221,7 +1219,7 @@ function updateLessonBadge(lesson) {
 function cardsFor(lesson) {
   $('#cards').replaceChildren();
   updateLessonBoard(lesson);
-  const isMath = programList().find(program => program.id === lesson?.programId)?.subject === 'math';
+  const isMath = lessonSubject(lesson).scene==='math';
   $('#app').classList.toggle('math-active', isMath);
   if (!isMath || mathScene?.lessonId !== lesson?.id) { mathScene = null; $('#mathGroups').replaceChildren(); $('#mathObjects').replaceChildren(); $('#mathActions').replaceChildren(); $('#mathEquation').textContent = ''; }
   if (isMath && !mathScene) showMathScene(initialMathScene(lesson));
@@ -2549,6 +2547,7 @@ async function startSession(continuing = false) {
   if (continuing !== true || !learningDeadline) learningDeadline = Date.now() + Math.max(1,Math.min(30,Number(parentSettings.sessionMinutes)||10))*60000;
   if (Date.now() >= learningDeadline) return;
   currentLesson = currentLesson || nextLesson();
+  if(!currentLesson||!lessonSubject(currentLesson).live){setStatus('الصوت الذكي غير متاح لهذه المادة بعد. تقدري تكملي التدريب المحلي.');openOfflinePractice();return;}
   if (sessionMode === 'test' && (!activeSpeakingAssessment || activeSpeakingAssessment.lessonId !== currentLesson?.id)) {
     activeSpeakingAssessment = assessmentEngine.createSpokenAssessment(currentLesson);
     if (!activeSpeakingAssessment.supported) {
@@ -2867,7 +2866,7 @@ function renderParentReport() {
     const pathResults = writingPathResults[activeProgram.id] || {};
     const done = Object.values(pathResults).filter(result => (result?.bestPercent || result?.percent || 0) >= 75).length;
     const stageCount = writingStages(activeProgram).length;
-    addCard(activeProgram.subject === 'math' ? 'مسار الماث المتقدم' : 'مسار الكتابة المتقدمة', `${done} من ${stageCount} مراحل متقنة${writingPathOverrides[activeProgram.id] ? ' · فتح وليّ الأمر كل المراحل' : ''}`);
+    if(stageCount)addCard(activeProgram.subject === 'math' ? 'مسار الماث المتقدم' : 'مسار الكتابة المتقدمة', `${done} من ${stageCount} مراحل متقنة${writingPathOverrides[activeProgram.id] ? ' · فتح وليّ الأمر كل المراحل' : ''}`);
   }
   for (const lesson of lessons) {
     const stats = lessonStats[lesson.id] || {};

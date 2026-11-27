@@ -18,3 +18,5 @@ Do not reimplement completed features without checking code and tests. Never mar
 Offline milestone candidate: public shell service worker, bundled native UI, bounded API transport, local review, and offline notice. Device and provider checks remain open. No cross-device synchronization yet.
 
 Offline milestone promoted at 0a198c9 after run 46049057338 passed. Visual assessment pilot candidate: 24 draft choice items across 8 lessons; no mastery claims or educator review; broader authored content and runtime verification remain open.
+
+Subject catalog candidate: shared program/lesson enumeration, subject metadata/capability resolution, draft program exclusion, conservative fallbacks and synthetic science path tests. Not a complete universal subject engine, CMS, or published science curriculum.

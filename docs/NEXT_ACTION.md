@@ -1,2 +1,2 @@
 # Next Action
-Verify visual assessment candidate CI before promotion. Then continue objective-specific assessment and reviewed content; server identity and child safety remain major priorities. Native phone checks, signing continuity and live voice remain unverified. See docs/MASTER_REQUIREMENTS_STATUS.md.
+Verify visual assessment and subject catalog candidate CI before promotion. Continue reviewed content and typed activity strategies, then durable authentication/authorization/consent and provider safety. Verify native device/signing/live voice separately.
