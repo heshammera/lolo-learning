@@ -1,2 +1,2 @@
 # Current status
-Main bbc65d802661cb5b3e0dde253bb3605cff496a60 passed family CI 46062172572 and Android CI 46062172625. Candidate verification/content-progress-20261127 adds scoped local practice checkpoints and resume; CI pending. No production keys, live content delivery, cloud activation or real device verification.
+Main 2352edc5b98fc34cddcd38dde7d1d77470386879 passed family CI 46062747355 and Android CI 46062747604. Signed curriculum E2E candidate on verification/content-e2e-20261127; no production keys or live delivery, no real device test. Await test result before promotion.

@@ -1,2 +1,2 @@
 # Next Action
-Verify checkpoints and signed fixture full UI E2E, then authenticated distribution manifest/HTTPS trust provisioning, isolated progress sync, remaining activity contracts and V2 requirements. Maintain exact evidence and no production activation without security/consent gates.
+Verify signed curriculum E2E and regression CI. Then implement direct delivery manifest/client with explicit trust configuration and no admin exposure, followed by remaining activity contracts and V2 requirements. Production activation and actual device tests remain gated.
