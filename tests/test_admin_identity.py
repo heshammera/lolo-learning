@@ -68,3 +68,17 @@ class AdminDBTests(unittest.TestCase):
         token=self.store.login(self.email,self.password,self.code())["token"]
         self.now+=timedelta(minutes=31)
         self.denied(lambda:self.store.inspect(token))
+
+    def test_disabled_admin_and_role_change_take_effect_in_existing_session(self):
+        token=self.store.login(self.email,self.password,self.code())["token"]
+        with self.store.connect() as db:
+            db.execute("UPDATE lolo_admin_users SET role='support' WHERE id=%s",(self.user,))
+        self.denied(lambda:self.store.inspect(token,"library:read"),403)
+        self.assertEqual(self.store.inspect(token,"support:read")["role"],"support")
+        with self.store.connect() as db:
+            db.execute("UPDATE lolo_admin_users SET disabled_at=CURRENT_TIMESTAMP WHERE id=%s",(self.user,))
+            actions=[r[0] for r in db.execute("SELECT action FROM lolo_admin_audit WHERE actor_id=%s ORDER BY id",(self.user,)).fetchall()]
+        self.assertEqual(actions,["admin.provision","admin.login"])
+        self.denied(lambda:self.store.inspect(token))
+        self.now+=timedelta(seconds=30)
+        self.denied(lambda:self.store.login(self.email,self.password,self.code()))
