@@ -30,8 +30,9 @@ function render(){
       const g=generation;
       try{
         // Re-check the current authorization before opening a new preview.
-        await api('/api/session');
+        const current=await api('/api/session');
         if(g!==generation||!identity)return;
+        if(!current.permissions.includes('library:read')){await refresh();return;}
         $('preview').hidden=false;$('previewTitle').textContent=e.label;
         $('detail').textContent='ID: '+e.id+' · الإصدار: '+(e.versions.join(',')||'غير متاح')+' · الحقول: '+(e.configFields.join(', ')||'لم تُحدد');
         $('sample').replaceChildren();
@@ -51,6 +52,7 @@ async function refresh(){
   const g=++generation;
   try{
     const current=await api('/api/session');if(g!==generation)return;
+    $('preview').hidden=true;$('sample').replaceChildren();
     identity=current;$('login').hidden=true;$('workspace').hidden=false;$('logout').hidden=false;$('message').textContent='';
     $('role').textContent='ROLE / '+current.role;
     const allowed=current.permissions.includes('library:read');
