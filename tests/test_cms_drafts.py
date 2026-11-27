@@ -38,6 +38,7 @@ class DraftTests(unittest.TestCase):
                 db.execute("DELETE FROM lolo_cms_active_release WHERE draft_id IN (SELECT id FROM lolo_cms_drafts WHERE created_by=%s)",(user,))
                 db.execute("DELETE FROM lolo_cms_releases WHERE draft_id IN (SELECT id FROM lolo_cms_drafts WHERE created_by=%s)",(user,))
                 db.execute("DELETE FROM lolo_cms_drafts WHERE created_by=%s",(user,))
+            for user in self.users:
                 db.execute("DELETE FROM lolo_admin_audit WHERE actor_id=%s",(user,))
                 db.execute("DELETE FROM lolo_admin_users WHERE id=%s",(user,))
     def test_save_revision_and_permissions(self):
