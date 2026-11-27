@@ -5,3 +5,5 @@ Offline: curriculum browsing, parent PIN and settings, progress reports, local p
 Verification: automated transport/manifest/bundle tests and CI APK build; actual airplane-mode cold boot, same-signature upgrade, and live provider integration require emulator/device testing.
 
 Browser CI smoke test exercises a real Chromium service worker, offline reload, saved path, local picture/word review, writing canvas and PIN gate, plus simulated offline startup from the bundled HTML. It makes no paid API calls. Audio-only question scoring remains blocked until cloud or declared-local speech playback has completed; optional narration failure does not hide an existing score.
+
+Android stable signing candidate: see [ANDROID_SIGNING.md](ANDROID_SIGNING.md). Existing installation signature compatibility remains unverified.
