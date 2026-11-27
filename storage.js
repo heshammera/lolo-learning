@@ -52,6 +52,28 @@
         return {...r,profiles:[...r.profiles,{id,name:name.trim()}]};
       });
     },
+    importCopy(name,entries){
+      if(!nameValid(name)||!entries||typeof entries!=='object'||Array.isArray(entries))return false;
+      const allowed=new Set(['lolo-mastered','lolo-learning-path-v1','lolo-selected-program','lolo-grade-id','lolo-current-lesson','lolo-welcome-tour-v1-complete']);
+      if(!Object.keys(entries).length||!Object.entries(entries).every(([key,value])=>allowed.has(key)&&typeof value==='string'&&value.length<=32768))return false;
+      const current=readProfiles();
+      if(!current||current.record.activeId!==activeId||current.record.profiles.length>=12)return false;
+      const id=window.crypto.randomUUID(), written=[];
+      try{
+        for(const [key,value] of Object.entries(entries)){
+          const full='lolo-profile:'+id+':'+key;
+          if(window.localStorage.getItem(full)!==null)throw Error('Profile collision');
+          window.localStorage.setItem(full,value);written.push(full);
+        }
+        if(window.localStorage.getItem(PROFILE_KEY)!==current.raw)throw Error('Profile registry changed');
+        // Publish registry only after all new keys were written. No existing profile keys are modified.
+        window.localStorage.setItem(PROFILE_KEY,JSON.stringify({...current.record,profiles:[...current.record.profiles,{id,name:name.trim()}]}));
+        return id;
+      }catch{
+        for(const key of written){try{window.localStorage.removeItem(key);}catch{}}
+        warn('تعذر استعادة النسخة على الجهاز. الملفات الموجودة لم تتغير.');return false;
+      }
+    },
     rename(id,name){
       if(!nameValid(name))return false;
       return mutateProfiles(r=>r.profiles.some(p=>p.id===id)?{...r,profiles:r.profiles.map(p=>p.id===id?{...p,name:name.trim()}:p)}:null);

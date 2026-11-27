@@ -3050,7 +3050,7 @@ renderActiveLocalProfile();
 let cloudUiEnabled=false,cloudSyncEnabled=false;
 const familyClient=window.LoloFamilyClient.create(apiFetch,{allowed:()=>cloudUiEnabled&&parentGate.isUnlocked()&&$('#parentSheet').classList.contains('open')&&!$('#parentSettingsPanel').hidden&&document.visibilityState!=='hidden'});
 function resetCloudFamily(){
-  familyClient.clear();$('#cloudEmail').value='';$('#cloudPassword').value='';$('#cloudNickname').value='';$('#cloudConfirm').checked=false;$('#cloudStatus').textContent='';renderCloudFamily();
+  familyClient.clear();$('#cloudEmail').value='';$('#cloudPassword').value='';$('#cloudNickname').value='';$('#cloudConfirm').checked=false;$('#cloudRestoreConfirm').checked=false;$('#cloudStatus').textContent='';renderCloudFamily();
 }
 function localProgressSnapshot(){
   if(!course||invalidPath||!storage.profiles.activeId||storage.profiles.selectedId()!==storage.profiles.activeId)return null;
@@ -3058,6 +3058,25 @@ function localProgressSnapshot(){
   const path=activePath?JSON.parse(JSON.stringify(activePath)):null;
   if(path&&!pathEngine.validate(path,allLessons(),course.curriculumVersion))return null;
   return {schemaVersion:1,curriculumVersion:course.curriculumVersion,completedLessonIds:[...mastered].filter(id=>ids.has(id)).sort(),path};
+}
+function restoredProfileEntries(snapshot){
+  if(!course||!snapshot||typeof snapshot!=='object'||Array.isArray(snapshot)||Object.keys(snapshot).sort().join(',')!=='completedLessonIds,curriculumVersion,path,schemaVersion'||snapshot.schemaVersion!==1||snapshot.curriculumVersion!==course.curriculumVersion)return null;
+  const lessons=allLessons(),ids=new Set(lessons.map(l=>l.id)),done=snapshot.completedLessonIds;
+  if(!Array.isArray(done)||done.length>ids.size||!done.every(id=>typeof id==='string'&&ids.has(id))||new Set(done).size!==done.length)return null;
+  const entries={'lolo-mastered':JSON.stringify(done)};
+  if(snapshot.path!==null){
+    const path=snapshot.path;
+    if(!path||typeof path!=='object'||Object.keys(path).sort().join(',')!=='currentIndex,curriculumVersion,lessonId,lessonIds,programId,schemaVersion,scope,skippedLessonIds,status,unitId'||!pathEngine.validate(path,lessons,course.curriculumVersion))return null;
+    const program=programList().find(p=>p.id===path.programId);
+    const lesson=lessons.find(l=>l.id===(pathEngine.current(path)||path.lessonIds.at(-1)||path.skippedLessonIds.at(-1)));
+    if(!program||!lesson)return null;
+    entries['lolo-learning-path-v1']=JSON.stringify(path);
+    entries['lolo-selected-program']=program.id;
+    if(program.gradeId)entries['lolo-grade-id']=program.gradeId;
+    entries['lolo-current-lesson']=lesson.id;
+    entries['lolo-welcome-tour-v1-complete']='true';
+  }
+  return entries;
 }
 function renderCloudFamily(){
   const s=familyClient.state();$('#cloudFamilyPanel').hidden=!cloudUiEnabled;
@@ -3069,7 +3088,7 @@ function renderCloudFamily(){
     const name=document.createElement('strong');name.textContent=child.nickname;row.append(name);
     if(cloudSyncEnabled){
       const button=document.createElement('button');button.type='button';button.textContent='معاينة النسخة';button.disabled=s.busy||navigator.onLine===false;
-      button.onclick=()=>{if(!parentGate.isUnlocked())return resetCloudFamily();if(isActive||isStarting)stopSession();$('#cloudConfirm').checked=false;runCloud(()=>familyClient.compare(child.id,storage.profiles.activeId,localProgressSnapshot()),'راجعي الملفين قبل أي حفظ.');};
+      button.onclick=()=>{if(!parentGate.isUnlocked())return resetCloudFamily();if(isActive||isStarting)stopSession();$('#cloudConfirm').checked=false;$('#cloudRestoreConfirm').checked=false;runCloud(()=>familyClient.compare(child.id,storage.profiles.activeId,localProgressSnapshot()),'راجعي الملفين قبل أي حفظ.');};
       row.append(button);
     }list.append(row);
   }
@@ -3080,6 +3099,8 @@ function renderCloudFamily(){
     $('#cloudPreviewText').textContent=`ملف الجهاز: ${storage.profiles.current()?.name||''} · ${p.local.completedLessonIds.length} درس مكتمل. الملف السحابي: ${child?.nickname||''} · ${remote} درس · إصدار ${p.revision}. ${p.revision?'في نسخة محفوظة؛ الاستبدال غير متاح.':'لم يُحفظ تقدم سحابي بعد.'}`;
     $('#cloudConfirmLabel').hidden=p.revision!==0;$('#cloudUpload').hidden=p.revision!==0;
     $('#cloudUpload').disabled=s.busy||navigator.onLine===false||!$('#cloudConfirm').checked||p.revision!==0;
+    $('#cloudRestoreBox').hidden=p.revision===0||!restoredProfileEntries(p.remote);
+    $('#cloudRestore').disabled=s.busy||!$('#cloudRestoreConfirm').checked||storage.profiles.list().length>=12;
   }
 }
 async function runCloud(action,success){
@@ -3102,6 +3123,19 @@ $('#cloudUpload').onclick=()=>{
   if(!$('#cloudConfirm').checked||!cloudSyncEnabled)return;
   $('#cloudConfirm').checked=false;
   runCloud(()=>familyClient.upload(storage.profiles.activeId,localProgressSnapshot()),'تم حفظ النسخة الأولى من التقدم. بيانات الجهاز لم تتغير.');
+};
+$('#cloudRestoreConfirm').onchange=renderCloudFamily;
+$('#cloudRestore').onclick=()=>{
+  if(!cloudUiEnabled||!cloudSyncEnabled||!parentGate.isUnlocked()||!$('#cloudRestoreConfirm').checked)return;
+  const s=familyClient.state(),p=s.preview;
+  if(s.busy||!p||p.revision<1||p.localProfileId!==storage.profiles.activeId)return;
+  const entries=restoredProfileEntries(p.remote),child=s.children.find(c=>c.id===p.childId);
+  if(!entries||!child)return;
+  const name=('نسخة · '+child.nickname).slice(0,40);
+  const id=storage.profiles.importCopy(name,entries);
+  $('#cloudRestoreConfirm').checked=false;
+  $('#cloudStatus').textContent=id?'تمت استعادة نسخة مستقلة على الجهاز. الملف الحالي لم يتغير. افتحي النسخة من ملفات التعلم.':'تعذر استعادة النسخة. راجعي مساحة التخزين وعدد الملفات.';
+  renderLocalProfiles();renderCloudFamily();
 };
 window.addEventListener('offline',resetCloudFamily);
 window.addEventListener('online',()=>{if(parentGate.isUnlocked())renderCloudFamily();});

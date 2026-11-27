@@ -158,6 +158,17 @@ async function verifyPractice(page){
     await sp.locator('#cloudChildren button').first().click();
     await sp.locator('#cloudPreview:not([hidden])').waitFor();
     assert.equal(await sp.locator('#cloudUpload').isVisible(),false);
+    assert.equal(await sp.locator('#cloudRestore').isDisabled(),true);
+    const oldPath=await sp.evaluate(()=>window.LoloStorage.get('lolo-learning-path-v1'));
+    await sp.locator('#cloudRestoreConfirm').check();
+    await sp.locator('#cloudRestore').click();
+    await sp.waitForFunction(()=>document.querySelector('#cloudStatus').textContent.includes('تمت استعادة'));
+    assert.equal(await sp.evaluate(()=>window.LoloStorage.profiles.list().length),2);
+    assert.equal(await sp.evaluate(()=>window.LoloStorage.profiles.activeId),'default');
+    assert.equal(await sp.evaluate(()=>window.LoloStorage.get('lolo-learning-path-v1')),oldPath);
+    const copyId=await sp.evaluate(()=>window.LoloStorage.profiles.list()[1].id);
+    assert.deepEqual(await sp.evaluate(id=>JSON.parse(localStorage.getItem('lolo-profile:'+id+':lolo-learning-path-v1')),copyId),remote.path);
+    assert.equal(writes,1);
     assert.equal(await sp.evaluate(t=>JSON.stringify(localStorage).includes(t)||JSON.stringify(sessionStorage).includes(t),token),false);
     await sp.locator('#parentClose').click();
     await sp.locator('#parentOpen').click();
