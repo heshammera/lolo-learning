@@ -86,8 +86,8 @@
       <p class="dashboard-greeting">أهلاً يا بطلة! 💛</p>
       <h1>تحبي نلعب ونتعلم إيه النهارده؟</h1>
       <div class="dashboard-lesson"><span id="dashboardLessonIcon">🌱</span><div><small id="dashboardMode">درسِك الجاي مع لولو</small><strong id="dashboardLessonTitle">تأسيس من الصفر</strong></div><span class="dashboard-arrow">✦</span></div>
-      <button class="dashboard-start" id="homeStart" type="button">يلا نبدأ مع لولو <span>✨</span></button>
-      <button class="dashboard-pick" id="homeChoose" type="button">اختاري درس تاني <span>🧩</span></button>
+      <p id="pathStatus" role="status" aria-live="polite"></p><button class="dashboard-start" id="homeStart" type="button">يلا نبدأ مع لولو <span>✨</span></button>
+      <button class="dashboard-pick" id="homeChoose" type="button">اختاري خطة تعلم <span>🧩</span></button>
       <p class="dashboard-footnote">لولو هتسمعك وتساعدك خطوة خطوة 🦋</p>
     </section>
     <section class="scene" aria-hidden="true">
@@ -170,7 +170,7 @@
             <label for="gradeSelect">الصف الدراسي</label><select id="gradeSelect"></select>
             <label for="trackSelect">المنهج</label><select id="trackSelect"></select>
             <div class="picker-tabs" role="tablist" aria-label="الدروس والاختبارات"><button id="lessonTab" type="button" role="tab" aria-selected="true">📚 الدروس</button><button id="testsTab" type="button" role="tab" aria-selected="false">📝 الاختبارات</button></div>
-            <section id="lessonPanel" role="tabpanel"><label for="unitSelect">جزء المنهج</label><select id="unitSelect"></select><div class="unit-summary" id="unitSummary"></div><div class="lesson-choices" id="lessonChoices" aria-label="دروس الجزء المختار"></div><p class="lesson-note">✅ تم · 🌱 لسه. اختاري الدرس ثم ابدئي من الشاشة الرئيسية.</p></section>
+            <section id="lessonPanel" role="tabpanel"><div class="parent-settings-group"><h3>طريقة التعلم</h3><label for="pathScope">اختاري نطاق الخطة</label><select id="pathScope"><option value="lesson">درس واحد</option><option value="unit">وحدة كاملة</option><option value="curriculum">المنهج بالكامل</option></select><label id="pathSkipLabel" class="setting-check" hidden><input id="pathSkipCompleted" type="checkbox"> تخطي الدروس المكتملة سابقًا</label><p id="pathPreview" aria-live="polite"></p><button id="pathApply" type="button" class="dashboard-start" hidden>حفظ خطة التعلم</button></div><label for="unitSelect">جزء المنهج</label><select id="unitSelect"></select><div class="unit-summary" id="unitSummary"></div><div class="lesson-choices" id="lessonChoices" aria-label="دروس الجزء المختار"></div><p class="lesson-note">✅ تم · 🌱 لسه. اختاري الدرس ثم ابدئي من الشاشة الرئيسية.</p></section>
             <section id="testsPanel" role="tabpanel" hidden><p class="lesson-note">اختبارات كل أجزاء المنهج المختار، مجمّعة حسب الجزء. كل اختبار يخص درسه.</p><div id="writingPath"></div><div id="programTests" class="program-tests"></div></section>
           </div>
           <p id="parentProgress"></p>
@@ -228,6 +228,7 @@
   <script src="/assessment-engine.js"></script>
   <script src="/curriculum-engine.js"></script>
   <script src="/learning-engine.js"></script>
+  <script src="/learning-path-engine.js"></script>
   <script src="/parent-gate.js"></script>
 <script src="/session-timers.js"></script>
 <script src="/brand.js"></script>

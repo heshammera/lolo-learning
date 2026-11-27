@@ -3,6 +3,13 @@ const storage = window.LoloStorage;
 const assessmentEngine = window.LoloAssessment.create();
 const curriculumEngine = window.LoloCurriculum;
 const learningEngine = window.LoloLearning;
+const pathEngine = window.LoloLearningPath;
+const PATH_KEY = 'lolo-learning-path-v1';
+let activePath = null;
+let invalidPath = false;
+let learningDeadline = 0;
+let pendingPathCompletion = null;
+let openAIAudioPlaying = false;
 const parentGate = window.LoloParentGate.create(storage);
 const sessionTimers = window.LoloSessionTimers.create();
 window.addEventListener('lolo-storage-warning', event => showError(event.detail));
@@ -228,13 +235,11 @@ function refreshLessonPicker(programId, unitId, requestedGradeId = '') {
   const savedProgram = programs.find(item => item.id === programId) || programs.find(item => item.id === storage.get('lolo-selected-program'));
   const gradeId = requestedGradeId || savedProgram?.gradeId || storage.get('lolo-grade-id') || programs[0]?.gradeId;
   fillGradeSelect($('#gradeSelect'), gradeId);
-  storage.set('lolo-grade-id', gradeId || '');
   const gradePrograms = programs.filter(item => (item.gradeId || 'grade-1') === gradeId);
   fillSelect($('#trackSelect'), gradePrograms, item => item.id, item => item.curriculumLabel || item.title);
   const program = gradePrograms.find(item => item.id === programId) || gradePrograms.find(item => item.id === storage.get('lolo-selected-program')) || gradePrograms[0];
   if (!program) return;
   $('#trackSelect').value = program.id;
-  storage.set('lolo-selected-program', program.id);
   syncWelcomePrograms(gradeId, program.id);
   fillSelect($('#unitSelect'), program.units, unit => unit.id, unit => unitProgressLabel(unit));
   const unit = program.units.find(item => item.id === unitId) || program.units[0];
@@ -243,6 +248,7 @@ function refreshLessonPicker(programId, unitId, requestedGradeId = '') {
   renderUnitSummary(unit);
   renderLessonChoices(unit);
   renderProgramTests(program);
+  renderPathChoice();
 }
 
 function renderLessonChoices(unit) {
@@ -1028,7 +1034,8 @@ function speakTraceFeedback(text, lang = 'ar-EG') {
   });
 }
 
-function chooseLesson(lessonId, mode = 'lesson') {
+function chooseLesson(lessonId, mode = 'lesson', requestedPath = null) {
+  if (!parentGate.isUnlocked()) return openParentSettings('lessons');
   if (isStarting && !isActive) {
     setStatus('لولو بتجهز الدرس، استني لحظة صغيرة.');
     return;
@@ -1039,6 +1046,12 @@ function chooseLesson(lessonId, mode = 'lesson') {
   if (speakingAssessment && !speakingAssessment.supported) {
     showError('الاختبار الصوتي لهذا الدرس لسه محتاج كلمات واضحة في المنهج.');
     return;
+  }
+  if (mode === 'lesson') {
+    const plan = requestedPath || pathEngine.build(allLessons(), {scope:'lesson', programId:lesson.programId, unitId:lesson.unitId, lessonId:lesson.id}, mastered, course.curriculumVersion);
+    if (!plan || !pathEngine.validate(plan, allLessons(), course.curriculumVersion) || pathEngine.current(plan) !== lesson.id) return showError('خطة التعلم غير صالحة.');
+    if (!storage.set(PATH_KEY, JSON.stringify(plan))) return;
+    activePath = plan; invalidPath = false;
   }
   if (isActive || isStarting) stopSession();
   answerPending = false;
@@ -1056,6 +1069,8 @@ function chooseLesson(lessonId, mode = 'lesson') {
   $('#app').classList.toggle('assessment', mode === 'test');
   $('#app').classList.remove('in-lesson');
   storage.set('lolo-current-lesson', lesson.id);
+  storage.set('lolo-selected-program', lesson.programId);
+  storage.set('lolo-grade-id', programList().find(p=>p.id===lesson.programId)?.gradeId || '');
   storage.set('lolo-explicit-lesson-choice', 'true');
   cardsFor(currentLesson);
   updateLessonBadge(currentLesson);
@@ -1090,6 +1105,10 @@ function enterAppFromWelcome() {
   const programId = $('#welcomeProgramSelect').value;
   if (!gradeId || !programId) return;
   selectProgram(programId);
+  if (currentLesson && !activePath && !invalidPath) {
+    activePath = pathEngine.build(allLessons(), {scope:'lesson',programId:currentLesson.programId,unitId:currentLesson.unitId,lessonId:currentLesson.id}, mastered, course.curriculumVersion);
+    if (activePath) storage.set(PATH_KEY, JSON.stringify(activePath));
+  }
   storage.set('lolo-onboarding-complete', 'true');
   storage.set('lolo-welcome-tour-v1-complete', 'true');
   storage.set('lolo-explicit-lesson-choice', 'true');
@@ -1107,8 +1126,41 @@ function updateDashboardLesson() {
   $('#dashboardLessonIcon').textContent = icons[currentLesson.strand] || '🌱';
   $('#dashboardLessonTitle').textContent = currentLesson.title || currentLesson.focus;
   $('#dashboardMode').textContent = `${subjectName} · ${sessionMode === 'test' ? 'اختبار شفهي' : 'الدرس الجاي'}`;
+  renderPathStatus();
 }
 
+function renderPathChoice() {
+  const scope = $('#pathScope').value;
+  const spec = {scope, programId:$('#trackSelect').value, unitId:$('#unitSelect').value,
+    skipPreviouslyCompleted:$('#pathSkipCompleted').checked};
+  const single = scope === 'lesson';
+  $('#pathSkipLabel').hidden = single;
+  $('#pathApply').hidden = single;
+  $('#unitSelect').disabled = scope === 'curriculum';
+  $('#lessonChoices').hidden = !single;
+  const plan = single ? null : pathEngine.build(allLessons(),spec,mastered,course?.curriculumVersion);
+  $('#pathPreview').textContent = single ? 'اختاري درسًا واحدًا من القائمة.' : plan
+    ? `الخطة تشمل ${plan.lessonIds.length} درس · تخطي ${plan.skippedLessonIds.length} درس مكتمل سابقًا.`
+    : 'اختاري منهجًا أو وحدة صالحة.';
+  $('#pathApply').disabled = !plan || !plan.lessonIds.length;
+}
+function applyPathChoice() {
+  if (!parentGate.isUnlocked()) return openParentSettings('lessons');
+  const plan = pathEngine.build(allLessons(), {scope:$('#pathScope').value,programId:$('#trackSelect').value,
+    unitId:$('#unitSelect').value,skipPreviouslyCompleted:$('#pathSkipCompleted').checked}, mastered,course?.curriculumVersion);
+  const first = pathEngine.current(plan);
+  if (first) chooseLesson(first,'lesson',plan);
+}
+function renderPathStatus() {
+  const el = $('#pathStatus');
+  if (invalidPath) { el.textContent = 'الخطة المحفوظة تحتاج مراجعة ولي الأمر.'; return; }
+  if (!activePath) { el.textContent = ''; return; }
+  const label = {lesson:'درس واحد',unit:'وحدة كاملة',curriculum:'المنهج بالكامل'}[activePath.scope];
+  const total = activePath.lessonIds.length;
+  el.textContent = activePath.status === 'completed'
+    ? `${label} · اكتملت الخطة (${total} من ${total})`
+    : `${label} · ${activePath.currentIndex} من ${total} درس اكتمل`;
+}
 function updateLessonBadge(lesson) {
   const icons = {math: '🔢', phonics: '🔊', grammar: '🧩', speaking: '🗣️', review: '⭐'};
   const labels = {math: 'درس ماث', phonics: 'درس فونكس', grammar: 'درس جرامر', speaking: 'درس كلام', review: 'درس مراجعة'};
@@ -1472,6 +1524,7 @@ function renderTopProgress(lessons = allLessons()) {
 }
 
 function recordLessonAnswer(lessonId, answer, isCorrect, questionNumber, questionId = '') {
+  if (pendingPathCompletion) return {recorded:false, reason:'انتهى الدرس الحالي.'};
   if (sessionMode === 'test') return {recorded: false, reason: 'الاختبار يقيّم الإجابة من محرك المنهج، وليس من تقدير المعلمة.'};
   if (typeof answer === 'number' && Number.isFinite(answer)) answer = String(answer);
   if (typeof isCorrect === 'string' && /^(true|false)$/i.test(isCorrect.trim())) isCorrect = isCorrect.trim().toLowerCase() === 'true';
@@ -1758,7 +1811,7 @@ function showRewardGame(lesson) {
         if (button.disabled) return;
         button.disabled = true; button.classList.add('correct'); button.textContent = '✨';
         game.collected.add(index); game.attempts++;
-        if (game.collected.size === 3) { $('#rewardInstruction').textContent = 'جمعتيهم كلهم! ✨'; setTimeout(() => finishRewardGame(true), 850); }
+        if (game.collected.size === 3) { $('#rewardInstruction').textContent = 'جمعتيهم كلهم! ✨'; setTimeout(() => { if (activeRewardGame === game) finishRewardGame(true); }, 850); }
       };
       options.appendChild(button);
     }
@@ -1778,7 +1831,7 @@ function showRewardGame(lesson) {
   const duration = Math.max(4, Math.min(15, Number(parentSettings.rewardSeconds) || 9)) * 1000;
   const timerBar = document.querySelector('.reward-timer span');
   timerBar.style.animation = 'none'; void timerBar.offsetWidth; timerBar.style.animation = `reward-time ${duration}ms linear forwards`;
-  game.timeout = setTimeout(() => finishRewardGame(false), duration);
+  game.timeout = setTimeout(() => { if (activeRewardGame === game) finishRewardGame(false); }, duration);
   activeRewardGame = game;
   return {voicePrompt: game.voicePrompt, kind: game.kind};
 }
@@ -1793,7 +1846,7 @@ function addRewardOption(label, value, game) {
     if (value === game.answer) {
       button.classList.add('correct'); button.disabled = true;
       $('#rewardInstruction').textContent = 'شطورة! كسبتي المكافأة! 🌟';
-      setTimeout(() => finishRewardGame(true), 850);
+      setTimeout(() => { if (activeRewardGame === game) finishRewardGame(true); }, 850);
     } else {
       button.classList.add('wrong'); setTimeout(() => button.classList.remove('wrong'), 350);
       $('#rewardInstruction').textContent = 'جربي صورة تانية، مفيش غلط في اللعبة 💛';
@@ -1809,47 +1862,47 @@ function finishRewardGame(completed) {
   activeRewardGame = null;
   $('#rewardOverlay').hidden = true;
   document.body.style.overflow = '';
-  if (micStream) micStream.getAudioTracks().forEach(track => { track.enabled = true; });
-  if (isActive && currentLesson?.id === game.lessonId) {
-    if (rewardFollowUp) scheduleCompletionFollowUp(game.lessonId, rewardFollowUp);
-    const prompt = completed
-      ? 'انتهت لعبة المكافأة وفازت الطفلة. افرحي بها بجملة واحدة، ثم قولي: «الدرس ده خلصناه! تحبي تخلي ماما تختارلك درس تاني؟» وانتظري جوابها من غير ما تعيدي الدرس.'
-      : 'انتهت لعبة المكافأة. قولي لها بجملة لطيفة إنها تقدر تلعبها مرة تانية بعد درس جديد، ثم قولي: «الدرس ده خلصناه! تحبي تخلي ماما تختارلك درس تاني؟» وانتظري جوابها من غير ما تعيدي الدرس.';
-    if (activeProvider === 'openai') sendOpenAIText(prompt);
-    else send({clientContent: {turns: [{role: 'user', parts: [{text: prompt}]}], turnComplete: true}});
-  }
+  if (isActive && currentLesson?.id === game.lessonId && pendingPathCompletion) {
+    const prompt = completed ? 'افرحي بفوزها بجملة قصيرة فقط.' : 'شجعي محاولتها بجملة قصيرة فقط.';
+    sendTeacherTurn(prompt + ' لا تطرحي سؤالاً جديداً؛ التطبيق يدير الخطوة التالية.');
+    scheduleCompletionFollowUp(game.lessonId, rewardFollowUp);
+  } else if (micStream) micStream.getAudioTracks().forEach(track => { track.enabled = true; });
   rewardFollowUp = null;
 }
-
 function clearCompletionFollowUp() {
   if (completionFollowUpTimer) clearTimeout(completionFollowUpTimer);
   completionFollowUpTimer = null;
   completionFollowUpPending = false;
 }
-
-function noteTutorOutput() {
-  lastTutorOutputAt = Date.now();
-  if (completionFollowUpPending) clearCompletionFollowUp();
-}
-
+function noteTutorOutput() { lastTutorOutputAt = Date.now(); }
 function scheduleCompletionFollowUp(lessonId, result) {
   clearCompletionFollowUp();
-  if (!result?.saved) return;
+  const pending = pendingPathCompletion;
+  if (!result?.saved || !pending || pending.lessonId !== lessonId) return;
   completionFollowUpPending = true;
-  completionFollowUpTimer = setTimeout(() => {
-    completionFollowUpTimer = null;
-    if (!completionFollowUpPending || !isActive || currentLesson?.id !== lessonId) return clearCompletionFollowUp();
-    const prompt = result.rewardGame
-      ? 'انتهت لعبة المكافأة ولم تكملي الكلام بعدها. افرحي بها بجملة قصيرة ثم قولي «الدرس ده خلصناه! تحبي تخلي ماما تختارلك درس تاني؟» وانتظري جوابها من غير إعادة الشرح.'
-      : result.excellenceAwarded
-      ? 'راجعت الطفلة الدرس المتقن وأجابت إجابتين صحيحتين. قولي بوضوح إنها كسبت شارة تفوق جديدة، ثم اسأليها «تحبي تخلي ماما تختارلك درس تاني؟» وانتظري جوابها.'
-      : result.courseComplete
-      ? 'انتهى الدرس الحالي ولم يصدر منك رد مسموع بعد أداة الإتقان. تكلمي الآن بصوت لولو: افرحي بها بجملة قصيرة ثم قولي «الدرس ده خلصناه! تحبي تخلي ماما تختارلك درس تاني؟» وإذا رفضت قولي لها حرفياً «ادي التليفون لماما وقوليلها: لولو قالتلي إني خلصت الدرس ده، واختاريلي درس تاني». لا تعيدي الدرس.'
-      : 'انتهى الدرس الحالي ولم يصدر منك رد مسموع بعد أداة الإتقان. تكلمي الآن بصوت لولو: افرحي بها بجملة قصيرة ثم قولي «الدرس ده خلصناه! تحبي تخلي ماما تختارلك درس تاني؟» وانتظري جوابها من غير إعادة الشرح.';
-    completionFollowUpPending = false;
-    if (activeProvider === 'openai') sendOpenAIText(prompt);
-    else send({clientContent: {turns: [{role: 'user', parts: [{text: prompt}]}], turnComplete: true}});
-  }, 6500);
+  const armedAt = Date.now();
+  const check = () => {
+    if (!completionFollowUpPending || pendingPathCompletion !== pending || !isActive || currentLesson?.id !== lessonId) return;
+    if (document.visibilityState === 'hidden' || Date.now() >= learningDeadline) return stopSession();
+    const quiet = !modelSpeaking && !openAIAudioPlaying && !playingSources.size && Date.now() - lastTutorOutputAt >= 800;
+    if (Date.now() - armedAt >= 1600 && quiet) {
+      const next = allLessons().find(l => l.id === pathEngine.current(activePath));
+      const deadline = learningDeadline;
+      closeSession(true);
+      if (!next) { learningDeadline = 0; setStatus('برافو! خطة التعلم خلصت.'); renderPathStatus(); return; }
+      selectLessonInApp(next);
+      learningDeadline = deadline;
+      if (document.visibilityState !== 'hidden' && Date.now() < deadline) startSession(true);
+      return;
+    }
+    if (Date.now() - armedAt >= 12000) {
+      stopSession();
+      setStatus('التقدم اتحفظ. استكملي الخطة لما تكوني جاهزة.');
+      return;
+    }
+    completionFollowUpTimer = setTimeout(check, 250);
+  };
+  completionFollowUpTimer = setTimeout(check, 250);
 }
 
 function parentProgressSummary() {
@@ -1924,7 +1977,10 @@ function stopPlayback() {
   nextAudioTime = audioContext?.currentTime || 0;
 }
 
-function closeSession() {
+function closeSession(preserveDeadline = false) {
+  if (!preserveDeadline) learningDeadline = 0;
+  pendingPathCompletion = null;
+  openAIAudioPlaying = false;
   sessionTimers.invalidate();
   sessionController?.abort();
   sessionController = null;
@@ -1977,7 +2033,9 @@ function closeSession() {
   $('#welcomeStart').disabled = $('#app').classList.contains('ready');
   $('#buddy').classList.remove('talking');
   $('#soundWave').classList.remove('on');
+  $('#app').classList.remove('in-lesson');
   updateProgress();
+  renderPathStatus();
 }
 
 function floatPcmToBase64(buffer) {
@@ -2054,7 +2112,13 @@ function selectLessonInApp(lesson) {
 
 function updateCurrentLesson(lessonId, correctResponses, evidence) {
   const verifiedEvidence = Array.isArray(evidence) && evidence.length === 2 && evidence.every(item => typeof item === 'string' && item.trim());
-  if (sessionMode !== 'lesson' || lessonId !== currentLesson?.id || Number(correctResponses) !== 2 || !verifiedEvidence) return {saved: false, next: null};
+  if (!isActive || sessionMode !== 'lesson' || lessonId !== currentLesson?.id || Number(correctResponses) !== 2 || !verifiedEvidence || pendingPathCompletion || activeAnswerEvents.filter(a=>a.is_correct).length < 2) return {saved:false,next:null};
+  const advanced = pathEngine.advance(activePath, lessonId);
+  if (!advanced || !storage.set(PATH_KEY, JSON.stringify(advanced))) return {saved:false,next:null};
+  activePath = advanced;
+  pendingPathCompletion = {lessonId};
+  if (micStream) micStream.getAudioTracks().forEach(track => { track.enabled = false; });
+  renderPathStatus();
   const alreadySaved = mastered.has(lessonId);
   let excellenceAward = null;
   if (!alreadySaved) {
@@ -2068,26 +2132,17 @@ function updateCurrentLesson(lessonId, correctResponses, evidence) {
   }
   updateProgress();
   refreshLessonPicker(currentLesson.programId, currentLesson.unitId);
-  const next = lessonAfterCurrent();
-  const programLessons = allLessons().filter(lesson => lesson.programId === currentLesson.programId);
-  const courseComplete = !next && programLessons.length > 0 && programLessons.every(lesson => mastered.has(lesson.id));
+  const next = allLessons().find(l => l.id === pathEngine.current(activePath));
+  const courseComplete = activePath.scope === 'curriculum' && activePath.status === 'completed';
   const rewardGame = alreadySaved || !parentSettings.rewardEnabled ? null : showRewardGame(currentLesson);
-  const result = {saved: true, alreadySaved, excellenceAwarded: excellenceAward, excellenceCount: Number(lessonExcellence[lessonId]) || 0, nextLesson: next ? {id: next.id, title: next.title || next.focus, focus: next.focus, goal: next.goal} : null, courseComplete, rewardGame};
+  const result = {saved: true, scope:activePath.scope, pathComplete:activePath.status==='completed', autoAdvance:!!next, alreadySaved, excellenceAwarded: excellenceAward, excellenceCount: Number(lessonExcellence[lessonId]) || 0, nextLesson: next ? {id: next.id, title: next.title || next.focus, focus: next.focus, goal: next.goal} : null, courseComplete, rewardGame};
   if (rewardGame) rewardFollowUp = result;
   else scheduleCompletionFollowUp(lessonId, result);
   return result;
 }
 
 function startNextLesson(lessonId) {
-  if (sessionMode !== 'lesson' || lessonId !== currentLesson?.id) return {started: false, reason: 'الدرس الحالي تغيّر.'};
-  const next = lessonAfterCurrent();
-  if (!next) {
-    const programLessons = allLessons().filter(lesson => lesson.programId === currentLesson.programId);
-    const courseComplete = programLessons.length > 0 && programLessons.every(lesson => mastered.has(lesson.id));
-    return {started: false, courseComplete, reason: courseComplete ? 'اكتملت دروس المسار.' : 'لا يوجد درس غير متقن بعد هذا الدرس.'};
-  }
-  selectLessonInApp(next);
-  return {started: true, currentLesson: lessonForModel(next)};
+  return {started:false, reason:'التطبيق وحده ينقل الدرس حسب خطة ولي الأمر بعد انتهاء التفاعل والمكافأة.', pathComplete:activePath?.status==='completed'};
 }
 
 function openParentPickerFromTutor() {
@@ -2155,6 +2210,8 @@ function handleOpenAIToolCall(name, args, callId) {
 function handleOpenAIMessage(event) {
   let message;
   try { message = JSON.parse(event.data); } catch { return; }
+  if (message.type === 'output_audio_buffer.started') openAIAudioPlaying = true;
+  if (message.type === 'output_audio_buffer.stopped' || message.type === 'output_audio_buffer.cleared') openAIAudioPlaying = false;
   if (message.type === 'response.output_audio.delta') noteTutorOutput();
   if (message.type === 'response.output_audio_transcript.delta' || message.type === 'response.output_audio_transcript.done' || message.type === 'response.output_text.delta') {
     const transcript = message.delta || message.transcript || '';
@@ -2288,7 +2345,7 @@ async function providerToken(provider, sessionSignal) {
   try {
     response = await fetch('/api/provider-token', {
       method: 'POST', headers: {'Content-Type': 'application/json'}, signal: requestController.signal,
-      body: JSON.stringify({provider, lessonId: currentLesson?.id || 'course-complete', mode: sessionMode, alreadyMastered: sessionMode === 'lesson' && mastered.has(currentLesson?.id), excellenceCount: Number(lessonExcellence[currentLesson?.id]) || 0, teacherSettings: {speechPace: parentSettings.speechPace, hintLevel: parentSettings.hintLevel, repeatWords: parentSettings.repeatWords}}),
+      body: JSON.stringify({provider, lessonId: currentLesson?.id || 'course-complete', mode: sessionMode, alreadyMastered: sessionMode === 'lesson' && mastered.has(currentLesson?.id), excellenceCount: Number(lessonExcellence[currentLesson?.id]) || 0, teacherSettings: {speechPace: parentSettings.speechPace, hintLevel: parentSettings.hintLevel, repeatWords: parentSettings.repeatWords, learningScope:activePath?.scope || 'lesson'}}),
     });
   } catch (error) {
     if (sessionSignal?.aborted) throw new Error('اتقفلت الجلسة قبل تجهيز الاتصال.');
@@ -2403,8 +2460,20 @@ async function connectOpenAI(sessionId, sessionSignal) {
   await ready;
 }
 
-async function startSession() {
-  if (isStarting || isActive) return;
+async function startSession(continuing = false) {
+  if (isStarting || isActive || !course || document.visibilityState === 'hidden') return;
+  if (sessionMode === 'lesson') {
+    if (invalidPath || activePath?.status === 'completed') { setStatus('اختاري خطة تعلم جديدة من لوحة ولي الأمر.'); return; }
+    if (!activePath && currentLesson) {
+      activePath = pathEngine.build(allLessons(),{scope:'lesson',programId:currentLesson.programId,unitId:currentLesson.unitId,lessonId:currentLesson.id},mastered,course.curriculumVersion);
+      if (!activePath || !storage.set(PATH_KEY,JSON.stringify(activePath))) return;
+    }
+    const planned = allLessons().find(l=>l.id===pathEngine.current(activePath));
+    if (!planned) return showError('اختاري خطة تعلم صالحة.');
+    if (planned.id !== currentLesson?.id) selectLessonInApp(planned);
+  }
+  if (continuing !== true || !learningDeadline) learningDeadline = Date.now() + Math.max(1,Math.min(30,Number(parentSettings.sessionMinutes)||10))*60000;
+  if (Date.now() >= learningDeadline) return;
   currentLesson = currentLesson || nextLesson();
   if (sessionMode === 'test' && (!activeSpeakingAssessment || activeSpeakingAssessment.lessonId !== currentLesson?.id)) {
     activeSpeakingAssessment = assessmentEngine.createSpokenAssessment(currentLesson);
@@ -2417,6 +2486,10 @@ async function startSession() {
   const requestController = new AbortController();
   sessionController = requestController;
   isStarting = true;
+  sessionTimers.schedule(sessionId, Math.max(0, learningDeadline-Date.now()), () => {
+    stopSession();
+    setStatus('وقت الراحة! تقدمك محفوظ. تقدري تكملي بعدين.');
+  });
   answerPending = false;
   pendingChildAnswer = '';
   pendingTutorFeedback = '';
@@ -2502,12 +2575,7 @@ async function startSession() {
         : `ابدئي الكلام فوراً من غير انتظار الطفلة: أهلاً يا بطلة! درسنا النهارده ${lessonTitle}. ${currentLesson?.goal || currentLesson?.focus || ''} الصور الظاهرة قدامك هي: ${visibleCards || 'اختيارات الدرس المصورة'}. اشرحي فكرة واحدة بجملتين بسيطتين، واسألي سؤالاً سهلاً من الصور دي عشان تبدأ.`);
     if (activeProvider === 'openai') sendOpenAIText(opening);
     else send({clientContent: {turns: [{role: 'user', parts: [{text: opening}]}], turnComplete: true}});
-    sessionTimers.schedule(sessionId, Math.max(1, Math.min(30, Number(parentSettings.sessionMinutes) || 10)) * 60 * 1000, () => {
-      if (!isActive || !sessionTimers.isCurrent(sessionId)) return;
-      const breakMessage = 'وقت الدرس خلص دلوقتي. امدحي الطفلة على اللي عملته، وقولي لها إن وقت راحة قصير جه، وما تفتحيش سؤالاً جديداً. بعد رسالة صوتية قصيرة، اقفلي الجلسة بلطف.';
-      sendTeacherTurn(breakMessage);
-      sessionTimers.schedule(sessionId, 12000, () => { if (isActive && sessionTimers.isCurrent(sessionId)) stopSession(); });
-    });
+
   } catch (error) {
     if (sessionTimers.isCurrent(sessionId)) { closeSession(); showError(error.message || 'مقدرناش نفتح الميكروفون.'); }
   } finally {
@@ -2553,7 +2621,7 @@ function saveParentSettings() {
   };
   storage.set('lolo-parent-settings', JSON.stringify(parentSettings));
   $('#settingsSaved').textContent = 'اتحفظت الإعدادات على الجهاز ✅';
-  if (!isActive && !isStarting && parentSettings.learningPath === 'foundation-first') {
+  if (!activePath && !invalidPath && !isActive && !isStarting && parentSettings.learningPath === 'foundation-first') {
     const firstFoundation = allLessons().find(lesson => lesson.programId === 'foundation' && !mastered.has(lesson.id));
     if (firstFoundation) {
       currentLesson = firstFoundation;
@@ -2833,10 +2901,12 @@ $('#lessonTab').onclick = () => showPickerTab('lessons');
 $('#testsTab').onclick = () => showPickerTab('tests');
 $('#gradeSelect').onchange = () => {
   refreshLessonPicker(null, null, $('#gradeSelect').value);
-  selectProgram($('#trackSelect').value);
   renderParentReport();
 };
-$('#trackSelect').onchange = () => { selectProgram($('#trackSelect').value); renderParentReport(); };
+$('#trackSelect').onchange = () => { refreshLessonPicker($('#trackSelect').value, null, $('#gradeSelect').value); renderParentReport(); };
+$('#pathScope').onchange = renderPathChoice;
+$('#pathSkipCompleted').onchange = renderPathChoice;
+$('#pathApply').onclick = applyPathChoice;
 $('#unitSelect').onchange = () => { refreshLessonPicker($('#trackSelect').value, $('#unitSelect').value); renderParentReport(); };
 $('#welcomeGradeSelect').onchange = () => syncWelcomePrograms($('#welcomeGradeSelect').value);
 $('#welcomeProgramSelect').onchange = () => {
@@ -2883,6 +2953,7 @@ function resetCourseProgress() {
   storage.remove('lolo-lesson-stats');
   storage.set('lolo-skill-progress-v1', JSON.stringify(skillProgress));
   storage.remove('lolo-explicit-lesson-choice');
+  storage.remove(PATH_KEY); activePath=null; invalidPath=false;
   currentLesson = nextLesson() || allLessons()[0] || null;
   if (currentLesson) storage.set('lolo-current-lesson', currentLesson.id);
   updateProgress();
@@ -2954,6 +3025,18 @@ if (location.protocol === 'file:') {
     currentLesson = allLessons().find(lesson => lesson.id === savedLessonId && (!selectedProgram || lesson.programId === selectedProgram))
       || (selectedProgram ? allLessons().find(lesson => lesson.programId === selectedProgram && !mastered.has(lesson.id)) : null)
       || nextLesson();
+    const savedPath = storage.get(PATH_KEY);
+    if (savedPath !== null) {
+      const restored = storage.getJSON(PATH_KEY,{});
+      if (pathEngine.validate(restored,allLessons(),course.curriculumVersion)) {
+        activePath=restored;
+        const planned=allLessons().find(l=>l.id===pathEngine.current(restored));
+        if (planned) currentLesson=planned;
+      } else invalidPath=true;
+    } else if (selectedProgram && currentLesson) {
+      activePath=pathEngine.build(allLessons(),{scope:'lesson',programId:currentLesson.programId,unitId:currentLesson.unitId,lessonId:currentLesson.id},mastered,course.curriculumVersion);
+      if(activePath) storage.set(PATH_KEY,JSON.stringify(activePath));
+    }
     if (currentLesson) storage.set('lolo-current-lesson', currentLesson.id);
     updateLessonBadge(currentLesson);
     updateDashboardLesson();

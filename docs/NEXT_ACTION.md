@@ -1,5 +1,2 @@
 # Next Action
-
-1. Author age-appropriate question banks and accessibility metadata for each learning track; validate prerequisite relationships with an educator before enabling lesson gates.
-2. Design parent identity and consent/data governance before introducing accounts or analytics; the current PIN is only a device-local barrier.
-3. Promote completed and verified milestones to Vercel-linked `main` as requested; preserve `backup/pre-lolo-v2` unchanged.
+Verify the learning-scope milestone on the verification branch before promoting to main. See docs/LEARNING_PATH_ARCHITECTURE.md and docs/MASTER_REQUIREMENTS_STATUS.md. Continue with authored question banks, robust evidence and child safety, provider-independent grading, server identity and consent. Keep backup/pre-lolo-v2 and backup/pre-learning-scope-20261127 unchanged.

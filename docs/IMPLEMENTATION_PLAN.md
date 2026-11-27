@@ -44,3 +44,7 @@ Curriculum schema v2 adds a content version, a version for each lesson, a global
 Oral quizzes now use up to five lesson-board words/numbers, deduplicated and locally matched against the recognized OpenAI transcript; OpenAI VAD remains active but automatic responses are disabled in test mode, and app-initiated responses disallow tools for that turn. The transcript is a rough recognition signal, not reliable pronunciation or comprehension grading. Gemini still depends on model tool-calling for quiz flow. This does **not** make model-led live lessons or mastery trustworthy: regular lesson answers still use model claims and feedback parsing. Client-side progress also remains editable by the device owner.
 
 The learning engine records `NOT_STARTED`, `INTRODUCED`, `PRACTICING`, `DEVELOPING`, `PROFICIENT`, `MASTERED`, and time-derived `REVIEW_REQUIRED` states. A skill becomes `MASTERED` only after two >=85% completed oral repeat tests on separate UTC dates with an uninterrupted strong-assessment streak. Reports label this as board-token repetition only. These states are local device data and are not authoritative across devices.
+
+## Parent-controlled learning scope
+- [ ] Verify one lesson, unit and curriculum boundaries, persisted resume, deadline and audio transitions. Candidate implementation on verification branch; CI and runtime evidence required.
+- [ ] Complete detailed requirements matrix and remaining master prompt milestones (docs/MASTER_REQUIREMENTS_STATUS.md).
