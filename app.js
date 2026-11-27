@@ -3270,7 +3270,7 @@ function renderExtraPractice(){
   const session=extraSession;if(!session)return;
   const state=session.state(),step=session.current(),body=$('#extraPracticeBody');
   body.replaceChildren();$('#extraPracticeNext').hidden=true;
-  if(state.done){$('#extraPracticeProgress').textContent='انتهى التدريب';$('#extraPracticeGoal').textContent='أجبت بشكل صحيح على '+state.correct+' من '+state.attempted+' نشاط. النتيجة تدريبية فقط وليست دليل إتقان.';return;}
+  if(state.done){$('#extraPracticeProgress').textContent='انتهى التدريب';$('#extraPracticeGoal').textContent='أجبت بشكل صحيح على '+state.correct+' من '+(state.attempted-state.ungraded)+' نشاط قابل للتقييم.'+(state.ungraded?' وأنهيت '+state.ungraded+' نشاطًا دون درجة.':'')+' النتيجة تدريبية فقط وليست دليل إتقان.';return;}
   if(!step)return;
   $('#extraPracticeTitle').textContent=step.lessonTitle;$('#extraPracticeGoal').textContent=step.goal;
   $('#extraPracticeProgress').textContent='النشاط '+(state.index+1)+' من '+state.total;

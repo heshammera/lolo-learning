@@ -7,8 +7,9 @@
     ['drag-drop','السحب والإفلات'],['geometry','الأشكال الهندسية'],['equations','المعادلات الخطية'],
     ['memory-game','لعبة الذاكرة'],['puzzle','بازل الترتيب'],['maze','المتاهة'],
     ['image-hotspot','تحديد أجزاء الرسم'],['science-simulation','محاكاة الميزان'],['interactive-story','قصة تفاعلية'],
-  ].map(([id,label])=>[id,Object.freeze({id,label,version:1,offline:true,evaluator:'deterministic',renderer:'generic-v1'})])));
-  const planned=Object.freeze(['speech-repeat','phoneme-score','dictation','conversation','trace','free-drawing','coloring','reading-aloud','homework-upload']);
+    ['trace','تتبع الحروف والأرقام'],['free-drawing','الرسم الحر'],['coloring','التلوين'],
+  ].map(([id,label])=>[id,Object.freeze({id,label,version:1,offline:true,evaluator:id==='free-drawing'?'completion-only':'deterministic',renderer:'generic-v1'})])));
+  const planned=Object.freeze(['speech-repeat','phoneme-score','dictation','conversation','reading-aloud','homework-upload']);
   const plain=v=>v!==null&&typeof v==='object'&&!Array.isArray(v)&&[Object.prototype,null].includes(Object.getPrototypeOf(v));
   const exact=(o,keys)=>plain(o)&&Object.keys(o).length===keys.length&&keys.every(k=>Object.hasOwn(o,k));
   const id=v=>typeof v==='string'&&/^[a-zA-Z0-9][a-zA-Z0-9_-]{0,63}$/.test(v);
@@ -90,6 +91,23 @@
     }
     return {done:current===null,correct};
   }
+  const guides=Object.freeze({I:[[50,15],[50,85]],L:[[25,15],[25,85],[80,85]],V:[[15,15],[50,85],[85,15]],'1':[[30,35],[50,15],[50,85]],'7':[[15,15],[85,15],[40,85]],'١':[[50,15],[50,85]]});
+  const glyph=v=>typeof v==='string'&&Object.hasOwn(guides,v);
+  const colors=Object.freeze({red:'#e85a62',blue:'#4889dd',green:'#62a65b',yellow:'#f5c94c',purple:'#9868cf'});
+  const color=v=>typeof v==='string'&&Object.hasOwn(colors,v);
+  const regions=Object.freeze({circle:'دائرة',triangle:'مثلث',square:'مربع'});
+  const point=p=>Array.isArray(p)&&p.length===2&&p.every(v=>typeof v==='number'&&Number.isFinite(v)&&v>=0&&v<=100);
+  const dist=(a,b)=>Math.hypot(a[0]-b[0],a[1]-b[1]);
+  const stroke=s=>Array.isArray(s)&&s.length>=2&&s.length<=512&&s.every(point);
+  const pathLength=s=>s.slice(1).reduce((n,p,i)=>n+dist(p,s[i]),0);
+  function traceGrade(g,s){
+    if(!stroke(s)||pathLength(s)<10)return 'unresolved';
+    const guide=guides[g],samples=[guide[0]];
+    for(let i=1;i<guide.length;i++){const a=guide[i-1],b=guide[i],n=Math.ceil(dist(a,b)/5);for(let j=1;j<=n;j++)samples.push([a[0]+(b[0]-a[0])*j/n,a[1]+(b[1]-a[1])*j/n]);}
+    if(dist(s[0],samples[0])>12||dist(s.at(-1),samples.at(-1))>12||s.slice(1).some((p,i)=>dist(p,s[i])>18))return 'incorrect';
+    let cursor=0;for(const p of s){if(!samples.some(q=>dist(p,q)<=12))return 'incorrect';while(cursor<samples.length&&dist(p,samples[cursor])<=10)cursor++;}
+    return cursor===samples.length&&pathLength(s)<=pathLength(samples)*2?'correct':'incorrect';
+  }
   function validate(activity){
     if(!exact(activity,['id','type','version','prompt','config'])||!id(activity.id)||!text(activity.prompt))return {valid:false,code:'INVALID_ACTIVITY'};
     if(typeof activity.type!=='string'||!Object.hasOwn(types,activity.type)||activity.version!==1)return {valid:false,code:'UNSUPPORTED_ACTIVITY'};
@@ -113,6 +131,9 @@
       case 'image-hotspot':valid=exact(c,['diagram','answer'])&&regionId(c.diagram,c.answer);break;
       case 'science-simulation':valid=balance(c);break;
       case 'interactive-story':valid=validStory(c);break;
+      case 'trace':valid=exact(c,['glyph'])&&glyph(c.glyph);break;
+      case 'free-drawing':valid=exact(c,[]);break;
+      case 'coloring':valid=exact(c,['answers'])&&exact(c.answers,Object.keys(regions))&&Object.values(c.answers).every(color);break;
       case 'drag-drop':
       case 'classify':valid=exact(c,['items','groups','assignments'])&&entries(c.items)&&entries(c.groups,2,6)&&plain(c.assignments)&&sameSet(Object.keys(c.assignments),c.items.map(o=>o.id))&&Object.values(c.assignments).every(a=>c.groups.some(g=>g.id===a));break;
     }
@@ -138,6 +159,9 @@
       case 'fill-blank':
       case 'free-text':resolved=answerText(response);correct=resolved&&c.answers.some(a=>normalize(a)===normalize(response));break;
       case 'number-line':resolved=onLine(c,response);correct=resolved&&response===c.answer;break;
+      case 'trace':return {status:traceGrade(c.glyph,response)};
+      case 'free-drawing':return {status:Array.isArray(response)&&response.length>=1&&response.length<=16&&response.every(stroke)&&response.reduce((n,s)=>n+pathLength(s),0)>=10?'completed':'unresolved'};
+      case 'coloring':resolved=exact(response,Object.keys(regions))&&Object.values(response).every(color);correct=resolved&&Object.keys(regions).every(k=>response[k]===c.answers[k]);break;
       case 'image-hotspot':resolved=regionId(c.diagram,response);correct=response===c.answer;break;
       case 'science-simulation':resolved=integer(response)&&response>=0&&response<=c.maxCount;correct=resolved&&response*c.unitMass===c.leftMass;break;
       case 'interactive-story':{const r=storyResult(c,response);resolved=!!r?.done;correct=resolved&&r.correct;break;}
@@ -386,6 +410,35 @@
       }
       draw();
     }
+    function drawingBoard(){
+      const board=doc.createElement('div'),canvas=doc.createElement('canvas');canvas.width=320;canvas.height=320;canvas.className='activity-drawing-canvas';canvas.setAttribute('aria-label',activity.type==='trace'?'مسار التتبع':'لوحة الرسم الحر');
+      const ctx=canvas.getContext('2d'),strokes=[];let active=null,pointer=null;
+      if(!ctx){board.textContent='الرسم غير متاح على هذا الجهاز.';fieldset.append(board);gameResponse=()=>null;return;}
+      function path(points,color,width){if(!points.length)return;ctx.beginPath();ctx.moveTo(points[0][0]*3.2,points[0][1]*3.2);for(const p of points.slice(1))ctx.lineTo(p[0]*3.2,p[1]*3.2);ctx.strokeStyle=color;ctx.lineWidth=width;ctx.lineCap='round';ctx.lineJoin='round';ctx.stroke();}
+      function draw(){ctx.fillStyle='#fff';ctx.fillRect(0,0,320,320);if(activity.type==='trace'){const guide=guides[c.glyph];path(guide,'#e2d6f4',28);path(guide,'#ae97d0',2);ctx.fillStyle='#428b56';ctx.beginPath();ctx.arc(guide[0][0]*3.2,guide[0][1]*3.2,7,0,Math.PI*2);ctx.fill();}for(const s of strokes)path(s,'#6341a3',5);if(active)path(active,'#6341a3',5);}
+      function sample(ev){const b=canvas.getBoundingClientRect();return b.width&&b.height?[Math.max(0,Math.min(100,(ev.clientX-b.left)/b.width*100)),Math.max(0,Math.min(100,(ev.clientY-b.top)/b.height*100))]:null;}
+      canvas.addEventListener('pointerdown',ev=>{if(fieldset.disabled||pointer!==null||ev.button!==0||strokes.length>=(activity.type==='trace'?1:16))return;const p=sample(ev);if(!p)return;pointer=ev.pointerId;active=[p];canvas.setPointerCapture?.(pointer);draw();});
+      canvas.addEventListener('pointermove',ev=>{if(pointer!==ev.pointerId||!active||fieldset.disabled)return;const p=sample(ev);if(p&&active.length<512&&dist(p,active.at(-1))>=.7){active.push(p);draw();}});
+      function end(ev,keep){if(pointer!==ev.pointerId)return;if(keep&&active&&active.length>=2)strokes.push(active);pointer=null;active=null;draw();}
+      canvas.addEventListener('pointerup',ev=>end(ev,true));canvas.addEventListener('pointercancel',ev=>end(ev,false));canvas.addEventListener('lostpointercapture',ev=>end(ev,false));
+      gameNotice(board,activity.type==='trace'?'ابدئي من النقطة الخضراء وتتبعي المسار بحركة واحدة.':'ارسمي ما تحبين. لا توجد درجة لجمال الرسم.');
+      board.append(canvas);gameButton(board,'مسح وإعادة الرسم',()=>{if(fieldset.disabled)return;strokes.length=0;active=null;pointer=null;draw();});
+      gameResponse=()=>activity.type==='trace'?strokes[0]||null:strokes;fieldset.append(board);draw();
+    }
+    function coloringBoard(){
+      const ns='http://www.w3.org/2000/svg',svg=doc.createElementNS(ns,'svg');svg.setAttribute('viewBox','0 0 240 100');svg.setAttribute('class','activity-coloring-svg');svg.setAttribute('aria-hidden','true');
+      const chosen={},nodes=new Map(),selects=new Map();let selected='red';
+      const palette=doc.createElement('div');palette.className='activity-color-palette';const names={red:'أحمر',blue:'أزرق',green:'أخضر',yellow:'أصفر',purple:'بنفسجي'},buttons=[];
+      function refresh(){for(const [k,n] of nodes){n.setAttribute('fill',chosen[k]?colors[chosen[k]]:'#fff');selects.get(k).value=chosen[k]||'';}for(const [k,b] of buttons)b.setAttribute('aria-pressed',String(k===selected));}
+      for(const k of Object.keys(colors)){const b=gameButton(palette,names[k],()=>{if(!fieldset.disabled){selected=k;refresh();}});buttons.push([k,b]);}
+      fieldset.append(palette,svg);
+      for(const [k,tag,attrs] of [['circle','circle',{cx:40,cy:50,r:28}],['triangle','polygon',{points:'120,19 150,80 90,80'}],['square','rect',{x:173,y:22,width:56,height:56}]]){
+        const n=doc.createElementNS(ns,tag);for(const [a,v] of Object.entries(attrs))n.setAttribute(a,String(v));n.setAttribute('stroke','#7951ba');n.setAttribute('stroke-width','3');n.dataset.region=k;svg.append(n);nodes.set(k,n);
+        n.onclick=()=>{if(!fieldset.disabled){chosen[k]=selected;refresh();}};
+        const label=doc.createElement('label'),select=doc.createElement('select');label.textContent='لون '+regions[k];select.setAttribute('aria-label','لون '+regions[k]);select.append(new Option('اختاري',''));for(const id of Object.keys(colors))select.append(new Option(names[id],id));select.onchange=()=>{if(fieldset.disabled)return;if(select.value)chosen[k]=select.value;else delete chosen[k];refresh();};label.append(select);fieldset.append(label);selects.set(k,select);
+      }
+      gameResponse=()=>({...chosen});refresh();
+    }
     if(activity.type==='choice'||activity.type==='multi-choice')optionList(c.options,activity.type==='choice'?'radio':'checkbox');
     else if(activity.type==='true-false')optionList([{id:'true',label:'صح'},{id:'false',label:'خطأ'}],'radio');
     else if(activity.type==='numeric'){
@@ -419,11 +472,13 @@
     else if(activity.type==='image-hotspot')hotspotBoard();
     else if(activity.type==='science-simulation')balanceBoard();
     else if(activity.type==='interactive-story')storyBoard();
+    else if(activity.type==='trace'||activity.type==='free-drawing')drawingBoard();
+    else if(activity.type==='coloring')coloringBoard();
     else if(activity.type==='sequence')c.items.forEach((_,i)=>selector('المكان '+(i+1),c.items));
     else if(activity.type==='match')c.left.forEach(o=>selector(o.label,c.right));
     else if(activity.type==='classify')c.items.forEach(o=>selector(o.label,c.groups));
     const feedback=doc.createElement('p');feedback.setAttribute('role','status');
-    const submit=doc.createElement('button');submit.type='submit';submit.textContent='تحقق من الإجابة';form.append(submit,feedback);
+    const submit=doc.createElement('button');submit.type='submit';submit.textContent=activity.type==='free-drawing'?'إنهاء الرسم':'تحقق من الإجابة';form.append(submit,feedback);
     let finished=false;
     form.addEventListener('submit',e=>{
       e.preventDefault();if(finished)return;
@@ -441,7 +496,7 @@
       else if(activity.type==='sequence')response=controls.map(x=>x.value);
       else response=Object.fromEntries((activity.type==='match'?c.left:c.items).map((o,i)=>[o.id,controls[i].value]));
       const result=evaluate(activity,response);
-      feedback.textContent=result.status==='correct'?'أحسنت! ⭐':result.status==='incorrect'?'محاولة جميلة، راجعي الإجابة.':'كمّلي الاختيارات الأول.';
+      feedback.textContent=result.status==='completed'?'تم إكمال النشاط الفني!':result.status==='correct'?'أحسنت! ⭐':result.status==='incorrect'?'محاولة جميلة، راجعي الإجابة.':'كمّلي الاختيارات الأول.';
       if(result.status!=='unresolved'){finished=true;fieldset.disabled=true;submit.disabled=true;onResult?.(result);}
     });
     container.append(form);return true;

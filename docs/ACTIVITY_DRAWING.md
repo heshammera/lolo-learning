@@ -1,0 +1,2 @@
+# Drawing expansion
+Fixed single-stroke guides I/L/V/1/7/Arabic ١; bounded pointer samples and geometric coverage, not handwriting recognition. Free drawing completion-only; no raw drawing saved or sent. Coloring uses three built-in shapes and five colors; native select alternative. CMS and tests. Physical touchscreen, accessibility alternatives, richer art and multilingual glyphs pending. No production activation.

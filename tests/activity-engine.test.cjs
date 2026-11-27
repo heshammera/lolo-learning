@@ -2,11 +2,11 @@ const {test}=require('node:test');
 const assert=require('node:assert/strict');
 const engine=require('../activity-engine.js'),pilot=require('../activity-pilot.js');
 const activities=pilot.lessons.flatMap(l=>l.activities);
-test('all twenty contracts validate and grade without provider calls',()=>{
+test('all twenty scored contracts validate and grade without provider calls',()=>{
   assert.equal(engine.checkLessons(pilot.lessons).compatible,true);
   const answers=['i1',true,['i2','i1'],['i2','i1','i3'],{i1:'i2',i2:'i1'},3,{i1:'i1',i2:'i2',i3:'i1'},'الماء','قطة',4,{numerator:2,denominator:4},{i1:'i1',i2:'i2',i3:'i1'},'triangle',4,[['i1:a','i1:b'],['i2:a','i2:b'],['i3:a','i3:b']],['i2','i3','i1'],['right','right','down','down','right'],'root',3,[{sceneId:'s1',optionId:'o1'},{sceneId:'s2',optionId:'o1'}]];
   const wrong=['i2',false,['i1'],['i1','i2','i3'],{i1:'i1',i2:'i2'},4,{i1:'i2',i2:'i2',i3:'i1'},'الحجارة','ماء',5,{numerator:1,denominator:3},{i1:'i2',i2:'i2',i3:'i1'},'circle',3,Array.from({length:12},()=>['i1:a','i2:b']),['i1','i2','i3'],Array.from({length:100},(_,i)=>i%2?'left':'right'),'leaf',2,[{sceneId:'s1',optionId:'o2'}]];
-  activities.forEach((a,i)=>{assert.equal(engine.evaluate(a,answers[i]).status,'correct');assert.equal(engine.evaluate(a,wrong[i]).status,'incorrect');assert.equal(engine.evaluate(a,null).status,'unresolved');});
+  activities.slice(0,20).forEach((a,i)=>{assert.equal(engine.evaluate(a,answers[i]).status,'correct');assert.equal(engine.evaluate(a,wrong[i]).status,'incorrect');assert.equal(engine.evaluate(a,null).status,'unresolved');});
 });
 test('unknown activities, versions, duplicate IDs and incompatible targets block publication',()=>{
   const a=activities[0];
@@ -73,4 +73,12 @@ test('visual contracts enforce fixed regions, attainable balance and terminating
  assert.equal(engine.validate(cyclic).valid,false);
  const unreachable=JSON.parse(JSON.stringify(story));unreachable.config.scenes[0].options[0].next=null;
  assert.equal(engine.validate(unreachable).valid,false);
+});
+
+test('drawing participation ungraded, geometric trace and color assignment',()=>{
+ const [trace,draw,color]=activities.slice(20);assert.equal(engine.checkLessons(pilot.lessons).compatible,true);
+ const line=[];for(let y=15;y<=85;y+=5)line.push([25,y]);for(let x=30;x<=80;x+=5)line.push([x,85]);
+ assert.equal(engine.evaluate(trace,line).status,'correct');assert.equal(engine.evaluate(trace,[[25,15],[80,85]]).status,'incorrect');assert.equal(engine.evaluate(trace,null).status,'unresolved');
+ assert.equal(engine.evaluate(draw,[[[10,10],[30,30]]]).status,'completed');assert.equal(engine.evaluate(draw,[]).status,'unresolved');
+ assert.equal(engine.evaluate(color,{circle:'red',triangle:'blue',square:'green'}).status,'correct');assert.equal(engine.evaluate(color,{circle:'red'}).status,'unresolved');
 });

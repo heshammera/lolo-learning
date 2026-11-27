@@ -84,6 +84,13 @@
           const group=el('fieldset');group.append(el('legend','الإجابات الصحيحة (اثنتان أو أكثر)'));box.append(group);
           for(const o of c.options){const l=el('label'),i=el('input');i.type='checkbox';i.checked=c.answers.includes(o.id);i.disabled=!permitted();l.append(i,doc.createTextNode(o.label));group.append(l);i.onchange=()=>{if(!permitted())return;c.answers=c.options.filter(x=>x.id===o.id?i.checked:c.answers.includes(x.id)).map(x=>x.id);sync();};}
         }
+      }else if(a.type==='trace'){
+        select(box,'رمز التتبع',c.glyph,['I','L','V','1','7','١'].map(id=>({id,label:id})),v=>c.glyph=v);
+      }else if(a.type==='free-drawing'){
+        box.append(el('p','تُسجل المشاركة فقط. لا تُحفظ الرسمة ولا تُمنح درجة فنية.'));
+      }else if(a.type==='coloring'){
+        const colors=[{id:'red',label:'أحمر'},{id:'blue',label:'أزرق'},{id:'green',label:'أخضر'},{id:'yellow',label:'أصفر'},{id:'purple',label:'بنفسجي'}];
+        for(const [id,label] of [['circle','الدائرة'],['triangle','المثلث'],['square','المربع']])select(box,'اللون الصحيح لـ '+label,c.answers[id],colors,v=>c.answers[id]=v);
       }else if(a.type==='image-hotspot'){
         const regions={plant:[['flower','الزهرة'],['leaf','الورقة'],['stem','الساق'],['root','الجذور']],face:[['eyes','العينان'],['nose','الأنف'],['mouth','الفم'],['ears','الأذنان']]};
         select(box,'الرسم المدمج',c.diagram,[{id:'plant',label:'نبات'},{id:'face',label:'وجه'}],v=>{if(!regions[v])return;c.diagram=v;c.answer=regions[v][0][0];},true);

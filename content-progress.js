@@ -15,7 +15,7 @@
     return e&&uid.test(e.draftId)&&uid.test(e.releaseId)&&Number.isSafeInteger(e.sequence)&&e.sequence>0&&['lesson','unit','curriculum'].includes(e.scope)&&
       (e.scope==='curriculum'?e.unitId===null:typeof e.unitId==='string'&&id.test(e.unitId))&&
       (e.scope==='lesson'?typeof e.lessonId==='string'&&id.test(e.lessonId):e.lessonId===null)&&
-      Array.isArray(e.results)&&e.results.length<=7500&&e.results.every(r=>r&&typeof r.activityId==='string'&&id.test(r.activityId)&&['correct','incorrect'].includes(r.status)&&Object.keys(r).length===2)&&
+      Array.isArray(e.results)&&e.results.length<=7500&&e.results.every(r=>r&&typeof r.activityId==='string'&&id.test(r.activityId)&&['correct','incorrect','completed'].includes(r.status)&&Object.keys(r).length===2)&&
       Number.isInteger(e.total)&&e.total>=1&&e.total<=7500&&e.results.length<=e.total;
   }
   function create(storage){

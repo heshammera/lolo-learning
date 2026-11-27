@@ -25,6 +25,9 @@
       {id:'s1',text:'وجدت لولو نبتة صغيرة جافة في الحديقة.',question:'ماذا تحتاج النبتة؟',options:[{id:'o1',label:'الماء',next:'s2'},{id:'o2',label:'اللعب',next:null}],answer:'o1'},
       {id:'s2',text:'سقت لولو النبتة ووضعتها قرب النافذة.',question:'لماذا وضعتها قرب النافذة؟',options:[{id:'o1',label:'لتحصل على الضوء',next:null},{id:'o2',label:'لتحصل على الحجارة',next:null}],answer:'o1'}
     ]}},
+    {id:'writing-trace',type:'trace',version:1,prompt:'تتبعي الحرف L من النقطة الخضراء.',config:{glyph:'L'}},
+    {id:'writing-draw',type:'free-drawing',version:1,prompt:'ارسمي شيئًا تحبينه.',config:{}},
+    {id:'writing-color',type:'coloring',version:1,prompt:'لوني الدائرة بالأحمر والمثلث بالأزرق والمربع بالأخضر.',config:{answers:{circle:'red',triangle:'blue',square:'green'}}},
   ];
   const api={status:'draft',lessons:[{id:'science-draft-plants',activities:activities.slice(0,4)},{id:'science-draft-animals',activities:activities.slice(4)}]};
   if(typeof window!=='undefined')window.LoloActivityPilot=api;

@@ -14,16 +14,17 @@
   }
   function create(p,scope,unitId,lessonId,prior=[]){
     const steps=plan(p,scope,unitId,lessonId);if(!steps?.length)return null;
-    if(!Array.isArray(prior)||prior.length>steps.length||!prior.every((r,i)=>r&&Object.keys(r).sort().join(',')==='activityId,status'&&r.activityId===steps[i].activity.id&&['correct','incorrect'].includes(r.status)))return null;
+    const accepts=(a,status)=>engine.types[a.type]?.evaluator==='completion-only'?status==='completed':['correct','incorrect'].includes(status);
+    if(!Array.isArray(prior)||prior.length>steps.length||!prior.every((r,i)=>r&&Object.keys(r).sort().join(',')==='activityId,status'&&r.activityId===steps[i].activity.id&&accepts(steps[i].activity,r.status)))return null;
     const results=copy(prior);
     let index=results.length,answered=false,correct=results.filter(r=>r.status==='correct').length,total=results.length,stopped=false;
     return Object.freeze({
       current:()=>!stopped&&index<steps.length?copy(steps[index]):null,
-      state:()=>({index,total:steps.length,answered,correct,attempted:total,done:!stopped&&index===steps.length,stopped}),
+      state:()=>({index,total:steps.length,answered,correct,attempted:total,ungraded:results.filter(r=>r.status==='completed').length,done:!stopped&&index===steps.length,stopped}),
       results:()=>copy(results),
       // Accept only the renderer's resolved result for this exact current activity.
       record(activityId,result){
-        if(stopped||answered||index>=steps.length||steps[index].activity.id!==activityId||!['correct','incorrect'].includes(result?.status))return false;
+        if(stopped||answered||index>=steps.length||steps[index].activity.id!==activityId||!accepts(steps[index].activity,result?.status))return false;
         results.push({activityId,status:result.status});answered=true;total++;if(result.status==='correct')correct++;return true;
       },
       advance(){if(stopped||!answered||index>=steps.length)return false;index++;answered=false;return true;},

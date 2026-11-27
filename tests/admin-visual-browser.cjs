@@ -26,10 +26,10 @@ const validator=require('../admin-src/cms-validate.cjs');
   await editor.getByLabel('اسم المنهج',{exact:true}).fill('منهج العلوم التجريبي');
   const picker=editor.getByLabel('إضافة نشاط من المكتبة',{exact:true}).first();
   await page.waitForFunction(()=>document.querySelector('#visualEditor select[disabled]')===null&&Array.from(document.querySelectorAll('#visualEditor select')).some(s=>Array.from(s.options).some(o=>o.value==='choice')));
-  for(const type of ['choice','multi-choice','sequence','match','numeric','classify','fill-blank','free-text','number-line','fractions','drag-drop','geometry','equations','memory-game','puzzle','maze','image-hotspot','science-simulation','interactive-story']){
+  for(const type of ['choice','multi-choice','sequence','match','numeric','classify','fill-blank','free-text','number-line','fractions','drag-drop','geometry','equations','memory-game','puzzle','maze','image-hotspot','science-simulation','interactive-story','trace','free-drawing','coloring']){
    await picker.selectOption(type);await editor.getByRole('button',{name:'إضافة النشاط',exact:true}).first().click();
   }
-  assert.equal(await editor.locator('.cms-activity').count(),20);
+  assert.equal(await editor.locator('.cms-activity').count(),23);
   const choice=editor.locator('[data-activity-type="choice"]');
   await choice.getByLabel('السؤال أو التعليمات').fill('اختاري الماء');
   await choice.getByRole('button',{name:'معاينة النشاط'}).click();
@@ -105,16 +105,29 @@ const validator=require('../admin-src/cms-validate.cjs');
   await sample.locator('button[type="submit"]').click();
   assert.match(await sample.locator('form > p[role="status"]').textContent(),/أحسنت/);
   await page.locator('#closeDraftPreview').click();
+  const trace=editor.locator('[data-activity-type="trace"]');
+  await trace.getByRole('button',{name:'معاينة النشاط'}).click();
+  const canvas=sample.locator('canvas');await canvas.scrollIntoViewIfNeeded();let bounds=await canvas.boundingBox();assert.ok(bounds);
+  await page.mouse.move(bounds.x+bounds.width*.25,bounds.y+bounds.height*.15);await page.mouse.down();await page.mouse.move(bounds.x+bounds.width*.25,bounds.y+bounds.height*.85,{steps:30});await page.mouse.move(bounds.x+bounds.width*.80,bounds.y+bounds.height*.85,{steps:24});await page.mouse.up();
+  await sample.locator('button[type="submit"]').click();assert.match(await sample.locator('form > p[role="status"]').textContent(),/أحسنت/);
+  await page.locator('#closeDraftPreview').click();
+  const drawing=editor.locator('[data-activity-type="free-drawing"]');await drawing.getByRole('button',{name:'معاينة النشاط'}).click();
+  await canvas.scrollIntoViewIfNeeded();bounds=await canvas.boundingBox();assert.ok(bounds);
+  await page.mouse.move(bounds.x+bounds.width*.2,bounds.y+bounds.height*.2);await page.mouse.down();await page.mouse.move(bounds.x+bounds.width*.8,bounds.y+bounds.height*.8,{steps:20});await page.mouse.up();
+  await sample.getByRole('button',{name:'إنهاء الرسم',exact:true}).click();assert.match(await sample.locator('form > p[role="status"]').textContent(),/تم إكمال/);await page.locator('#closeDraftPreview').click();
+  const coloring=editor.locator('[data-activity-type="coloring"]');await coloring.getByRole('button',{name:'معاينة النشاط'}).click();
+  await sample.getByLabel('لون دائرة',{exact:true}).selectOption('red');await sample.getByLabel('لون مثلث',{exact:true}).selectOption('blue');await sample.getByLabel('لون مربع',{exact:true}).selectOption('green');
+  await sample.locator('button[type="submit"]').click();assert.match(await sample.locator('form > p[role="status"]').textContent(),/أحسنت/);await page.locator('#closeDraftPreview').click();
   await page.locator('#checkDraft').click();await page.waitForFunction(()=>document.querySelector('#draftStatus').textContent.includes('متوافق'));
   await page.locator('#saveDraft').click();await page.waitForFunction(()=>document.querySelector('#draftStatus').textContent.includes('تم حفظ'));
-  assert.equal(saved.title,'منهج العلوم التجريبي');assert.equal(saved.units[0].lessons[0].activities.length,20);
+  assert.equal(saved.title,'منهج العلوم التجريبي');assert.equal(saved.units[0].lessons[0].activities.length,23);
   await editor.getByRole('button',{name:'إضافة وحدة',exact:true}).click();
   assert.equal(await editor.locator('.cms-unit').count(),2);
   await editor.locator('.cms-unit').last().getByRole('button',{name:'إضافة درس',exact:true}).click();
   assert.equal(await editor.locator('.cms-lesson').count(),2);
   await page.locator('#draftList button').first().click();
   await page.waitForFunction(()=>document.querySelectorAll('#visualEditor .cms-unit').length===1);
-  assert.equal(await editor.locator('.cms-activity').count(),20);
+  assert.equal(await editor.locator('.cms-activity').count(),23);
   assert.deepEqual(errors,[]);
  }finally{await browser.close();}
 })().catch(e=>{console.error(e);process.exitCode=1;});

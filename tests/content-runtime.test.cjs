@@ -26,3 +26,9 @@ test('untrusted production default and invalid activity rejection',()=>{
   assert.equal(runtime.create(bad,'curriculum'),null);
   const s=runtime.create(p,'unit','u2');s.stop();assert.equal(s.current(),null);assert.equal(s.record('l3-a',{status:'correct'}),false);
 });
+
+test('completion-only result cannot inflate correctness',()=>{
+ const p={content:{schemaVersion:1,subjectId:'art',gradeId:'grade-1',title:'Art',units:[{id:'u',title:'Art',lessons:[{id:'l',title:'Draw',goal:'Practice',activities:[{id:'draw',type:'free-drawing',version:1,prompt:'Draw',config:{}}]}]}]}};
+ const s=runtime.create(p,'curriculum');assert.equal(s.record('draw',{status:'correct'}),false);assert.equal(s.record('draw',{status:'completed'}),true);assert.equal(s.state().correct,0);assert.equal(s.state().ungraded,1);
+ assert.equal(runtime.create(p,'curriculum',null,null,s.results()).state().done,true);
+});
