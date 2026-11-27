@@ -27,6 +27,19 @@ async function verifyPractice(page){
   assert.ok(await page.locator('#practiceCards button').count()>0);
   await page.locator('#practiceCards button').first().click();
   assert.ok((await page.locator('#practiceFeedback').textContent()).trim().length>0);
+  await page.locator('#practiceQuiz').click();
+  await page.locator('#visualQuiz[open]').waitFor();
+  for(let i=0;i<3;i++){
+    await page.locator('#visualQuizOptions button').first().click();
+    await page.locator('#visualQuizNext').click();
+  }
+  assert.match(await page.locator('#visualQuizPrompt').textContent(),/من 3/);
+  const saved=await page.evaluate(()=>JSON.parse(localStorage.getItem('lolo-visual-assessment-v1')));
+  assert.equal(saved['hello-1'].length,1);
+  assert.equal(saved['hello-1'][0].total,3);
+  assert.equal(await page.evaluate(()=>JSON.parse(localStorage.getItem('lolo-mastered')||'[]').length),0);
+  await page.locator('#visualQuizDone').click();
+  await page.locator('#homePractice').click();
   await page.locator('#practiceTrace').click();
   await page.locator('#traceSheet.open').waitFor();
   assert.equal(await page.locator('#traceCanvas').isVisible(),true);

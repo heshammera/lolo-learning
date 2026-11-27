@@ -561,7 +561,7 @@ class Handler(BaseHTTPRequestHandler):
         if path == "/api/status":
             return self.send_json(200, {"providers": [name for name, configured in (("gemini", GEMINI_API_KEY), ("openai", OPENAI_API_KEY and OPENAI_ENABLED), ("gemini-backup", GEMINI_BACKUP_API_KEY)) if configured]})
         relative = "index.html" if path == "/" else path.lstrip("/")
-        allowed_files = {"index.html", "curriculum.json", "pcm-processor.js", "app.js", "storage.js", "assessment-engine.js", "curriculum-engine.js", "learning-engine.js", "learning-path-engine.js", "network.js", "offline-assets.js", "sw.js", "offline.html", "parent-gate.js", "session-timers.js", "brand.js", "favicon.ico", "favicon-16x16.png", "favicon-32x32.png", "favicon-48x48.png", "apple-touch-icon.png", "site.webmanifest"}
+        allowed_files = {"index.html", "curriculum.json", "pcm-processor.js", "app.js", "storage.js", "assessment-engine.js", "visual-question-bank.js", "visual-assessment-engine.js", "curriculum-engine.js", "learning-engine.js", "learning-path-engine.js", "network.js", "offline-assets.js", "sw.js", "offline.html", "parent-gate.js", "session-timers.js", "brand.js", "favicon.ico", "favicon-16x16.png", "favicon-32x32.png", "favicon-48x48.png", "apple-touch-icon.png", "site.webmanifest"}
         is_brand_asset = relative.startswith("assets/branding/") and Path(relative).suffix.lower() in {".png", ".webp", ".json"}
         if relative not in allowed_files and not is_brand_asset:
             return self.send_json(404, {"error": "Not found"})

@@ -4,6 +4,12 @@ const assessmentEngine = window.LoloAssessment.create();
 const curriculumEngine = window.LoloCurriculum;
 const learningEngine = window.LoloLearning;
 const pathEngine = window.LoloLearningPath;
+const visualAssessment=window.LoloVisualAssessment;
+const visualBank=window.LoloVisualBank;
+const VISUAL_HISTORY_KEY='lolo-visual-assessment-v1';
+let visualHistory=storage.getJSON(VISUAL_HISTORY_KEY,{});
+let visualSession=null;
+let visualBankReady=false;
 const nativeBundle=window.LoloNativeBundled===true;
 const nativeApi=nativeBundle ? options=>{
   const plugin=window.Capacitor?.Plugins?.CapacitorHttp;
@@ -2732,10 +2738,60 @@ function openOfflinePractice(){
     const button=document.createElement('button');button.type='button';button.textContent=emoji;button.setAttribute('aria-label',label);
     button.onclick=()=>{$('#practiceFeedback').textContent=label;localSpeech(label,'ar-EG');};cards.append(button);
   }
+  $('#practiceQuiz').hidden=!visualBankReady||!visualBank.bank[lesson.id];
+  $('#practiceQuiz').onclick=()=>{dialog.close();openVisualQuiz(lesson.id);};
   $('#practiceTrace').hidden=!traceTargets(lesson).length;
   $('#practiceTrace').onclick=()=>{dialog.close();startTraceTest(lesson.id);};
   dialog.showModal();
 }
+function openVisualQuiz(lessonId){
+  if(!visualBankReady||invalidPath||!visualBank.bank[lessonId])return;
+  if(isActive||isStarting)stopSession();
+  const lesson=allLessons().find(l=>l.id===lessonId);
+  if(!lesson)return;
+  visualSession=visualAssessment.create(visualBank.bank,lessonId,window.LoloAssessment.createAssessmentId(),visualBank.version);
+  if(!visualSession)return;
+  $('#visualQuizTitle').textContent=lesson.title||lesson.focus;
+  renderVisualQuiz();
+  $('#visualQuiz').showModal();
+}
+function renderVisualQuiz(){
+  const state=visualSession,q=visualAssessment.current(state);
+  if(!state||!q)return;
+  $('#visualQuizProgress').textContent=`السؤال ${state.index+1} من ${state.questions.length}`;
+  $('#visualQuizPrompt').textContent=q.prompt;$('#visualQuizPicture').textContent=q.visual;
+  $('#visualQuizFeedback').textContent='';$('#visualQuizNext').hidden=true;$('#visualQuizDone').hidden=true;
+  const options=$('#visualQuizOptions');options.replaceChildren();
+  for(const option of q.options){
+    const button=document.createElement('button');button.type='button';button.textContent=option.label;
+    button.onclick=()=>{
+      if(visualSession!==state)return;
+      const submitted=visualAssessment.submit(state,q.id,option.id);
+      if(!submitted)return;
+      visualSession=submitted.state;
+      for(const b of options.children)b.disabled=true;
+      button.classList.add(submitted.result.correct?'correct':'incorrect');
+      $('#visualQuizFeedback').textContent=submitted.result.correct?'برافو! إجابة جميلة ⭐':`محاولة جميلة! الإجابة هي: ${submitted.correctLabel}`;
+      $('#visualQuizNext').textContent=visualAssessment.current(visualSession)?'السؤال التالي':'عرض النتيجة';
+      $('#visualQuizNext').hidden=false;
+    };options.append(button);
+  }
+}
+$('#visualQuizNext').onclick=()=>{
+  if(!visualSession)return;
+  if(visualAssessment.current(visualSession)){renderVisualQuiz();return;}
+  const result=visualAssessment.summarize(visualSession,visualBank.bank,visualBank.version,new Date().toISOString());
+  const saved=visualAssessment.save(visualHistory,result);
+  if(saved.recorded&&storage.set(VISUAL_HISTORY_KEY,JSON.stringify(saved.history)))visualHistory=saved.history;
+  $('#visualQuizOptions').replaceChildren();$('#visualQuizPicture').textContent='🌟';
+  $('#visualQuizProgress').textContent='انتهى التحدّي';
+  $('#visualQuizPrompt').textContent=result?`نتيجتك: ${result.correct} من ${result.total}`:'لم تُحفظ النتيجة.';
+  $('#visualQuizFeedback').textContent=result&&saved.recorded&&visualHistory[result.lessonId]?.some(r=>r.assessmentId===result.assessmentId)?'النتيجة محفوظة في تقرير ولي الأمر.':'تعذر حفظ النتيجة على الجهاز.';
+  $('#visualQuizNext').hidden=true;$('#visualQuizDone').hidden=false;
+  visualSession=null;renderParentReport();
+};
+$('#visualQuizClose').onclick=$('#visualQuizDone').onclick=()=>$('#visualQuiz').close();
+$('#visualQuiz').addEventListener('close',()=>{visualSession=null;});
 $('#homePractice').onclick=openOfflinePractice;
 $('#practiceClose').onclick=$('#practiceBack').onclick=()=>$('#offlinePractice').close();
 $('#offlinePractice').addEventListener('close',()=>window.speechSynthesis?.cancel());
@@ -2787,6 +2843,8 @@ function renderParentReport() {
   addCard('الدروس', `${completed} من ${lessons.length} مكتمل`);
   addCard('الإجابات', `${correct} صح · ${wrong} محتاجة مراجعة · ${total ? Math.round(correct / total * 100) : 0}% صح`);
   addCard('الاختبارات', `${testEntries.length} شفهي · ${traceEntries.length} كتابة باللمس`);
+  const visualEntries=lessons.filter(l=>Array.isArray(visualHistory[l.id])&&visualHistory[l.id].some(r=>r?.bankVersion===visualBank.version));
+  if(visualEntries.length)addCard('تحدّي الفهم بالصور',`${visualEntries.length} دروس لها نتائج محلية مستقلة · محتوى تجريبي، لا يمثل إتقان المنهج`);
   const skillIds = new Set(lessons.flatMap(lesson => lesson.skillIds || []));
   const skillStates = [...skillIds].map(skillId => ({skillId, status: learningEngine.getStatus(skillProgress, skillId)}));
   const skillCounts = Object.fromEntries(Object.values(learningEngine.STATUS).map(status => [status, 0]));
@@ -2816,14 +2874,16 @@ function renderParentReport() {
     const result = testResults[lesson.id];
     const trace = traceResults[lesson.id];
     const lessonSkillStates = (lesson.skillIds || []).map(skillId => ({skillId, status: learningEngine.getStatus(skillProgress, skillId)}));
-    if (!stats.correct && !stats.wrong && !result && !trace && lessonSkillStates.every(item => item.status === learningEngine.STATUS.NOT_STARTED)) continue;
+    const visualResult=Array.isArray(visualHistory[lesson.id])?visualHistory[lesson.id].filter(r=>r?.bankVersion===visualBank.version).at(-1):null;
+    if (!stats.correct && !stats.wrong && !result && !trace && !visualResult && lessonSkillStates.every(item => item.status === learningEngine.STATUS.NOT_STARTED)) continue;
     const details = [];
     for (const item of lessonSkillStates) {
       const record = learningEngine.getRecord(skillProgress, item.skillId);
       details.push(`حالة الترديد: ${learningEngine.getStatusLabel(item.status)}${record.nextReviewAt ? ` · المراجعة ${new Date(record.nextReviewAt).toLocaleDateString('ar-EG')}` : ''}`);
     }
     if (stats.correct || stats.wrong) details.push(`${stats.correct || 0} صح و${stats.wrong || 0} محتاجة مراجعة`);
-    if (result) details.push(`الاختبار ${result.correct}/${result.total}`);
+    if (result) details.push(`اختبار الترديد ${result.correct}/${result.total}`);
+    if (visualResult) details.push(`تحدّي الفهم بالصور: ${visualResult.correct}/${visualResult.total}`);
     if (trace) details.push(`الكتابة باللمس ${trace.percent}% · ${trace.scores.map(item => `${item.value} ${item.score}%`).join('، ')}`);
     const history = Array.isArray(stats.history) ? stats.history : [];
     const errors = history.filter(item => item.is_correct === false).slice(-3);
@@ -3067,6 +3127,7 @@ $('#parentSheet').onclick = event => {
 };
 function resetCourseProgress() {
   if (!confirm('نرجع تقدم الدروس للبداية؟')) return;
+  visualHistory={};storage.remove(VISUAL_HISTORY_KEY);
   stopSession();
   mastered.clear();
   lessonExcellence = {};
@@ -3099,6 +3160,7 @@ function resetCourseProgress() {
 }
 function clearAnswerHistory() {
   if (!confirm('نمسح سجل الإجابات وتفاصيل الاختبارات؟ تقدم الدروس والشارات هيفضلوا محفوظين.')) return;
+  visualHistory={};storage.remove(VISUAL_HISTORY_KEY);
   lessonStats = {};
   testResults = {};
   traceResults = {};
@@ -3153,6 +3215,7 @@ if (location.protocol === 'file:') {
       throw new Error('Invalid curriculum data.');
     }
     course = data;
+    visualBankReady=visualAssessment.validateBank(visualBank.bank,new Set(allLessons().map(l=>l.id))).valid;
     const needsCurriculumSetup = !storage.get('lolo-selected-program');
     const savedLessonId = storage.get('lolo-current-lesson');
     const selectedProgram = storage.get('lolo-selected-program');

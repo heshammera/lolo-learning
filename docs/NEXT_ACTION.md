@@ -1,2 +1,2 @@
 # Next Action
-Verify offline milestone CI, then promote the tested changes to main; verify Vercel static assets and Android airplane-mode cold boot/upgrade/live provider. Continue remaining V2 requirements in docs/MASTER_REQUIREMENTS_STATUS.md.
+Verify visual assessment candidate CI before promotion. Then continue objective-specific assessment and reviewed content; server identity and child safety remain major priorities. Native phone checks, signing continuity and live voice remain unverified. See docs/MASTER_REQUIREMENTS_STATUS.md.

@@ -97,7 +97,7 @@ class ApiInputTests(unittest.TestCase):
         error.exception.close()
         with urlopen(self.base_url + "/assets/branding/icons/lolo-icon.webp") as icon:
             self.assertEqual(icon.headers.get("Content-Type"), "image/webp")
-        for filename in ("storage.js", "assessment-engine.js", "curriculum-engine.js", "learning-engine.js", "learning-path-engine.js", "network.js", "offline-assets.js", "sw.js", "parent-gate.js", "session-timers.js"):
+        for filename in ("storage.js", "assessment-engine.js", "visual-question-bank.js", "visual-assessment-engine.js", "curriculum-engine.js", "learning-engine.js", "learning-path-engine.js", "network.js", "offline-assets.js", "sw.js", "parent-gate.js", "session-timers.js"):
             with urlopen(self.base_url + "/" + filename) as script:
                 self.assertEqual(script.status, 200)
                 self.assertIn("javascript", script.headers.get("Content-Type", ""))
