@@ -3085,7 +3085,7 @@ function renderCloudFamily(){
 async function runCloud(action,success){
   if(!cloudUiEnabled||!parentGate.isUnlocked()||navigator.onLine===false)return;
   $('#cloudStatus').textContent='جاري تنفيذ الطلب…';
-  try{const pending=action();renderCloudFamily();await pending;if(parentGate.isUnlocked()&&$('#parentSheet').classList.contains('open'))$('#cloudStatus').textContent=success;}
+  try{const pending=action();renderCloudFamily();await pending;if(parentGate.isUnlocked()&&$('#parentSheet').classList.contains('open')&&!$('#parentSettingsPanel').hidden&&navigator.onLine!==false)$('#cloudStatus').textContent=success;}
   catch(error){if(parentGate.isUnlocked()&&$('#parentSheet').classList.contains('open'))$('#cloudStatus').textContent=error.status===409?'في نسخة محفوظة أو أحدث. اعملي معاينة جديدة؛ لم يُستبدل أي تقدم.':error.status===401?'بيانات الدخول غير صحيحة أو انتهت الجلسة.':'تعذر إتمام الطلب. جربي مرة تانية عند توفر الاتصال.';}
   finally{renderCloudFamily();}
 }

@@ -108,7 +108,67 @@ async function verifyPractice(page){
     assert.equal(await page.evaluate(()=>window.LoloStorage.get('lolo-learning-path-v1')),saved);
     assert.equal(paid,0);
     assert.deepEqual(errors,[]);
+    assert.equal(await page.locator('#cloudFamilyPanel').isVisible(),false);
     await context.close();
+    // Staging account UI with synthetic responses only; do not contact a real service.
+    const staging=await browser.newContext({serviceWorkers:'block'});
+    await seed(staging);
+    const remoteChild='11111111-1111-4111-8111-111111111111', token='a'.repeat(43);
+    let revision=0,remote=null,writes=0;
+    const actions=[];
+    await staging.route('**/api/status',route=>route.fulfill({json:{providers:[],familyUiEnabled:true,progressSyncEnabled:true}}));
+    await staging.route('**/api/family',async route=>{
+      const body=route.request().postDataJSON();actions.push(body.action);
+      if(body.action!=='login')assert.equal(route.request().headers()['authorization'],'Bearer '+token);
+      let data={};
+      if(body.action==='login')data={token,expiresAt:'2099-01-01T00:00:00Z',parentId:remoteChild};
+      else if(body.action==='children')data={children:[{id:remoteChild,nickname:'Synthetic child',ageBand:'unspecified'}]};
+      else if(body.action==='readProgress')data={revision,snapshot:remote};
+      else if(body.action==='writeProgress'){
+        writes++;assert.equal(body.childId,remoteChild);assert.equal(body.baseRevision,0);
+        assert.deepEqual(Object.keys(body.snapshot).sort(),['completedLessonIds','curriculumVersion','path','schemaVersion']);
+        revision=1;remote=body.snapshot;data={revision,snapshot:remote};
+      }
+      await route.fulfill({json:data});
+    });
+    const sp=await staging.newPage();const stagingErrors=[];
+    sp.on('pageerror',e=>stagingErrors.push(e.message));
+    await sp.goto(root,{waitUntil:'domcontentloaded'});
+    await sp.waitForFunction(()=>!document.querySelector('#mic').disabled);
+    assert.equal(await sp.locator('#cloudFamilyPanel').isVisible(),false);
+    await sp.locator('#parentOpen').click();
+    await sp.locator('#parentGateSetupPin').fill('638294');
+    await sp.locator('#parentGateSetupConfirm').fill('638294');
+    await sp.locator('#parentGateSetup button[type="submit"]').click();
+    await sp.locator('#parentGateRecoveryDone').click();
+    await sp.locator('#cloudFamilyPanel:not([hidden])').waitFor();
+    await sp.locator('#cloudEmail').fill('synthetic@example.test');
+    await sp.locator('#cloudPassword').fill('synthetic-password');
+    await sp.locator('#cloudLogin button[type="submit"]').click();
+    await sp.locator('#cloudChildren button').first().waitFor();
+    assert.equal(await sp.locator('#cloudPassword').inputValue(),'');
+    await sp.locator('#cloudChildren button').first().click();
+    await sp.locator('#cloudPreview:not([hidden])').waitFor();
+    assert.equal(await sp.locator('#cloudUpload').isDisabled(),true);
+    assert.equal(writes,0);
+    await sp.locator('#cloudConfirm').check();
+    await sp.locator('#cloudUpload').click();
+    await sp.waitForFunction(()=>document.querySelector('#cloudStatus').textContent.includes('تم حفظ'));
+    assert.equal(writes,1);
+    await sp.locator('#cloudChildren button').first().click();
+    await sp.locator('#cloudPreview:not([hidden])').waitFor();
+    assert.equal(await sp.locator('#cloudUpload').isVisible(),false);
+    assert.equal(await sp.evaluate(t=>JSON.stringify(localStorage).includes(t)||JSON.stringify(sessionStorage).includes(t),token),false);
+    await sp.locator('#parentClose').click();
+    await sp.locator('#parentOpen').click();
+    await sp.locator('#parentGatePin').fill('638294');
+    await sp.locator('#parentGateVerify button[type="submit"]').click();
+    await sp.locator('#cloudLogin:not([hidden])').waitFor();
+    assert.equal(await sp.locator('#cloudAccount').isVisible(),false);
+    assert.equal(writes,1);
+    assert.deepEqual(actions,['login','children','readProgress','writeProgress','readProgress']);
+    assert.deepEqual(stagingErrors,[]);
+    await staging.close();
     // Simulate native offline connectivity while serving the bundled files locally.
     // This checks bundle boot and API gating, not the Android WebView itself.
     const native=await browser.newContext();
