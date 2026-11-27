@@ -17,6 +17,7 @@
     }
     function select(parent,label,value,options,change,rerender=false){
       const wrap=el('label',label),input=el('select');
+      input.setAttribute('aria-label',label);
       input.append(new Option('اختر…',''));
       for(const o of options)input.append(new Option(o.label,o.id));
       input.value=value??'';input.disabled=!permitted();
@@ -41,7 +42,7 @@
         const row=el('div');row.className='cms-row';box.append(row);
         const input=field(row,label+' '+(index+1),item.label,v=>item.label=v,{max:500});
         // Refresh answer labels only on blur; don't replace the active typing field.
-        input.addEventListener('change',()=>{if(permitted())rebuild();});
+        input.addEventListener('change',()=>{if(permitted()){sync();/* refreshed labels on structural rebuild */}});
         if(array.length>2)remove(row,array,index,'حذف');
       });
       const add=button(box,'إضافة عنصر',()=>{array.push({id:uid('item'),label:'عنصر جديد'});rebuild();});add.disabled=array.length>=max;
