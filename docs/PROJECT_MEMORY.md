@@ -11,4 +11,4 @@
 - Curriculum counts: foundation 48; Connect Plus 1 48; Math Grade 1 Languages 44; total 140.
 - Android ID is `com.heshammera.lolo`; do not change it.
 - Do not push to `main` or deploy production unless the user explicitly requests it.
-- User has now explicitly requested continuous pushes to the Vercel-linked branch after each completed milestone. Current local work is on `codex/lolo-v2-next`, forked from stable `main`; promote only after checks pass and keep `backup/pre-lolo-v2` unchanged. The parent PIN barrier is device-local only, not authentication; browser storage remains editable/deletable.
+- User explicitly requested continuous pushes to the Vercel-linked branch after each completed milestone. Parent PIN milestone `6f7cfcd` is on `main`; `backup/pre-lolo-v2` remains unchanged at `458ae22`. The parent PIN barrier is device-local only, not authentication; browser storage remains editable/deletable.

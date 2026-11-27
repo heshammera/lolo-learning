@@ -2,8 +2,8 @@
 
 **Reviewed:** 2026-11-27
 **Baseline:** `458ae22` (`Ignore downloaded Android APK artifact`)
-**Stable branch:** `main` (Vercel-linked)
-**Working branch:** `codex/lolo-v2-next` (local parental PIN milestone in progress)
+**Stable / Vercel-linked branch:** `main` at `6f7cfcd`
+**Working branch:** `codex/lolo-v2-next` at the promoted milestone
 
 ## Product and runtime
 
@@ -27,4 +27,4 @@
 
 ## Current work status
 
-Phase 0 / Phase 1 safeguards, branding, deterministic writing/math grading, and a bounded lesson-token oral repeat test are implemented. OpenAI oral-test replies are gated by local transcript grading. Curriculum schema v2.1.0 adds a registry for evidence types. The skill-progress engine records introductions, deterministic answer outcomes, completed listen-and-repeat test scores, and review dates locally; it does not evaluate pronunciation or comprehension. Commit `0a43371` is deployed on `main`; GitHub Actions run `45942643151` passed tests and Android build. The public Vercel app serves curriculum 2.1.0 and the new learning engine. `backup/pre-lolo-v2` remains at `458ae22`. Current local milestone adds the device-local parent PIN barrier; it is not deployed until verified and promoted.
+Phase 0 / Phase 1 safeguards, branding, deterministic writing/math grading, and a bounded lesson-token oral repeat test are implemented. OpenAI oral-test replies are gated by local transcript grading. Curriculum schema v2.1.0 adds a registry for evidence types. The skill-progress engine records introductions, deterministic answer outcomes, completed listen-and-repeat test scores, and review dates locally; it does not evaluate pronunciation or comprehension. Commit `0a43371` and prior CI run `45942643151` record the earlier learning milestone. Commit `6f7cfcd` adds and deploys the device-local parent PIN barrier; live Vercel checks returned HTTP 200 for the app and new script. CI run `46018068496` passed tests and Android build, and its debug APK is saved under `outputs/lolo-android-apk/parent-pin-6f7cfcd/`. `backup/pre-lolo-v2` remains unchanged at `458ae22`.

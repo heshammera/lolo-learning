@@ -17,6 +17,7 @@
 - [ ] Add authored open-comprehension questions, reliable pronunciation evaluation, and equivalent app-controlled grading for Gemini; do not treat ASR transcript match as pronunciation mastery.
 - [x] Add versioned curriculum metadata, lesson versions, one-to-one skill references, and validation for IDs, required fields, skill references, prerequisites, cycles, and authored question formats.
 - [x] Add a local explainable state model and spaced-review dates for the current deterministic listen-and-repeat tests; keep evidence limited to recognized-token matching.
+- [x] Add a device-local parent PIN barrier for parent settings and sensitive local reset actions; hash PIN/recovery secrets and document that this is not authentication.
 - [ ] Add authored question banks, a curriculum-reviewed prerequisite graph, and evidence appropriate to comprehension/pronunciation before extending mastery claims.
 
 ## Ordered milestones from the master prompt
