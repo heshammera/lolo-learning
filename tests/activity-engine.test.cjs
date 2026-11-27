@@ -82,3 +82,13 @@ test('drawing participation ungraded, geometric trace and color assignment',()=>
  assert.equal(engine.evaluate(draw,[[[10,10],[30,30]]]).status,'completed');assert.equal(engine.evaluate(draw,[]).status,'unresolved');
  assert.equal(engine.evaluate(color,{circle:'red',triangle:'blue',square:'green'}).status,'correct');assert.equal(engine.evaluate(color,{circle:'red'}).status,'unresolved');
 });
+
+ test('drawing rejects sparse, nonfinite and out-of-range samples without recording a grade',()=>{
+  const [trace,draw]=activities.slice(20);
+  for(const bad of [Array(2),[[25,15],, [25,85]],[[25,15],[,85]],[[25,15],[NaN,85]],[[25,15],[101,85]]]){
+    assert.equal(engine.evaluate(trace,bad).status,'unresolved');
+    assert.equal(engine.evaluate(draw,[bad]).status,'unresolved');
+  }
+  assert.equal(engine.evaluate(draw,Array(1)).status,'unresolved');
+  assert.equal(engine.evaluate(draw,[[[10,10],[30,30]]]).status,'completed');
+ });
