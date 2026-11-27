@@ -6,8 +6,9 @@
     ['fill-blank','أكمل الفراغ'],['free-text','إجابة نصية قصيرة'],['number-line','خط الأعداد'],['fractions','الكسور المكافئة'],
     ['drag-drop','السحب والإفلات'],['geometry','الأشكال الهندسية'],['equations','المعادلات الخطية'],
     ['memory-game','لعبة الذاكرة'],['puzzle','بازل الترتيب'],['maze','المتاهة'],
+    ['image-hotspot','تحديد أجزاء الرسم'],['science-simulation','محاكاة الميزان'],['interactive-story','قصة تفاعلية'],
   ].map(([id,label])=>[id,Object.freeze({id,label,version:1,offline:true,evaluator:'deterministic',renderer:'generic-v1'})])));
-  const planned=Object.freeze(['image-hotspot','speech-repeat','phoneme-score','dictation','conversation','trace','free-drawing','coloring','science-simulation','interactive-story','reading-aloud','homework-upload']);
+  const planned=Object.freeze(['speech-repeat','phoneme-score','dictation','conversation','trace','free-drawing','coloring','reading-aloud','homework-upload']);
   const plain=v=>v!==null&&typeof v==='object'&&!Array.isArray(v)&&[Object.prototype,null].includes(Object.getPrototypeOf(v));
   const exact=(o,keys)=>plain(o)&&Object.keys(o).length===keys.length&&keys.every(k=>Object.hasOwn(o,k));
   const id=v=>typeof v==='string'&&/^[a-zA-Z0-9][a-zA-Z0-9_-]{0,63}$/.test(v);
@@ -58,6 +59,37 @@
     }
     return {matched,done:matched.size===cards.size||turns.length===c.maxTurns,correct:matched.size===cards.size};
   }
+  const diagrams=Object.freeze({
+    plant:Object.freeze({flower:'الزهرة',leaf:'الورقة',stem:'الساق',root:'الجذور'}),
+    face:Object.freeze({eyes:'العينان',nose:'الأنف',mouth:'الفم',ears:'الأذنان'})
+  });
+  const diagramId=v=>typeof v==='string'&&Object.hasOwn(diagrams,v);
+  const regionId=(diagram,v)=>diagramId(diagram)&&typeof v==='string'&&Object.hasOwn(diagrams[diagram],v);
+  const balance=c=>exact(c,['leftMass','unitMass','maxCount'])&&integer(c.leftMass)&&c.leftMass>=1&&c.leftMass<=1000&&integer(c.unitMass)&&c.unitMass>=1&&c.unitMass<=100&&integer(c.maxCount)&&c.maxCount>=2&&c.maxCount<=12&&c.leftMass%c.unitMass===0&&c.leftMass/c.unitMass<=c.maxCount;
+  function validStory(c){
+    if(!exact(c,['scenes'])||!Array.isArray(c.scenes)||c.scenes.length<2||c.scenes.length>8)return false;
+    const scenes=c.scenes;
+    if(!scenes.every(s=>exact(s,['id','text','question','options','answer'])&&id(s.id)&&text(s.text)&&text(s.question)&&Array.isArray(s.options)&&s.options.length>=2&&s.options.length<=4&&s.options.every(o=>exact(o,['id','label','next'])&&id(o.id)&&text(o.label)&&(o.next===null||id(o.next)))&&unique(s.options.map(o=>o.id))&&unique(s.options.map(o=>o.label.trim()))&&s.options.some(o=>o.id===s.answer))||!unique(scenes.map(s=>s.id)))return false;
+    // Only forward edges; every scene must be reachable, and every route terminates.
+    const reached=new Set([scenes[0].id]);
+    for(const [i,s] of scenes.entries()){
+      for(const o of s.options){
+        if(o.next!==null){if(!scenes.slice(i+1).some(n=>n.id===o.next))return false;if(reached.has(s.id))reached.add(o.next);}
+      }
+    }
+    return reached.size===scenes.length;
+  }
+  function storyResult(c,choices){
+    if(!Array.isArray(choices)||!choices.length||choices.length>c.scenes.length)return null;
+    let current=c.scenes[0],correct=true;
+    for(const choice of choices){
+      if(!current||!exact(choice,['sceneId','optionId'])||choice.sceneId!==current.id)return null;
+      const option=current.options.find(o=>o.id===choice.optionId);if(!option)return null;
+      correct=correct&&choice.optionId===current.answer;
+      current=option.next===null?null:c.scenes.find(s=>s.id===option.next);
+    }
+    return {done:current===null,correct};
+  }
   function validate(activity){
     if(!exact(activity,['id','type','version','prompt','config'])||!id(activity.id)||!text(activity.prompt))return {valid:false,code:'INVALID_ACTIVITY'};
     if(typeof activity.type!=='string'||!Object.hasOwn(types,activity.type)||activity.version!==1)return {valid:false,code:'UNSUPPORTED_ACTIVITY'};
@@ -78,6 +110,9 @@
       case 'memory-game':valid=exact(c,['items','maxTurns'])&&entries(c.items,2,6)&&integer(c.maxTurns)&&c.maxTurns>=c.items.length&&c.maxTurns<=40;break;
       case 'puzzle':valid=exact(c,['items','answer'])&&entries(c.items,3,8)&&sameSet(c.answer,c.items.map(o=>o.id))&&!c.answer.every((x,i)=>x===c.items[i].id);break;
       case 'maze':valid=validMaze(c);break;
+      case 'image-hotspot':valid=exact(c,['diagram','answer'])&&regionId(c.diagram,c.answer);break;
+      case 'science-simulation':valid=balance(c);break;
+      case 'interactive-story':valid=validStory(c);break;
       case 'drag-drop':
       case 'classify':valid=exact(c,['items','groups','assignments'])&&entries(c.items)&&entries(c.groups,2,6)&&plain(c.assignments)&&sameSet(Object.keys(c.assignments),c.items.map(o=>o.id))&&Object.values(c.assignments).every(a=>c.groups.some(g=>g.id===a));break;
     }
@@ -103,6 +138,9 @@
       case 'fill-blank':
       case 'free-text':resolved=answerText(response);correct=resolved&&c.answers.some(a=>normalize(a)===normalize(response));break;
       case 'number-line':resolved=onLine(c,response);correct=resolved&&response===c.answer;break;
+      case 'image-hotspot':resolved=regionId(c.diagram,response);correct=response===c.answer;break;
+      case 'science-simulation':resolved=integer(response)&&response>=0&&response<=c.maxCount;correct=resolved&&response*c.unitMass===c.leftMass;break;
+      case 'interactive-story':{const r=storyResult(c,response);resolved=!!r?.done;correct=resolved&&r.correct;break;}
       case 'memory-game':{const r=memoryResult(c,response);resolved=!!r?.done;correct=!!r?.correct;break;}
       case 'puzzle':resolved=sameSet(response,c.items.map(o=>o.id));correct=resolved&&response.every((x,i)=>x===c.answer[i]);break;
       case 'maze':{
@@ -281,6 +319,73 @@
       }
       board.append(grid,arrows);fieldset.append(board);draw();
     }
+    // All geometry is fixed trusted code. Curriculum selects only diagram and region IDs.
+    function hotspotBoard(){
+      const ns='http://www.w3.org/2000/svg',svg=doc.createElementNS(ns,'svg');
+      svg.setAttribute('viewBox','0 0 240 240');svg.setAttribute('class','activity-hotspot-svg');svg.setAttribute('aria-hidden','true');
+      const regions=new Map();
+      function draw(parent,tag,attributes){const node=doc.createElementNS(ns,tag);for(const [k,v] of Object.entries(attributes))node.setAttribute(k,String(v));parent.append(node);return node;}
+      function group(id){const g=draw(svg,'g',{'data-region':id,class:'activity-hotspot-region'});regions.set(id,g);return g;}
+      if(c.diagram==='plant'){
+        draw(svg,'rect',{x:0,y:182,width:240,height:58,fill:'#f0dfc5'});
+        const root=group('root');
+        draw(root,'path',{d:'M120 178 L120 225 M120 191 L91 214 M120 198 L150 224 M120 208 L102 230',stroke:'#93683b','stroke-width':11,'stroke-linecap':'round',fill:'none'});
+        const stem=group('stem');draw(stem,'rect',{x:111,y:77,width:18,height:103,rx:8,fill:'#41864a'});
+        const leaf=group('leaf');draw(leaf,'path',{d:'M111 134 Q55 78 27 120 Q65 173 111 134 M129 151 Q180 97 211 133 Q176 185 129 151',fill:'#75b85c',stroke:'#35763c','stroke-width':3});
+        const flower=group('flower');
+        for(const [x,y] of [[120,33],[94,50],[146,50],[103,76],[137,76]])draw(flower,'circle',{cx:x,cy:y,r:20,fill:'#f49bbd',stroke:'#b45479','stroke-width':2});
+        draw(flower,'circle',{cx:120,cy:58,r:17,fill:'#ffc75e'});
+      }else{
+        draw(svg,'ellipse',{cx:120,cy:119,rx:77,ry:100,fill:'#ffdfb8',stroke:'#c98e59','stroke-width':3});
+        const ears=group('ears');for(const x of [38,202])draw(ears,'ellipse',{cx:x,cy:115,rx:17,ry:24,fill:'#ffcdab',stroke:'#c98e59','stroke-width':3});
+        const eyes=group('eyes');for(const x of [87,153]){draw(eyes,'ellipse',{cx:x,cy:89,rx:19,ry:14,fill:'white',stroke:'#7f634a','stroke-width':2});draw(eyes,'circle',{cx:x,cy:89,r:8,fill:'#35415b'});}
+        const nose=group('nose');draw(nose,'path',{d:'M120 105 L105 143 Q120 151 135 143 Z',fill:'#e5a77c',stroke:'#a86c48','stroke-width':3});
+        const mouth=group('mouth');draw(mouth,'path',{d:'M91 169 Q120 203 149 169 Q120 179 91 169 Z',fill:'#be5b67',stroke:'#9c3f50','stroke-width':3});
+      }
+      fieldset.append(svg);
+      function highlight(){for(const [id,g] of regions)g.classList.toggle('is-selected',controls.some(i=>i.value===id&&i.checked));}
+      optionList(Object.entries(diagrams[c.diagram]).map(([id,label])=>({id,label})),'radio');
+      controls.forEach(input=>input.addEventListener('change',highlight));
+      for(const [id,g] of regions)g.addEventListener('click',()=>{if(fieldset.disabled)return;const input=controls.find(i=>i.value===id);input.checked=true;highlight();});
+    }
+    function balanceBoard(){
+      const board=doc.createElement('div');board.className='activity-balance';let count=0;
+      const ns='http://www.w3.org/2000/svg',svg=doc.createElementNS(ns,'svg');svg.setAttribute('viewBox','0 0 280 180');svg.setAttribute('aria-hidden','true');
+      function part(parent,tag,attrs){const n=doc.createElementNS(ns,tag);for(const [k,v] of Object.entries(attrs))n.setAttribute(k,String(v));parent.append(n);return n;}
+      part(svg,'path',{d:'M140 72 L109 160 L171 160 Z',fill:'#c6b5e6'});
+      const beam=part(svg,'g',{});
+      part(beam,'line',{x1:35,y1:72,x2:245,y2:72,stroke:'#7951ba','stroke-width':8,'stroke-linecap':'round'});
+      for(const x of [55,225]){part(beam,'path',{d:'M'+x+' 72 L'+(x-26)+' 120 L'+(x+26)+' 120 Z',fill:'#e7d9fa',stroke:'#7951ba','stroke-width':2});}
+      const notice=gameNotice(board,'');
+      const controlsBox=doc.createElement('div');controlsBox.className='activity-balance-controls';
+      const minus=gameButton(controlsBox,'− إزالة ثقل',()=>{if(!fieldset.disabled&&count>0){count--;draw();}});
+      const plus=gameButton(controlsBox,'+ إضافة ثقل',()=>{if(!fieldset.disabled&&count<c.maxCount){count++;draw();}});
+      function draw(){
+        const difference=count*c.unitMass-c.leftMass;
+        beam.setAttribute('transform','rotate('+(difference===0?0:difference>0?12:-12)+' 140 72)');
+        notice.textContent='اليسار: '+c.leftMass+' جم · اليمين: '+count+' × '+c.unitMass+' جم = '+count*c.unitMass+' جم. '+(difference===0?'الكفتان متوازنتان.':difference>0?'الكفة اليمنى أثقل.':'الكفة اليسرى أثقل.');
+        minus.disabled=count===0;plus.disabled=count===c.maxCount;
+      }
+      board.prepend(svg);board.append(controlsBox);fieldset.append(board);gameResponse=()=>count;draw();
+    }
+    function storyBoard(){
+      const board=doc.createElement('div');board.className='activity-story';
+      const body=doc.createElement('p'),question=doc.createElement('h4'),options=doc.createElement('div');
+      const notice=gameNotice(board,'');let scene=c.scenes[0];const choices=[];
+      board.append(body,question,options);fieldset.append(board);gameResponse=()=>choices.map(x=>({...x}));
+      function draw(){
+        options.replaceChildren();
+        if(!scene){body.textContent='انتهت القصة.';question.textContent='تحققي من الإجابات.';notice.textContent='اكتمل مسار القصة.';return;}
+        notice.textContent='صفحة '+(c.scenes.indexOf(scene)+1)+' من '+c.scenes.length;
+        body.textContent=scene.text;question.textContent=scene.question;
+        for(const option of scene.options)gameButton(options,option.label,()=>{
+          if(fieldset.disabled||!scene)return;
+          choices.push({sceneId:scene.id,optionId:option.id});
+          scene=option.next===null?null:c.scenes.find(s=>s.id===option.next);draw();
+        });
+      }
+      draw();
+    }
     if(activity.type==='choice'||activity.type==='multi-choice')optionList(c.options,activity.type==='choice'?'radio':'checkbox');
     else if(activity.type==='true-false')optionList([{id:'true',label:'صح'},{id:'false',label:'خطأ'}],'radio');
     else if(activity.type==='numeric'){
@@ -311,6 +416,9 @@
     else if(activity.type==='memory-game')memoryBoard();
     else if(activity.type==='puzzle')puzzleBoard();
     else if(activity.type==='maze')mazeBoard();
+    else if(activity.type==='image-hotspot')hotspotBoard();
+    else if(activity.type==='science-simulation')balanceBoard();
+    else if(activity.type==='interactive-story')storyBoard();
     else if(activity.type==='sequence')c.items.forEach((_,i)=>selector('المكان '+(i+1),c.items));
     else if(activity.type==='match')c.left.forEach(o=>selector(o.label,c.right));
     else if(activity.type==='classify')c.items.forEach(o=>selector(o.label,c.groups));
@@ -326,7 +434,7 @@
       else if(activity.type==='fill-blank'||activity.type==='free-text')response=controls[0].value;
       else if(activity.type==='number-line'){const selected=controls.find(x=>x.checked);response=selected?Number(selected.value):null;}
       else if(activity.type==='fractions')response={numerator:controls[0].value.trim()===''?null:Number(controls[0].value),denominator:controls[1].value.trim()===''?null:Number(controls[1].value)};
-      else if(activity.type==='geometry')response=controls.find(x=>x.checked)?.value;
+      else if(activity.type==='geometry'||activity.type==='image-hotspot')response=controls.find(x=>x.checked)?.value;
       else if(activity.type==='equations')response=controls[0].value.trim()===''?null:Number(controls[0].value);
       else if(activity.type==='drag-drop')response=Object.fromEntries(dragAssignments);
       else if(gameResponse)response=gameResponse();

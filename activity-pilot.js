@@ -19,6 +19,12 @@
     {id:'game-memory',type:'memory-game',version:1,prompt:'اعثري على البطاقات المتطابقة.',config:{items:items('🍎','🍌','🍇'),maxTurns:12}},
     {id:'game-puzzle',type:'puzzle',version:1,prompt:'رتبي الأعداد من الأصغر إلى الأكبر.',config:{items:items('٣','١','٢'),answer:['i2','i3','i1']}},
     {id:'game-maze',type:'maze',version:1,prompt:'ساعدي لولو في الوصول إلى النجمة.',config:{grid:['S..#','##.#','...G']}},
+    {id:'science-hotspot',type:'image-hotspot',version:1,prompt:'أشيري إلى الجزء الذي يمتص الماء من التربة.',config:{diagram:'plant',answer:'root'}},
+    {id:'science-balance',type:'science-simulation',version:1,prompt:'أضيفي أثقالًا حتى تتوازن كفتا الميزان.',config:{leftMass:6,unitMass:2,maxCount:5}},
+    {id:'reading-story',type:'interactive-story',version:1,prompt:'اقرئي القصة واختاري التصرف المناسب.',config:{scenes:[
+      {id:'s1',text:'وجدت لولو نبتة صغيرة جافة في الحديقة.',question:'ماذا تحتاج النبتة؟',options:[{id:'o1',label:'الماء',next:'s2'},{id:'o2',label:'اللعب',next:null}],answer:'o1'},
+      {id:'s2',text:'سقت لولو النبتة ووضعتها قرب النافذة.',question:'لماذا وضعتها قرب النافذة؟',options:[{id:'o1',label:'لتحصل على الضوء',next:null},{id:'o2',label:'لتحصل على الحجارة',next:null}],answer:'o1'}
+    ]}},
   ];
   const api={status:'draft',lessons:[{id:'science-draft-plants',activities:activities.slice(0,4)},{id:'science-draft-animals',activities:activities.slice(4)}]};
   if(typeof window!=='undefined')window.LoloActivityPilot=api;

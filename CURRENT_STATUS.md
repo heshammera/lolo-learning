@@ -1,2 +1,2 @@
 # Current status
-Main a771b7d2b262ec977252939532c5f41fa1507951 passed admin 46065981636 and Android 46065981644. Candidate verification/activity-games-20261127 adds three offline games and tests. CI pending; no production content activated.
+Main 62d1759101793bf48e2b523fe4ef1db3d5f478d6 passed admin 46066569075 and Android 46066569119. Candidate verification/activity-visual-20261127 adds three visual/science/reading contracts and tests. CI pending; no production keys or live content.

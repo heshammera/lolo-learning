@@ -1,2 +1,2 @@
 # Next Action
-Verify game unit/browser/admin and Android CI before promotion. Next visual science and drawing, story and consent-aware voice contracts, followed by remaining V2 and production gates. Full direct download UI E2E, key lifecycle, real-device review remain open.
+Verify visual activity CI, then trace, free drawing, coloring and consent-aware voice/reading contracts. Homework upload requires secure storage/retention/review. Preserve production gates and remaining V2 requirements.

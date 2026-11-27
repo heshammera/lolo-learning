@@ -2,15 +2,15 @@ const {test}=require('node:test');
 const assert=require('node:assert/strict');
 const engine=require('../activity-engine.js'),pilot=require('../activity-pilot.js');
 const activities=pilot.lessons.flatMap(l=>l.activities);
-test('all seventeen contracts validate and grade without provider calls',()=>{
+test('all twenty contracts validate and grade without provider calls',()=>{
   assert.equal(engine.checkLessons(pilot.lessons).compatible,true);
-  const answers=['i1',true,['i2','i1'],['i2','i1','i3'],{i1:'i2',i2:'i1'},3,{i1:'i1',i2:'i2',i3:'i1'},'الماء','قطة',4,{numerator:2,denominator:4},{i1:'i1',i2:'i2',i3:'i1'},'triangle',4,[['i1:a','i1:b'],['i2:a','i2:b'],['i3:a','i3:b']],['i2','i3','i1'],['right','right','down','down','right']];
-  const wrong=['i2',false,['i1'],['i1','i2','i3'],{i1:'i1',i2:'i2'},4,{i1:'i2',i2:'i2',i3:'i1'},'الحجارة','ماء',5,{numerator:1,denominator:3},{i1:'i2',i2:'i2',i3:'i1'},'circle',3,Array.from({length:12},()=>['i1:a','i2:b']),['i1','i2','i3'],Array.from({length:100},(_,i)=>i%2?'left':'right')];
+  const answers=['i1',true,['i2','i1'],['i2','i1','i3'],{i1:'i2',i2:'i1'},3,{i1:'i1',i2:'i2',i3:'i1'},'الماء','قطة',4,{numerator:2,denominator:4},{i1:'i1',i2:'i2',i3:'i1'},'triangle',4,[['i1:a','i1:b'],['i2:a','i2:b'],['i3:a','i3:b']],['i2','i3','i1'],['right','right','down','down','right'],'root',3,[{sceneId:'s1',optionId:'o1'},{sceneId:'s2',optionId:'o1'}]];
+  const wrong=['i2',false,['i1'],['i1','i2','i3'],{i1:'i1',i2:'i2'},4,{i1:'i2',i2:'i2',i3:'i1'},'الحجارة','ماء',5,{numerator:1,denominator:3},{i1:'i2',i2:'i2',i3:'i1'},'circle',3,Array.from({length:12},()=>['i1:a','i2:b']),['i1','i2','i3'],Array.from({length:100},(_,i)=>i%2?'left':'right'),'leaf',2,[{sceneId:'s1',optionId:'o2'}]];
   activities.forEach((a,i)=>{assert.equal(engine.evaluate(a,answers[i]).status,'correct');assert.equal(engine.evaluate(a,wrong[i]).status,'incorrect');assert.equal(engine.evaluate(a,null).status,'unresolved');});
 });
 test('unknown activities, versions, duplicate IDs and incompatible targets block publication',()=>{
   const a=activities[0];
-  for(const invalid of [{...a,type:'__proto__'},{...a,type:'science-simulation'},{...a,version:2},{...a,config:{...a.config,answer:'missing'}},{...a,script:'alert(1)'}])assert.equal(engine.validate(invalid).valid,false);
+  for(const invalid of [{...a,type:'__proto__'},{...a,type:'phoneme-score'},{...a,version:2},{...a,config:{...a.config,answer:'missing'}},{...a,script:'alert(1)'}])assert.equal(engine.validate(invalid).valid,false);
   assert.equal(engine.checkLessons([{id:'l1',activities:[a,a]}]).issues[0].code,'DUPLICATE_ACTIVITY_ID');
   assert.equal(engine.checkLessons([{id:'l1',activities:[a]}],{}).issues[0].code,'CLIENT_VERSION_UNSUPPORTED');
   assert.equal(engine.checkLessons([{id:'l1',activities:[]}]).compatible,false);
@@ -58,4 +58,19 @@ test('game contracts validate replay, bounded turns, solvability and order',()=>
  assert.equal(engine.validate({...maze,config:{grid:['S.G','S..','...']}}).valid,false);
  assert.equal(engine.evaluate(maze,['down']).status,'unresolved');
  assert.equal(engine.evaluate(maze,['right','right','down','down','right','left']).status,'unresolved');
+});
+
+test('visual contracts enforce fixed regions, attainable balance and terminating story paths',()=>{
+ const [hot,balance,story]=activities.slice(17);
+ assert.equal(engine.validate({...hot,config:{diagram:'https://example.com/image',answer:'root'}}).valid,false);
+ assert.equal(engine.evaluate(hot,'nose').status,'unresolved');
+ assert.equal(engine.validate({...balance,config:{leftMass:7,unitMass:2,maxCount:5}}).valid,false);
+ assert.equal(engine.evaluate(balance,0).status,'incorrect');
+ assert.equal(engine.evaluate(balance,6).status,'unresolved');
+ assert.equal(engine.evaluate(story,[{sceneId:'s1',optionId:'o1'}]).status,'unresolved');
+ assert.equal(engine.evaluate(story,[{sceneId:'s2',optionId:'o1'}]).status,'unresolved');
+ const cyclic=JSON.parse(JSON.stringify(story));cyclic.config.scenes[1].options[0].next='s1';
+ assert.equal(engine.validate(cyclic).valid,false);
+ const unreachable=JSON.parse(JSON.stringify(story));unreachable.config.scenes[0].options[0].next=null;
+ assert.equal(engine.validate(unreachable).valid,false);
 });

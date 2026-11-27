@@ -126,6 +126,21 @@ async function verifyPractice(page){
     for(const indices of pairs.values()){assert.equal(indices.length,2);if(!(await cards.nth(indices[0]).isDisabled())){await cards.nth(indices[0]).click();await cards.nth(indices[1]).click();}}
     await activity.locator('button[type="submit"]').click();
     assert.match(await activity.locator('form > p[role="status"]').textContent(),/أحسنت/);
+    await page.locator('#activityPreviewSelect').selectOption('science-hotspot');
+    const diagram=await activity.locator('.activity-hotspot-svg').boundingBox();assert.ok(diagram);
+    await page.mouse.click(diagram.x+diagram.width*120/240,diagram.y+diagram.height*212/240);
+    assert.equal(await activity.locator('input[value="root"]').isChecked(),true);
+    await activity.locator('button[type="submit"]').click();
+    assert.match(await activity.locator('form > p[role="status"]').textContent(),/أحسنت/);
+    await page.locator('#activityPreviewSelect').selectOption('science-balance');
+    for(let i=0;i<3;i++)await activity.getByRole('button',{name:'+ إضافة ثقل',exact:true}).click();
+    await activity.locator('button[type="submit"]').click();
+    assert.match(await activity.locator('form > p[role="status"]').textContent(),/أحسنت/);
+    await page.locator('#activityPreviewSelect').selectOption('reading-story');
+    await activity.getByRole('button',{name:'الماء',exact:true}).click();
+    await activity.getByRole('button',{name:'لتحصل على الضوء',exact:true}).click();
+    await activity.locator('button[type="submit"]').click();
+    assert.match(await activity.locator('form > p[role="status"]').textContent(),/أحسنت/);
     assert.equal(await page.evaluate(()=>window.LoloStorage.getJSON('lolo-mastered',[]).length),0);
     await page.locator('#localProfileName').fill('Second learner');
     await page.locator('#localProfileForm button[type="submit"]').click();

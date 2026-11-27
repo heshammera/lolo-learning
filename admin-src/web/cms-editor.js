@@ -84,6 +84,30 @@
           const group=el('fieldset');group.append(el('legend','الإجابات الصحيحة (اثنتان أو أكثر)'));box.append(group);
           for(const o of c.options){const l=el('label'),i=el('input');i.type='checkbox';i.checked=c.answers.includes(o.id);i.disabled=!permitted();l.append(i,doc.createTextNode(o.label));group.append(l);i.onchange=()=>{if(!permitted())return;c.answers=c.options.filter(x=>x.id===o.id?i.checked:c.answers.includes(x.id)).map(x=>x.id);sync();};}
         }
+      }else if(a.type==='image-hotspot'){
+        const regions={plant:[['flower','الزهرة'],['leaf','الورقة'],['stem','الساق'],['root','الجذور']],face:[['eyes','العينان'],['nose','الأنف'],['mouth','الفم'],['ears','الأذنان']]};
+        select(box,'الرسم المدمج',c.diagram,[{id:'plant',label:'نبات'},{id:'face',label:'وجه'}],v=>{if(!regions[v])return;c.diagram=v;c.answer=regions[v][0][0];},true);
+        select(box,'الجزء الصحيح',c.answer,regions[c.diagram].map(([id,label])=>({id,label})),v=>c.answer=v);
+      }else if(a.type==='science-simulation'){
+        for(const [key,label] of [['leftMass','كتلة الكفة اليسرى (جم)'],['unitMass','كتلة الثقل الواحد (جم)'],['maxCount','أقصى عدد للأثقال']])field(box,label,c[key],v=>c[key]=v,{type:'number'});
+        box.append(el('p','يجب أن يمكن الوصول إلى التوازن بعدد صحيح من الأثقال (حتى ١٢).'));
+      }else if(a.type==='interactive-story'){
+        box.append(el('p','من صفحتين إلى ثماني صفحات. يمكن لكل اختيار الانتقال إلى صفحة لاحقة أو إنهاء القصة. يجب أن تكون جميع الصفحات قابلة للوصول.'));
+        c.scenes.forEach((scene,i)=>{
+          const pane=el('div');pane.className='cms-lesson';box.append(pane);pane.append(el('h5','صفحة '+(i+1)));
+          field(pane,'نص الصفحة',scene.text,v=>scene.text=v,{max:500});
+          field(pane,'سؤال الصفحة',scene.question,v=>scene.question=v,{max:500});
+          scene.options.forEach((o,j)=>{
+            const row=el('div');row.className='cms-row';pane.append(row);
+            field(row,'اختيار '+(j+1),o.label,v=>o.label=v,{max:500});
+            select(row,'انتقال الاختيار '+(j+1),o.next||'end',[{id:'end',label:'نهاية القصة'},...c.scenes.slice(i+1).map((n,k)=>({id:n.id,label:'صفحة '+(i+k+2)}))],v=>o.next=v==='end'||!v?null:v);
+            if(scene.options.length>2)remove(row,scene.options,j,'حذف الاختيار');
+          });
+          const add=button(pane,'إضافة اختيار',()=>{scene.options.push({id:uid('option'),label:'اختيار جديد',next:null});rebuild();});add.disabled=scene.options.length>=4;
+          select(pane,'الإجابة الصحيحة للصفحة',scene.answer,scene.options,v=>scene.answer=v);
+          if(c.scenes.length>2&&i>0)button(pane,'حذف الصفحة',()=>{if(confirm('حذف الصفحة؟')){c.scenes.splice(i,1);for(const s of c.scenes)for(const o of s.options)if(o.next===scene.id)o.next=null;rebuild();}});
+        });
+        const add=button(box,'إضافة صفحة',()=>{const newId=uid('scene'),first=uid('option');c.scenes.push({id:newId,text:'صفحة جديدة',question:'سؤال جديد',options:[{id:first,label:'اختيار أول',next:null},{id:uid('option'),label:'اختيار ثانٍ',next:null}],answer:first});rebuild();});add.disabled=c.scenes.length>=8;
       }else if(a.type==='memory-game'){
         list(box,'البطاقات',c.items,6);field(box,'أقصى عدد للمحاولات',c.maxTurns,v=>c.maxTurns=v,{type:'number'});
         box.append(el('p','كل بطاقة تظهر مرتين؛ من ٢ إلى ٦ أزواج، وبحد أقصى ٤٠ محاولة.'));
