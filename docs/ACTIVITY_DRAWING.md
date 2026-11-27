@@ -1,2 +1,3 @@
 # Drawing expansion
 Fixed single-stroke guides I/L/V/1/7/Arabic ١; bounded pointer samples and geometric coverage, not handwriting recognition. Free drawing completion-only; no raw drawing saved or sent. Coloring uses three built-in shapes and five colors; native select alternative. CMS and tests. Physical touchscreen, accessibility alternatives, richer art and multilingual glyphs pending. No production activation.
+Drawing input hardening candidate: process coalesced pointer samples and the release endpoint, reject sparse or malformed coordinate arrays, and prevent submission while a stroke is active. Cache version advanced. Browser/device and CI checks remain required before promotion.
