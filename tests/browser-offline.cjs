@@ -102,6 +102,18 @@ async function verifyPractice(page){
     await activity.locator('select').nth(1).selectOption('i1');
     await activity.locator('button[type="submit"]').click();
     assert.match(await activity.locator('[role="status"]').textContent(),/أحسنت/);
+    await page.locator('#activityPreviewSelect').selectOption('science-drag');
+    const chip=activity.locator('[data-drag-item="i1"]'),zone=activity.locator('[data-drop-group="i1"]');
+    await chip.scrollIntoViewIfNeeded();await zone.scrollIntoViewIfNeeded();
+    const from=await chip.boundingBox(),to=await zone.boundingBox();
+    assert.ok(from&&to);
+    await page.mouse.move(from.x+from.width/2,from.y+from.height/2);
+    await page.mouse.down();await page.mouse.move(to.x+to.width/2,to.y+to.height/2,{steps:12});await page.mouse.up();
+    assert.equal(await activity.getByLabel('مجموعة قطة',{exact:true}).inputValue(),'i1');
+    await activity.getByLabel('مجموعة وردة',{exact:true}).selectOption('i2');
+    await activity.getByLabel('مجموعة سمكة',{exact:true}).selectOption('i1');
+    await activity.locator('button[type="submit"]').click();
+    assert.match(await activity.locator('form > p[role="status"]').textContent(),/أحسنت/);
     assert.equal(await page.evaluate(()=>window.LoloStorage.getJSON('lolo-mastered',[]).length),0);
     await page.locator('#localProfileName').fill('Second learner');
     await page.locator('#localProfileForm button[type="submit"]').click();

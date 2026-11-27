@@ -1,2 +1,2 @@
 # Next Action
-Verify Android and admin browser/DB CI for activity expansion. Next true accessible drag/drop, geometry, equations and remaining activity types; full direct download UI test, operator catalog tooling and production/security gates remain open. Preserve all V2 requirements.
+Confirm artifact and final CI for 617b9f7, promote verified branch, then verify interactions CI. Next games, visual science and drawing contracts; consent-aware voice activities and all V2 requirements remain. Actual touch/device and production delivery tests pending.

@@ -2,10 +2,10 @@ const {test}=require('node:test');
 const assert=require('node:assert/strict');
 const engine=require('../activity-engine.js'),pilot=require('../activity-pilot.js');
 const activities=pilot.lessons.flatMap(l=>l.activities);
-test('all eleven contracts validate and grade without provider calls',()=>{
+test('all fourteen contracts validate and grade without provider calls',()=>{
   assert.equal(engine.checkLessons(pilot.lessons).compatible,true);
-  const answers=['i1',true,['i2','i1'],['i2','i1','i3'],{i1:'i2',i2:'i1'},3,{i1:'i1',i2:'i2',i3:'i1'},'الماء','قطة',4,{numerator:2,denominator:4}];
-  const wrong=['i2',false,['i1'],['i1','i2','i3'],{i1:'i1',i2:'i2'},4,{i1:'i2',i2:'i2',i3:'i1'},'الحجارة','ماء',5,{numerator:1,denominator:3}];
+  const answers=['i1',true,['i2','i1'],['i2','i1','i3'],{i1:'i2',i2:'i1'},3,{i1:'i1',i2:'i2',i3:'i1'},'الماء','قطة',4,{numerator:2,denominator:4},{i1:'i1',i2:'i2',i3:'i1'},'triangle',4];
+  const wrong=['i2',false,['i1'],['i1','i2','i3'],{i1:'i1',i2:'i2'},4,{i1:'i2',i2:'i2',i3:'i1'},'الحجارة','ماء',5,{numerator:1,denominator:3},{i1:'i2',i2:'i2',i3:'i1'},'circle',3];
   activities.forEach((a,i)=>{assert.equal(engine.evaluate(a,answers[i]).status,'correct');assert.equal(engine.evaluate(a,wrong[i]).status,'incorrect');assert.equal(engine.evaluate(a,null).status,'unresolved');});
 });
 test('unknown activities, versions, duplicate IDs and incompatible targets block publication',()=>{
@@ -32,4 +32,16 @@ test('new contracts reject ambiguity, invalid ranges and older client capabiliti
   assert.equal(engine.checkLessons([{id:'l1',activities:[blank]}],{choice:[1]}).compatible,false);
   assert.equal(engine.checkLessons([{id:'l1',activities:[blank]}],null).issues[0].code,'INVALID_CLIENT_CAPABILITIES');
   assert.equal(engine.checkLessons([{id:'l1',activities:[blank]},{id:'l1',activities:[short]}]).issues[0].code,'DUPLICATE_LESSON_ID');
+});
+
+test('interaction contracts fail closed on malformed assignments, shapes and equations',()=>{
+  const [drag,shape,eq]=activities.slice(11);
+  assert.equal(engine.evaluate(drag,{i1:'i1'}).status,'unresolved');
+  assert.equal(engine.evaluate(drag,{i1:'i1',i2:'i2',i3:'missing'}).status,'unresolved');
+  assert.equal(engine.validate({...shape,config:{answer:'<svg>'}}).valid,false);
+  assert.equal(engine.validate({...eq,config:{coefficient:0,constant:3,result:11}}).valid,false);
+  assert.equal(engine.validate({...eq,config:{coefficient:2,constant:3,result:10}}).valid,false);
+  assert.equal(engine.evaluate(eq,'4').status,'unresolved');
+  assert.equal(engine.evaluate(eq,4).status,'correct');
+  assert.equal(engine.evaluate({...eq,config:{coefficient:2,constant:-3,result:-11}},-4).status,'correct');
 });

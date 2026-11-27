@@ -4,8 +4,9 @@
     ['choice','اختيار من متعدد'],['true-false','صح أو خطأ'],['multi-choice','اختيار عدة إجابات'],
     ['sequence','ترتيب العناصر'],['match','توصيل العناصر'],['numeric','إجابة رقمية'],['classify','تصنيف العناصر'],
     ['fill-blank','أكمل الفراغ'],['free-text','إجابة نصية قصيرة'],['number-line','خط الأعداد'],['fractions','الكسور المكافئة'],
+    ['drag-drop','السحب والإفلات'],['geometry','الأشكال الهندسية'],['equations','المعادلات الخطية'],
   ].map(([id,label])=>[id,Object.freeze({id,label,version:1,offline:true,evaluator:'deterministic',renderer:'generic-v1'})])));
-  const planned=Object.freeze(['image-hotspot','drag-drop','speech-repeat','phoneme-score','dictation','conversation','trace','free-drawing','coloring','geometry','equations','science-simulation','interactive-story','reading-aloud','memory-game','puzzle','maze','homework-upload']);
+  const planned=Object.freeze(['image-hotspot','speech-repeat','phoneme-score','dictation','conversation','trace','free-drawing','coloring','science-simulation','interactive-story','reading-aloud','memory-game','puzzle','maze','homework-upload']);
   const plain=v=>v!==null&&typeof v==='object'&&!Array.isArray(v)&&[Object.prototype,null].includes(Object.getPrototypeOf(v));
   const exact=(o,keys)=>plain(o)&&Object.keys(o).length===keys.length&&keys.every(k=>Object.hasOwn(o,k));
   const id=v=>typeof v==='string'&&/^[a-zA-Z0-9][a-zA-Z0-9_-]{0,63}$/.test(v);
@@ -21,6 +22,9 @@
   const alternatives=a=>Array.isArray(a)&&a.length>=1&&a.length<=8&&a.every(answerText)&&unique(a.map(normalize));
   const fraction=v=>exact(v,['numerator','denominator'])&&integer(v.numerator)&&integer(v.denominator)&&v.numerator>=0&&v.denominator>0&&v.numerator<=v.denominator&&v.denominator<=1000;
   const onLine=(c,v)=>integer(v)&&v>=c.min&&v<=c.max&&(v-c.min)%c.step===0;
+  const shapes=Object.freeze({circle:'دائرة: شكل مستدير بلا أضلاع',triangle:'مثلث: ثلاثة أضلاع',square:'مربع: أربعة أضلاع متساوية وأربع زوايا قائمة',rectangle:'مستطيل: ضلعان طويلان وضلعان قصيران وأربع زوايا قائمة',pentagon:'خماسي: خمسة أضلاع'});
+  const shapeId=v=>typeof v==='string'&&Object.hasOwn(shapes,v);
+  const equation=c=>exact(c,['coefficient','constant','result'])&&integer(c.coefficient)&&c.coefficient>=1&&c.coefficient<=100&&integer(c.constant)&&integer(c.result)&&(c.result-c.constant)%c.coefficient===0&&integer((c.result-c.constant)/c.coefficient);
   function validate(activity){
     if(!exact(activity,['id','type','version','prompt','config'])||!id(activity.id)||!text(activity.prompt))return {valid:false,code:'INVALID_ACTIVITY'};
     if(typeof activity.type!=='string'||!Object.hasOwn(types,activity.type)||activity.version!==1)return {valid:false,code:'UNSUPPORTED_ACTIVITY'};
@@ -36,6 +40,9 @@
       case 'free-text':valid=exact(c,['answers'])&&alternatives(c.answers);break;
       case 'number-line':valid=exact(c,['min','max','step','answer'])&&integer(c.min)&&integer(c.max)&&integer(c.step)&&c.step>0&&c.max>c.min&&(c.max-c.min)%c.step===0&&(c.max-c.min)/c.step<=20&&onLine(c,c.answer);break;
       case 'fractions':valid=exact(c,['numerator','denominator'])&&fraction(c);break;
+      case 'geometry':valid=exact(c,['answer'])&&shapeId(c.answer);break;
+      case 'equations':valid=equation(c);break;
+      case 'drag-drop':
       case 'classify':valid=exact(c,['items','groups','assignments'])&&entries(c.items)&&entries(c.groups,2,6)&&plain(c.assignments)&&sameSet(Object.keys(c.assignments),c.items.map(o=>o.id))&&Object.values(c.assignments).every(a=>c.groups.some(g=>g.id===a));break;
     }
     return {valid,code:valid?'OK':'INVALID_CONFIG'};
@@ -49,6 +56,7 @@
       case 'multi-choice':resolved=Array.isArray(response)&&response.length>0&&unique(response)&&response.every(a=>c.options.some(o=>o.id===a));correct=resolved&&sameSet(response,c.answers);break;
       case 'sequence':resolved=sameSet(response,c.items.map(o=>o.id));correct=resolved&&response.every((x,i)=>x===c.answer[i]);break;
       case 'match':
+      case 'drag-drop':
       case 'classify':{
         const expected=activity.type==='match'?c.pairs:c.assignments;
         const allowed=activity.type==='match'?c.right:c.groups;
@@ -59,6 +67,8 @@
       case 'fill-blank':
       case 'free-text':resolved=answerText(response);correct=resolved&&c.answers.some(a=>normalize(a)===normalize(response));break;
       case 'number-line':resolved=onLine(c,response);correct=resolved&&response===c.answer;break;
+      case 'geometry':resolved=shapeId(response);correct=response===c.answer;break;
+      case 'equations':resolved=integer(response);correct=resolved&&c.coefficient*response+c.constant===c.result;break;
       case 'fractions':resolved=fraction(response);correct=resolved&&response.numerator*c.denominator===c.numerator*response.denominator;break;
     }
     return {status:resolved?(correct?'correct':'incorrect'):'unresolved'};
@@ -88,6 +98,7 @@
     const fieldset=doc.createElement('fieldset'),legend=doc.createElement('legend');
     legend.textContent=activity.prompt;fieldset.append(legend);form.append(fieldset);
     const controls=[];
+    let dragAssignments=null;
     function optionList(options,kind){
       for(const o of options){
         const label=doc.createElement('label'),input=doc.createElement('input');
@@ -99,6 +110,62 @@
       label.textContent=labelText;blank.value='';blank.textContent='اختاري';select.append(blank);
       for(const o of options){const option=doc.createElement('option');option.value=o.id;option.textContent=o.label;select.append(option);}
       label.append(select);fieldset.append(label);controls.push(select);
+    }
+    // Fixed shapes, never authored SVG or external URLs.
+    function shapeGraphic(shape){
+      const ns='http://www.w3.org/2000/svg',svg=doc.createElementNS(ns,'svg');
+      svg.setAttribute('viewBox','0 0 80 80');svg.setAttribute('width','72');svg.setAttribute('height','72');svg.setAttribute('aria-hidden','true');
+      const attrs={circle:['circle',{cx:40,cy:40,r:30}],triangle:['polygon',{points:'40,8 73,70 7,70'}],square:['rect',{x:12,y:12,width:56,height:56}],rectangle:['rect',{x:6,y:23,width:68,height:34}],pentagon:['polygon',{points:'40,6 73,30 60,69 20,69 7,30'}]};
+      const [tag,values]=attrs[shape],node=doc.createElementNS(ns,tag);
+      for(const [key,value] of Object.entries(values))node.setAttribute(key,String(value));
+      node.setAttribute('fill','#e0d4fa');node.setAttribute('stroke','#7351b0');node.setAttribute('stroke-width','3');svg.append(node);return svg;
+    }
+    function dragBoard(){
+      const board=doc.createElement('div');board.className='activity-drag-board';
+      const pool=doc.createElement('div'),targets=doc.createElement('div'),fallback=doc.createElement('div');
+      pool.className='activity-drag-pool';targets.className='activity-drag-targets';fallback.className='activity-drag-fallback';
+      const notice=doc.createElement('p');notice.setAttribute('role','status');notice.textContent='اسحبي العنصر إلى المجموعة، أو اختاري العنصر ثم المجموعة.';
+      const assigned=new Map(),chips=new Map(),groups=new Map(),selects=new Map();let selected=null;
+      dragAssignments=assigned;
+      function refresh(){
+        for(const [itemId,chip] of chips){
+          const group=assigned.get(itemId);
+          (groups.get(group)?.area||pool).append(chip);
+          chip.setAttribute('aria-pressed',String(selected===itemId));
+          if(selects.has(itemId))selects.get(itemId).value=group||'';
+        }
+      }
+      function place(itemId,groupId){
+        if(fieldset.disabled||!chips.has(itemId)||!groups.has(groupId))return;
+        assigned.set(itemId,groupId);selected=null;refresh();
+        notice.textContent='تم وضع '+c.items.find(o=>o.id===itemId).label+' في '+c.groups.find(o=>o.id===groupId).label;
+      }
+      for(const g of c.groups){
+        const section=doc.createElement('section'),button=doc.createElement('button'),area=doc.createElement('div');
+        section.dataset.dropGroup=g.id;section.className='activity-drag-zone';button.type='button';button.textContent=g.label;button.setAttribute('aria-label','وضع في '+g.label);
+        button.onclick=()=>{if(selected)place(selected,g.id);};
+        section.append(button,area);targets.append(section);groups.set(g.id,{area});
+      }
+      for(const item of c.items){
+        const chip=doc.createElement('button');chip.type='button';chip.textContent=item.label;chip.className='activity-drag-chip';chip.dataset.dragItem=item.id;
+        let start=null,moved=false;
+        chip.addEventListener('pointerdown',event=>{if(fieldset.disabled||event.button!==0)return;start={x:event.clientX,y:event.clientY,id:event.pointerId};moved=false;chip.setPointerCapture?.(event.pointerId);});
+        chip.addEventListener('pointermove',event=>{if(start&&event.pointerId===start.id&&Math.hypot(event.clientX-start.x,event.clientY-start.y)>8)moved=true;});
+        chip.addEventListener('pointercancel',()=>{start=null;moved=false;});
+        chip.addEventListener('pointerup',event=>{
+          if(!start||event.pointerId!==start.id)return;
+          if(moved){const zone=doc.elementFromPoint(event.clientX,event.clientY)?.closest('[data-drop-group]');if(zone&&targets.contains(zone))place(item.id,zone.dataset.dropGroup);}
+          start=null;
+        });
+        chip.onclick=()=>{if(moved){moved=false;return;}selected=selected===item.id?null:item.id;refresh();notice.textContent=selected?'اختاري المجموعة للعنصر '+item.label:'اختاري عنصرًا.';};
+        chips.set(item.id,chip);pool.append(chip);
+        const label=doc.createElement('label'),select=doc.createElement('select');label.textContent='مجموعة '+item.label;select.setAttribute('aria-label','مجموعة '+item.label);
+        select.append(new Option('اختاري',''));for(const g of c.groups)select.append(new Option(g.label,g.id));
+        select.onchange=()=>{if(select.value)place(item.id,select.value);else{assigned.delete(item.id);selected=null;refresh();}};
+        selects.set(item.id,select);label.append(select);fallback.append(label);
+      }
+      const heading=doc.createElement('p');heading.textContent='بديل السحب باستخدام قوائم الاختيار:';
+      board.append(notice,pool,targets,heading,fallback);fieldset.append(board);refresh();
     }
     if(activity.type==='choice'||activity.type==='multi-choice')optionList(c.options,activity.type==='choice'?'radio':'checkbox');
     else if(activity.type==='true-false')optionList([{id:'true',label:'صح'},{id:'false',label:'خطأ'}],'radio');
@@ -117,7 +184,17 @@
       for(const labelText of ['البسط','المقام']){
         const label=doc.createElement('label'),input=doc.createElement('input');label.textContent=labelText;input.type='number';input.step='1';input.min=labelText==='البسط'?'0':'1';input.max='1000';label.append(input);fieldset.append(label);controls.push(input);
       }
-    }else if(activity.type==='sequence')c.items.forEach((_,i)=>selector('المكان '+(i+1),c.items));
+    }else if(activity.type==='geometry'){
+      const grid=doc.createElement('div');grid.className='activity-shapes';
+      for(const shape of Object.keys(shapes)){
+        const label=doc.createElement('label'),input=doc.createElement('input');input.type='radio';input.name='activity-answer';input.value=shape;input.setAttribute('aria-label',shapes[shape]);label.append(input,shapeGraphic(shape));grid.append(label);controls.push(input);
+      }
+      fieldset.append(grid);
+    }else if(activity.type==='equations'){
+      const equationText=doc.createElement('p');equationText.dir='ltr';equationText.className='activity-equation';equationText.textContent=c.coefficient+' × x '+(c.constant<0?'− '+Math.abs(c.constant):'+ '+c.constant)+' = '+c.result;fieldset.append(equationText);
+      const input=doc.createElement('input');input.type='number';input.step='1';input.setAttribute('aria-label','قيمة س');fieldset.append(input);controls.push(input);
+    }else if(activity.type==='drag-drop')dragBoard();
+    else if(activity.type==='sequence')c.items.forEach((_,i)=>selector('المكان '+(i+1),c.items));
     else if(activity.type==='match')c.left.forEach(o=>selector(o.label,c.right));
     else if(activity.type==='classify')c.items.forEach(o=>selector(o.label,c.groups));
     const feedback=doc.createElement('p');feedback.setAttribute('role','status');
@@ -132,6 +209,9 @@
       else if(activity.type==='fill-blank'||activity.type==='free-text')response=controls[0].value;
       else if(activity.type==='number-line'){const selected=controls.find(x=>x.checked);response=selected?Number(selected.value):null;}
       else if(activity.type==='fractions')response={numerator:controls[0].value.trim()===''?null:Number(controls[0].value),denominator:controls[1].value.trim()===''?null:Number(controls[1].value)};
+      else if(activity.type==='geometry')response=controls.find(x=>x.checked)?.value;
+      else if(activity.type==='equations')response=controls[0].value.trim()===''?null:Number(controls[0].value);
+      else if(activity.type==='drag-drop')response=Object.fromEntries(dragAssignments);
       else if(activity.type==='sequence')response=controls.map(x=>x.value);
       else response=Object.fromEntries((activity.type==='match'?c.left:c.items).map((o,i)=>[o.id,controls[i].value]));
       const result=evaluate(activity,response);

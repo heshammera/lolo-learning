@@ -72,6 +72,11 @@
         field(box,'البسط الصحيح',c.numerator,v=>c.numerator=v,{type:'number'});
         field(box,'المقام الصحيح',c.denominator,v=>c.denominator=v,{type:'number'});
         box.append(el('p','تُقبل الكسور المكافئة ضمن النطاق ٠ إلى ١. الحد الأقصى للمقام ١٠٠٠.'));
+      }else if(a.type==='geometry'){
+        select(box,'الشكل الصحيح',c.answer,[{id:'circle',label:'دائرة'},{id:'triangle',label:'مثلث'},{id:'square',label:'مربع'},{id:'rectangle',label:'مستطيل'},{id:'pentagon',label:'خماسي'}],v=>c.answer=v);
+      }else if(a.type==='equations'){
+        for(const [key,label] of [['coefficient','معامل س'],['constant','الثابت'],['result','الطرف الآخر']])field(box,label,c[key],v=>c[key]=v,{type:'number'});
+        box.append(el('p','المعادلة من الصورة أ × س + ب = ج، بمعامل موجب وحل صحيح.'));
       }else if(a.type==='choice'||a.type==='multi-choice'){
         list(box,'الاختيارات',c.options);
         if(a.type==='choice')select(box,'الإجابة الصحيحة',c.answer,c.options,v=>c.answer=v);
@@ -83,7 +88,7 @@
         list(box,'العناصر',c.items);
         c.answer=c.items.map((_,i)=>c.answer[i]||'');
         c.items.forEach((_,i)=>select(box,'الترتيب الصحيح '+(i+1),c.answer[i],c.items,v=>c.answer[i]=v));
-      }else if(a.type==='match'||a.type==='classify'){
+      }else if(a.type==='match'||a.type==='classify'||a.type==='drag-drop'){
         const left=a.type==='match'?c.left:c.items,right=a.type==='match'?c.right:c.groups;
         const key=a.type==='match'?'pairs':'assignments';
         list(box,a.type==='match'?'العناصر الأولى':'العناصر',left);
