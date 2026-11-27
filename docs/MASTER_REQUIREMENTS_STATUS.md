@@ -36,3 +36,5 @@ Restore candidate: explicit copy of limited remote snapshot into a new local pro
 Restore copy promoted at f2e93ad after successful checks. Pending first-backup queue candidate retains approved snapshot and operation ID after lost response, explicit authenticated retry only. No unattended sync or update of existing remote versions.
 
 First-backup queue promoted at ae98c9e after run 46054696792. User approved independent owner CMS and expanded dynamic activity library; keep all prior requirements. Activity registry candidate: seven v1 contracts/evaluators/shared accessible preview renderer, draft science examples only. Server validation, CMS, publishing, download and remaining activities pending.
+
+Activity Library candidate: separate admin metadata, runtime-derived support, template drift audit, target compatibility and local-only visual prototype. Not a deployed or authenticated admin CMS. Existing activity registry CI still required before promotion.

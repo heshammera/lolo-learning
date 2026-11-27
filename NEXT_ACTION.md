@@ -1,2 +1,2 @@
 # Next Action
-Verify activity engine CI and promote only if passing. Next implement isolated admin identity/RBAC and server-side activity validation, then CMS draft authoring/review/publication/rollback and compatible content download. Preserve remaining master requirements. See docs/ACTIVITY_ENGINE.md and docs/IMPLEMENTATION_PLAN.md.
+Verify activity registry and Activity Library tests and promote tested changes only. Next isolated admin identity/RBAC/MFA and server-side compatibility checks, then secured CMS editor/review/publication/rollback. Keep all previous V2 requirements, production cloud flags disabled. See docs/ACTIVITY_LIBRARY.md.
