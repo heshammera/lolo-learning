@@ -20,6 +20,11 @@ const rejected = engine.grade({questionId:'q-word', attemptId:'a-wrong', answer:
 assert.equal(rejected.status, 'incorrect');
 assert.equal(rejected.isCorrect, false);
 
+const repeatedLetters = engine.grade({questionId:'q-order', attemptId:'a-order', answer:'hello', expected:'hello'});
+assert.equal(repeatedLetters.isCorrect, true);
+const missingRepeatedLetter = engine.grade({questionId:'q-order', attemptId:'a-order-missing', answer:'helo', expected:'hello'});
+assert.equal(missingRepeatedLetter.isCorrect, false);
+
 const math = engine.grade({questionId:'q-math', attemptId:'a-math', kind:'math', answer:'تلاتة', expected:'3'});
 assert.equal(math.isCorrect, true);
 const mathWrong = engine.grade({questionId:'q-math', attemptId:'a-math-wrong', kind:'math', answer:'اثنين', expected:'3'});
@@ -37,5 +42,5 @@ assert.equal(unresolved.isCorrect, null);
 const duplicate = engine.grade({questionId:'q-word', attemptId:'a-word', answer:'wrong', acceptedAnswers:['wrong']});
 assert.equal(duplicate.duplicate, true);
 assert.equal(duplicate.isCorrect, true);
-assert.equal(engine.attemptCount(), 6);
+assert.equal(engine.attemptCount(), 8);
 console.log('Deterministic assessment checks passed.');
