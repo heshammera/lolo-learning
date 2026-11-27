@@ -680,7 +680,7 @@ function speakWritingTask() {
   }
   if (!text) return;
   $('#traceFeedback').textContent = 'لولو بتقولك السؤال… 🎧';
-  speakTraceFeedback(text);
+  speakTraceFeedback(text,'ar-EG',true);
 }
 
 function renderWritingTask() {
@@ -747,6 +747,7 @@ function updateOrderDisplay() {
 }
 function checkWritingDraw() {
   if (!traceState || traceState.mode !== 'advanced') return;
+  if(traceState.audioBlocked){$('#traceFeedback').textContent='اسمعي السؤال الأول أو اختاري تدريبًا آخر.';return;}
   const item = traceState.items[traceState.index];
   if (item.type === 'order') { submitWritingAnswer(null, traceState.selected.map(tile=>tile.value).join('')); return; }
   if (!traceState.hasStroke) { $('#traceFeedback').textContent='جربي تكتبي الإجابة الأول 🌼'; return; }
@@ -889,8 +890,7 @@ function startTraceTest(lessonId) {
 
 function closeTraceTest() {
   traceSpeechRequestId++;
-  window.speechSynthesis?.cancel();
-  traceSpeechAudio?.pause(); traceSpeechAudio = null;
+  releaseTraceSpeech();
   $('#traceSheet').classList.remove('open');
   $('#traceSheet').setAttribute('aria-hidden', 'true');
   traceState = null;
@@ -1008,7 +1008,7 @@ function nextTraceTarget() {
   $('#traceCanvas').hidden = true; $('#traceNext').hidden = true;
   renderParentReport(); refreshLessonPicker(traceState.lesson.programId, traceState.lesson.unitId);
 }
-function localSpeech(text,lang='ar-EG'){
+function localSpeech(text,lang='ar-EG',onEnd=null,onError=null){
   if(!window.speechSynthesis||!window.SpeechSynthesisUtterance)return false;
   try{
     const voices=window.speechSynthesis.getVoices();
@@ -1016,6 +1016,7 @@ function localSpeech(text,lang='ar-EG'){
     const voice=voices.find(v=>v.localService&&v.lang.toLowerCase()===lang.toLowerCase())||voices.find(v=>v.localService&&v.lang.toLowerCase().split('-')[0]===prefix);
     if(!voice)return false;
     const utterance=new SpeechSynthesisUtterance(text);utterance.voice=voice;utterance.lang=voice.lang;utterance.rate=.85;
+    if(onEnd)utterance.onend=onEnd;if(onError)utterance.onerror=onError;
     window.speechSynthesis.cancel();window.speechSynthesis.speak(utterance);return true;
   }catch{return false;}
 }
@@ -1023,45 +1024,51 @@ function audioOnlyWritingTask(){
   return traceState?.mode==='advanced' && [1,3].includes(traceState.stageIndex) &&
     programList().find(p=>p.id===traceState.programId)?.subject!=='math';
 }
-function offlineWritingFallback(text,lang){
-  if(audioOnlyWritingTask()){
-    const item=traceState.items[traceState.index];
-    // Only use an installed local voice for the language being assessed.
-    const canSpeak=localSpeech(item.say,item.lang||'en-US');
-    traceState.audioBlocked=!canSpeak;
-    $('#traceFeedback').textContent=canSpeak?'صوت الجهاز المحلي · اسمعي السؤال وجاوبي.':'السؤال ده محتاج صوت إنجليزي. وصّلي النت أو اختاري تدريبًا بصريًا تاني.';
+function releaseTraceSpeech(){
+  const audio=traceSpeechAudio;traceSpeechAudio=null;
+  if(audio){audio.onended=null;audio.onerror=null;audio.pause();if(audio.dataset.loloObjectUrl)URL.revokeObjectURL(audio.dataset.loloObjectUrl);}
+  window.speechSynthesis?.cancel();
+}
+function offlineWritingFallback(text,lang,isQuestion,requestId){
+  const state=traceState;
+  const stillCurrent=()=>requestId===traceSpeechRequestId&&state===traceState;
+  if(isQuestion&&audioOnlyWritingTask()){
+    const item=state.items[state.index];
+    const fail=()=>{if(stillCurrent()){state.audioBlocked=true;$('#traceFeedback').textContent='السؤال ده محتاج صوت إنجليزي. وصّلي النت أو اختاري تدريبًا بصريًا تاني.';}};
+    state.audioBlocked=true;
+    const canSpeak=localSpeech(item.say,item.lang||'en-US',()=>{
+      if(stillCurrent()){state.audioBlocked=false;$('#traceFeedback').textContent='صوت الجهاز المحلي · دلوقتي تقدري تجاوبي.';}
+    },fail);
+    if(canSpeak)$('#traceFeedback').textContent='اسمعي السؤال بصوت الجهاز المحلي.';
+    else fail();
     return;
   }
-  const item=traceState?.mode==='advanced'?traceState.items[traceState.index]:null;
+  const item=isQuestion&&state?.mode==='advanced'?state.items[state.index]:null;
   if(item?.prompt==='اسمعي الحكاية وعدّي الصور.'&&item.say)$('#tracePrompt').textContent=item.say;
   const spoken=localSpeech(text,lang);
-  $('#traceFeedback').textContent=spoken?'صوت الجهاز المحلي · تقدري تكملي التدريب.':'الصوت مش متاح؛ كمّلي التدريب من التعليمات الظاهرة.';
+  // Do not overwrite score/correction when optional narration is unavailable.
+  if(isQuestion)$('#traceFeedback').textContent=spoken?'صوت الجهاز المحلي · تقدري تكملي التدريب.':'الصوت مش متاح؛ كمّلي التدريب من التعليمات الظاهرة.';
 }
-function speakTraceFeedback(text, lang = 'ar-EG') {
-  const requestId = ++traceSpeechRequestId;
-  traceSpeechAudio?.pause();
-  traceSpeechAudio = null;
-  if(navigator.onLine===false){network.markOffline();offlineWritingFallback(text,lang);return;}
-  if(audioOnlyWritingTask())traceState.audioBlocked=true;
-  apiFetch('/api/challenge-audio', {
-    method: 'POST', headers: {'Content-Type':'application/json'},
-    body: JSON.stringify({text, lang}),
-  }).then(async response => {
-    const data = await response.json();
-    if (!response.ok || !data.audio) throw new Error(data.error || 'صوت لولو مش جاهز دلوقتي.');
-    if (requestId !== traceSpeechRequestId) return;
-    const binary = atob(data.audio), bytes = new Uint8Array(binary.length);
-    for (let index=0; index<binary.length; index++) bytes[index] = binary.charCodeAt(index);
-    const audioUrl = URL.createObjectURL(new Blob([bytes], {type:data.mimeType || 'audio/wav'}));
-    const audio = new Audio(audioUrl); traceSpeechAudio = audio;
-    audio.onended = () => { URL.revokeObjectURL(audioUrl); if (traceSpeechAudio === audio) traceSpeechAudio = null; };
-    audio.onerror = () => { URL.revokeObjectURL(audioUrl); if (traceSpeechAudio === audio) traceSpeechAudio = null; };
-    await audio.play();
-    if(requestId===traceSpeechRequestId&&traceState)traceState.audioBlocked=false;
-  }).catch(() => {
-    if(requestId!==traceSpeechRequestId)return;
-    offlineWritingFallback(text,lang);
-  });
+function speakTraceFeedback(text,lang='ar-EG',isQuestion=false){
+  const requestId=++traceSpeechRequestId,state=traceState;
+  releaseTraceSpeech();
+  const stillCurrent=()=>requestId===traceSpeechRequestId&&state===traceState;
+  const needsAudio=isQuestion&&audioOnlyWritingTask();
+  if(needsAudio)state.audioBlocked=true;
+  const fallback=()=>{if(stillCurrent())offlineWritingFallback(text,lang,isQuestion,requestId);};
+  if(navigator.onLine===false){network.markOffline();fallback();return;}
+  apiFetch('/api/challenge-audio',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text,lang})})
+    .then(async response=>{
+      const data=await response.json();
+      if(!response.ok||!data.audio)throw Error('Audio unavailable');
+      if(!stillCurrent())return;
+      const bytes=Uint8Array.from(atob(data.audio),ch=>ch.charCodeAt(0));
+      const audioUrl=URL.createObjectURL(new Blob([bytes],{type:data.mimeType||'audio/wav'}));
+      const audio=new Audio(audioUrl);traceSpeechAudio=audio;audio.dataset.loloObjectUrl=audioUrl;
+      audio.onended=()=>{if(stillCurrent()&&needsAudio)state.audioBlocked=false;URL.revokeObjectURL(audioUrl);if(traceSpeechAudio===audio)traceSpeechAudio=null;};
+      audio.onerror=()=>{URL.revokeObjectURL(audioUrl);if(traceSpeechAudio===audio)traceSpeechAudio=null;fallback();};
+      await audio.play();
+    }).catch(fallback);
 }
 
 function chooseLesson(lessonId, mode = 'lesson', requestedPath = null) {
@@ -2706,7 +2713,7 @@ if(!nativeBundle&&!window.Capacitor?.isNativePlatform?.()&&'serviceWorker' in na
   navigator.serviceWorker.register('/sw.js').catch(()=>{ /* App still works online; installation is not assumed. */ });
 }
 function openOfflinePractice(){
-  if(!course||invalidPath)return;
+  if(!course||invalidPath){setStatus('اختاري خطة تعلم صالحة من لوحة ولي الأمر.');return;}
   if(isActive||isStarting)stopSession();
   const lesson=allLessons().find(l=>l.id===pathEngine.current(activePath))||currentLesson;
   if(!lesson)return;
