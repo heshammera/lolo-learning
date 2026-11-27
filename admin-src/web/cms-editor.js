@@ -84,6 +84,10 @@
           const group=el('fieldset');group.append(el('legend','الإجابات الصحيحة (اثنتان أو أكثر)'));box.append(group);
           for(const o of c.options){const l=el('label'),i=el('input');i.type='checkbox';i.checked=c.answers.includes(o.id);i.disabled=!permitted();l.append(i,doc.createTextNode(o.label));group.append(l);i.onchange=()=>{if(!permitted())return;c.answers=c.options.filter(x=>x.id===o.id?i.checked:c.answers.includes(x.id)).map(x=>x.id);sync();};}
         }
+      }else if(['speech-repeat','dictation','reading-aloud'].includes(a.type)){
+        select(box,'لغة الصوت',c.locale,[{id:'en-US',label:'English US'},{id:'en-GB',label:'English UK'},{id:'ar-EG',label:'العربية مصر'},{id:'ar-SA',label:'العربية السعودية'}],v=>c.locale=v);
+        field(box,'النص المرجعي',c.text,v=>c.text=v,{max:200});
+        box.append(el('p','يتطلب دعم الصوت المحلي على الجهاز. الميكروفون معطل في معاينة الإدارة؛ المطابقة ليست تقييمًا متخصصًا للنطق.'));
       }else if(a.type==='trace'){
         select(box,'رمز التتبع',c.glyph,['I','L','V','1','7','١'].map(id=>({id,label:id})),v=>c.glyph=v);
       }else if(a.type==='free-drawing'){

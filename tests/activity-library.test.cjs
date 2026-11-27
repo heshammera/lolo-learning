@@ -4,8 +4,8 @@ const library=require('../admin-src/activity-library.cjs');
 const assets=require('../offline-assets.js');
 const {html}=require('../scripts/preview-activity-library.js');
 test('library accurately covers every runtime and planned contract',()=>{
-  assert.deepEqual(library.audit(),{valid:true,errors:[],implemented:23,planned:6});
-  assert.equal(library.query({offline:true}).length,23);
+  assert.deepEqual(library.audit(),{valid:true,errors:[],implemented:26,planned:3});
+  assert.equal(library.query({offline:true}).length,26);
   assert.equal(library.query({category:'science',status:'implemented'}).length,1);
   assert.equal(library.query({search:'النطق'}).some(e=>e.id==='phoneme-score'),true);
   assert.equal(library.query({target:{choice:[2]}}).filter(e=>e.compatibility==='compatible').length,0);

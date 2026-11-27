@@ -2962,6 +2962,7 @@ function closeParentGateModal(restoreFocus = true) {
 }
 
 function closeParentSettings() {
+  window.LoloActivities.dispose($('#activityPreviewContent'));
   clearExtraParent();
   resetCloudFamily();
   clearTimeout(parentGateAutoLockTimer);
@@ -3162,7 +3163,7 @@ const extraStore=window.LoloContentInstall.create({trustedKeys:window.LoloConten
 const extraProgress=window.LoloContentProgress.create(storage);
 const extraClient=window.LoloContentClient.create({request:(...args)=>apiFetch(...args),trustedKeys:window.LoloContentTrust});
 let extraRemoteItems=[],extraRemoteController=null;
-let extraGeneration=0,extraPackage=null,extraSession=null,extraBusy=false,extraContext=null,extraSaved=false;
+let extraGeneration=0,extraPackage=null,extraSession=null,extraBusy=false,extraContext=null,extraSaved=false,extraMicPermission=false;
 const extraAllowed=()=>parentGate.isUnlocked()&&$('#parentSheet').classList.contains('open')&&storage.profiles.activeId&&storage.profiles.selectedId()===storage.profiles.activeId;
 const extraTrusted=()=>Object.keys(window.LoloContentTrust).length>0;
 function clearExtraParent(){
@@ -3269,7 +3270,7 @@ $('#extraUnit').onchange=()=>renderExtraScope();$('#extraScope').onchange=()=>re
 function renderExtraPractice(){
   const session=extraSession;if(!session)return;
   const state=session.state(),step=session.current(),body=$('#extraPracticeBody');
-  body.replaceChildren();$('#extraPracticeNext').hidden=true;
+  window.LoloActivities.dispose(body);body.replaceChildren();$('#extraPracticeNext').hidden=true;
   if(state.done){$('#extraPracticeProgress').textContent='انتهى التدريب';$('#extraPracticeGoal').textContent='أجبت بشكل صحيح على '+state.correct+' من '+(state.attempted-state.ungraded)+' نشاط قابل للتقييم.'+(state.ungraded?' وأنهيت '+state.ungraded+' نشاطًا دون درجة.':'')+' النتيجة تدريبية فقط وليست دليل إتقان.';return;}
   if(!step)return;
   $('#extraPracticeTitle').textContent=step.lessonTitle;$('#extraPracticeGoal').textContent=step.goal;
@@ -3279,7 +3280,7 @@ function renderExtraPractice(){
     const c=extraContext;extraSaved=extraProgress.save(c.package,c.scope,c.unit,c.lesson,session.results());
     $('#extraPracticeSaved').textContent=extraSaved?'تم حفظ التقدم على هذا الجهاز.':'تعذر حفظ التقدم؛ يمكنك إكمال التدريب لكن قد لا يُحفظ.';
     $('#extraPracticeNext').hidden=false;
-  });
+  },{active:()=>extraSession===session&&extraProgress.allowed()&&$('#extraPractice').open,allowLocalMic:()=>extraMicPermission&&extraSession===session&&extraProgress.allowed()&&$('#extraPractice').open});
 }
 $('#extraStart').onclick=async()=>{
   if(!extraAllowed()||extraBusy||!extraPackage||$('#extraStart').disabled)return;
@@ -3296,6 +3297,11 @@ $('#extraStart').onclick=async()=>{
   if(generation!==extraGeneration||!extraAllowed())return;
   const session=window.LoloContentRuntime.create(latest.package,scope,unit,lesson,prior);
   if(!session)return;
+  const needsMic=window.LoloContentRuntime.plan(latest.package,scope,unit,lesson).some(s=>['speech-repeat','reading-aloud'].includes(s.activity.type));
+  const micPermission=needsMic&&confirm('السماح بالميكروفون لهذه الجلسة فقط للتعرف على الكلمات على الجهاز؟ لا يتم إرسال التسجيل أو حفظ النص في لولو. إذا لم يدعم الجهاز التعرف المحلي فلن يعمل النشاط الصوتي.');
+  if(needsMic&&!micPermission){$('#extraContentStatus').textContent='لم يتم السماح بالميكروفون لهذه الجلسة. اختاري نطاقًا آخر أو وافقي عند الحاجة.';return;}
+  if(generation!==extraGeneration||!extraAllowed())return;
+  extraMicPermission=micPermission;
   extraContext={package:latest.package,scope,unit,lesson};extraSaved=extraProgress.save(latest.package,scope,unit,lesson,prior);
   $('#extraPracticeSaved').textContent=extraSaved?'التقدم محفوظ محليًا.':'تعذر حفظ التقدم على الجهاز.';
   if(isActive||isStarting)stopSession();
@@ -3303,8 +3309,9 @@ $('#extraStart').onclick=async()=>{
 };
 $('#extraPracticeNext').onclick=()=>{if(!extraProgress.allowed()){$('#extraPractice').close();return;}if(extraSession?.advance())renderExtraPractice();};
 $('#extraPracticeClose').onclick=$('#extraPracticeBack').onclick=()=>$('#extraPractice').close();
-$('#extraPractice').addEventListener('close',()=>{extraSession?.stop();extraSession=null;extraContext=null;$('#extraPracticeBody').replaceChildren();});
-window.addEventListener('pagehide',()=>{extraSession?.stop();extraSession=null;extraContext=null;});
+$('#extraPractice').addEventListener('close',()=>{extraSession?.stop();extraSession=null;extraContext=null;extraMicPermission=false;window.LoloActivities.dispose($('#extraPracticeBody'));$('#extraPracticeBody').replaceChildren();});
+window.addEventListener('pagehide',()=>{extraSession?.stop();extraSession=null;extraContext=null;extraMicPermission=false;window.LoloActivities.dispose($('#extraPracticeBody'));});
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden'&&$('#extraPractice').open){extraMicPermission=false;$('#extraPractice').close();}});
 function renderActivityPreview(){
   if(!parentGate.isUnlocked())return;
   const engine=window.LoloActivities,pilot=window.LoloActivityPilot;
@@ -3315,7 +3322,7 @@ function renderActivityPreview(){
   const prior=select.value;select.replaceChildren();
   for(const a of activities){const option=document.createElement('option');option.value=a.id;option.textContent=engine.types[a.type]?.label||a.type;select.append(option);}
   if(activities.some(a=>a.id===prior))select.value=prior;
-  const render=()=>{container.replaceChildren();if(parentGate.isUnlocked()&&compatibility.compatible)engine.render(activities.find(a=>a.id===select.value),container);};
+  const render=()=>{engine.dispose(container);container.replaceChildren();if(parentGate.isUnlocked()&&compatibility.compatible)engine.render(activities.find(a=>a.id===select.value),container,undefined,{active:()=>parentGate.isUnlocked()&&$('#parentSheet').classList.contains('open')});};
   select.onchange=render;render();
 }
 function showParentSettingsUnlocked(tab = 'settings') {

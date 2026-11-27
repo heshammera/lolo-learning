@@ -76,9 +76,22 @@ test('visual contracts enforce fixed regions, attainable balance and terminating
 });
 
 test('drawing participation ungraded, geometric trace and color assignment',()=>{
- const [trace,draw,color]=activities.slice(20);assert.equal(engine.checkLessons(pilot.lessons).compatible,true);
+ const [trace,draw,color]=activities.slice(20,23);assert.equal(engine.checkLessons(pilot.lessons).compatible,true);
  const line=[];for(let y=15;y<=85;y+=5)line.push([25,y]);for(let x=30;x<=80;x+=5)line.push([x,85]);
  assert.equal(engine.evaluate(trace,line).status,'correct');assert.equal(engine.evaluate(trace,[[25,15],[80,85]]).status,'incorrect');assert.equal(engine.evaluate(trace,null).status,'unresolved');
  assert.equal(engine.evaluate(draw,[[[10,10],[30,30]]]).status,'completed');assert.equal(engine.evaluate(draw,[]).status,'unresolved');
  assert.equal(engine.evaluate(color,{circle:'red',triangle:'blue',square:'green'}).status,'correct');assert.equal(engine.evaluate(color,{circle:'red'}).status,'unresolved');
+});
+
+test('voice contracts compare text only, reject unsupported locale and never claim phoneme scores',()=>{
+ const [repeat,dictation,read]=activities.slice(23);
+ assert.equal(engine.checkLessons(pilot.lessons).compatible,true);
+ assert.equal(engine.evaluate(repeat,'  GOOD morning! ').status,'correct');
+ assert.equal(engine.evaluate(read,'The cat is small').status,'correct');
+ assert.equal(engine.evaluate(read,'The dog is small').status,'incorrect');
+ assert.equal(engine.evaluate(dictation,'Apple').status,'correct');
+ assert.equal(engine.evaluate(dictation,'aple').status,'incorrect');
+ assert.equal(engine.evaluate(repeat,null).status,'unresolved');
+ assert.equal(engine.validate({...repeat,config:{locale:'unknown',text:'hello'}}).valid,false);
+ assert.equal(engine.types['phoneme-score'],undefined);
 });

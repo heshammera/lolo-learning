@@ -8,8 +8,9 @@
     ['memory-game','لعبة الذاكرة'],['puzzle','بازل الترتيب'],['maze','المتاهة'],
     ['image-hotspot','تحديد أجزاء الرسم'],['science-simulation','محاكاة الميزان'],['interactive-story','قصة تفاعلية'],
     ['trace','تتبع الحروف والأرقام'],['free-drawing','الرسم الحر'],['coloring','التلوين'],
+    ['speech-repeat','الاستماع والتكرار'],['dictation','الإملاء الصوتي'],['reading-aloud','القراءة الجهرية'],
   ].map(([id,label])=>[id,Object.freeze({id,label,version:1,offline:true,evaluator:id==='free-drawing'?'completion-only':'deterministic',renderer:'generic-v1'})])));
-  const planned=Object.freeze(['speech-repeat','phoneme-score','dictation','conversation','reading-aloud','homework-upload']);
+  const planned=Object.freeze(['phoneme-score','conversation','homework-upload']);
   const plain=v=>v!==null&&typeof v==='object'&&!Array.isArray(v)&&[Object.prototype,null].includes(Object.getPrototypeOf(v));
   const exact=(o,keys)=>plain(o)&&Object.keys(o).length===keys.length&&keys.every(k=>Object.hasOwn(o,k));
   const id=v=>typeof v==='string'&&/^[a-zA-Z0-9][a-zA-Z0-9_-]{0,63}$/.test(v);
@@ -108,6 +109,11 @@
     let cursor=0;for(const p of s){if(!samples.some(q=>dist(p,q)<=12))return 'incorrect';while(cursor<samples.length&&dist(p,samples[cursor])<=10)cursor++;}
     return cursor===samples.length&&pathLength(s)<=pathLength(samples)*2?'correct':'incorrect';
   }
+  const voiceTypes=new Set(['speech-repeat','dictation','reading-aloud']);
+  const speechTypes=new Set(['speech-repeat','reading-aloud']);
+  const locale=v=>typeof v==='string'&&['ar-EG','ar-SA','en-US','en-GB'].includes(v);
+  const spoken=v=>normalize(v).replace(/\p{P}+/gu,' ').replace(/\s+/gu,' ').trim();
+  const voiceConfig=c=>exact(c,['locale','text'])&&locale(c.locale)&&answerText(c.text)&&spoken(c.text).length>0;
   function validate(activity){
     if(!exact(activity,['id','type','version','prompt','config'])||!id(activity.id)||!text(activity.prompt))return {valid:false,code:'INVALID_ACTIVITY'};
     if(typeof activity.type!=='string'||!Object.hasOwn(types,activity.type)||activity.version!==1)return {valid:false,code:'UNSUPPORTED_ACTIVITY'};
@@ -131,6 +137,7 @@
       case 'image-hotspot':valid=exact(c,['diagram','answer'])&&regionId(c.diagram,c.answer);break;
       case 'science-simulation':valid=balance(c);break;
       case 'interactive-story':valid=validStory(c);break;
+      case 'speech-repeat':case 'reading-aloud':case 'dictation':valid=voiceConfig(c);break;
       case 'trace':valid=exact(c,['glyph'])&&glyph(c.glyph);break;
       case 'free-drawing':valid=exact(c,[]);break;
       case 'coloring':valid=exact(c,['answers'])&&exact(c.answers,Object.keys(regions))&&Object.values(c.answers).every(color);break;
@@ -159,6 +166,8 @@
       case 'fill-blank':
       case 'free-text':resolved=answerText(response);correct=resolved&&c.answers.some(a=>normalize(a)===normalize(response));break;
       case 'number-line':resolved=onLine(c,response);correct=resolved&&response===c.answer;break;
+      case 'speech-repeat':case 'reading-aloud':resolved=answerText(response)&&spoken(response).length>0;correct=resolved&&spoken(response)===spoken(c.text);break;
+      case 'dictation':resolved=answerText(response);correct=resolved&&normalize(response)===normalize(c.text);break;
       case 'trace':return {status:traceGrade(c.glyph,response)};
       case 'free-drawing':return {status:Array.isArray(response)&&response.length>=1&&response.length<=16&&response.every(stroke)&&response.reduce((n,s)=>n+pathLength(s),0)>=10?'completed':'unresolved'};
       case 'coloring':resolved=exact(response,Object.keys(regions))&&Object.values(response).every(color);correct=resolved&&Object.keys(regions).every(k=>response[k]===c.answers[k]);break;
@@ -197,8 +206,10 @@
     return {compatible:issues.length===0,issues};
   }
   // Shared accessible renderer: native form controls, no HTML from curriculum.
-  function render(activity,container,onResult){
-    container.replaceChildren();
+  const cleanups=new WeakMap();
+  function dispose(container){const cleanup=cleanups.get(container);if(cleanup){cleanups.delete(container);cleanup();}}
+  function render(activity,container,onResult,options={}){
+    dispose(container);container.replaceChildren();
     if(!validate(activity).valid)return false;
     const doc=container.ownerDocument,c=activity.config,form=doc.createElement('form');
     const fieldset=doc.createElement('fieldset'),legend=doc.createElement('legend');
@@ -439,6 +450,87 @@
       }
       gameResponse=()=>({...chosen});refresh();
     }
+    // No network, recorded audio, cloud fallback or automatic microphone use.
+    // Device/browser support is checked on each explicit action, independent of schema compatibility.
+    function voiceBoard(){
+      const board=doc.createElement('div'),w=doc.defaultView;
+      const note=gameNotice(board,'الصوت المحلي فقط؛ قد لا تدعم بعض الأجهزة هذه الوظيفة.');
+      let recognition=null,utterance=null,epoch=0,timer=null,transcript=null,heard=false,playing=false,listening=false,disposed=false;
+      const isSpeech=speechTypes.has(activity.type);
+      function active(){return !disposed&&form.isConnected&&!fieldset.disabled&&doc.visibilityState!=='hidden'&&(!options.active||options.active());}
+      function permitted(){return active()&&options.allowLocalMic?.()===true;}
+      function cancel(){
+        epoch++;if(timer!==null){w.clearTimeout(timer);timer=null;}
+        if(recognition){try{recognition.abort();}catch{}recognition=null;}
+        if(utterance){utterance.onend=null;utterance.onerror=null;try{w.speechSynthesis?.cancel();}catch{}utterance=null;}
+        playing=false;listening=false;
+      }
+      function reset(){cancel();transcript=null;heard=false;}
+      function cleanup(){disposed=true;reset();observer.disconnect();doc.removeEventListener('visibilitychange',visibility);w.removeEventListener('pagehide',cleanup);}
+      function visibility(){if(doc.visibilityState==='hidden'){reset();note.textContent='توقف الصوت عند إخفاء التطبيق. ابدئي من جديد.';}}
+      const observer=new w.MutationObserver(()=>{if(!form.isConnected)cleanup();});
+      observer.observe(doc.documentElement,{childList:true,subtree:true});
+      doc.addEventListener('visibilitychange',visibility);w.addEventListener('pagehide',cleanup);
+      cleanups.set(container,cleanup);
+      if(isSpeech){const passage=doc.createElement('p');passage.textContent=c.text;passage.lang=c.locale;board.append(passage);}
+      if(activity.type!=='reading-aloud'){
+        gameButton(board,'استمعي',()=>{
+          if(!active())return;
+          reset();
+          try{
+            const synth=w.speechSynthesis,Utterance=w.SpeechSynthesisUtterance;
+            if(!synth||!Utterance)throw Error();
+            const voice=synth.getVoices().find(v=>v.localService===true&&v.lang.toLowerCase()===c.locale.toLowerCase());
+            if(!voice){note.textContent='لا يوجد صوت محلي بهذه اللغة. لا يتم استخدام الإنترنت.';return;}
+            const token=epoch;utterance=new Utterance(c.text);utterance.voice=voice;utterance.lang=c.locale;utterance.rate=.85;
+            playing=true;note.textContent='جاري الاستماع…';
+            utterance.onend=()=>{if(epoch!==token||!active())return;heard=true;playing=false;utterance=null;w.clearTimeout(timer);timer=null;note.textContent='تم الاستماع. '+(isSpeech?'اضغطي زر التكرار.':'اكتبي ما سمعتِ.');};
+            utterance.onerror=()=>{if(epoch===token){reset();note.textContent='تعذر تشغيل الصوت المحلي.';}};
+            timer=w.setTimeout(()=>{if(epoch===token){reset();note.textContent='انتهت مهلة الصوت المحلي.';}},20000);
+            synth.speak(utterance);
+          }catch{reset();note.textContent='الصوت المحلي غير متاح.';}
+        });
+      }
+      if(isSpeech){
+        gameButton(board,'ابدئي القراءة أو التكرار',async()=>{
+          if(!permitted()){note.textContent='الميكروفون غير مسموح في هذه الجلسة أو المعاينة.';return;}
+          if(playing||listening||activity.type==='speech-repeat'&&!heard){note.textContent='استمعي أولًا أو انتظري انتهاء المحاولة.';return;}
+          cancel();transcript=null;const token=epoch;
+          try{
+            const Recognition=w.SpeechRecognition||w.webkitSpeechRecognition;
+            if(!Recognition||typeof Recognition.available!=='function')throw Error('unsupported');
+            listening=true;note.textContent='التحقق من توفر التعرف المحلي…';
+            timer=w.setTimeout(()=>{if(epoch===token){cancel();note.textContent='انتهت مهلة التحقق المحلي.';}},5000);
+            const available=await Recognition.available({langs:[c.locale],processLocally:true});
+            if(epoch!==token||!permitted())return;
+            w.clearTimeout(timer);timer=null;
+            if(available!=='available')throw Error('unsupported');
+            const r=new Recognition();
+            if(!('processLocally' in r))throw Error('unsupported');
+            r.processLocally=true;if(r.processLocally!==true)throw Error('unsupported');
+            r.lang=c.locale;r.continuous=false;r.interimResults=false;r.maxAlternatives=1;recognition=r;
+            r.onresult=ev=>{
+              if(epoch!==token||!permitted()){cancel();return;}
+              const result=ev.results?.[ev.resultIndex||0];
+              const value=result?.isFinal===true?result[0]?.transcript:null;
+              if(!answerText(value)||!spoken(value)){cancel();note.textContent='لم يتم التعرف على كلام واضح. أعيدي المحاولة.';return;}
+              transcript=value;cancel();note.textContent='تم التعرف على الكلمات محليًا. تحققي من المطابقة؛ ليس هذا تقييمًا للنطق.';
+            };
+            r.onerror=()=>{if(epoch===token){cancel();note.textContent='تعذر التعرف المحلي. لا يوجد بديل سحابي.';}};
+            r.onend=()=>{if(epoch===token){cancel();note.textContent='انتهت المحاولة دون نتيجة. أعيدي المحاولة.';}};
+            timer=w.setTimeout(()=>{if(epoch===token){cancel();note.textContent='انتهت مهلة القراءة المحلية.';}},15000);
+            note.textContent='الميكروفون المحلي يعمل الآن…';r.start();
+          }catch{if(epoch===token){cancel();note.textContent='التعرف على الكلام محليًا غير متاح لهذه اللغة أو الجهاز.';}}
+        });
+        gameButton(board,'إيقاف الصوت والميكروفون',()=>{reset();note.textContent='تم الإيقاف.';});
+        gameResponse=()=>permitted()&&!playing&&!listening?transcript:null;
+      }else{
+        const label=doc.createElement('label'),input=doc.createElement('input');label.textContent='اكتبي ما سمعتِ';input.type='text';input.maxLength=200;input.autocomplete='off';input.setAttribute('aria-label','إجابة الإملاء');label.append(input);board.append(label);
+        gameButton(board,'إيقاف الصوت',()=>{reset();note.textContent='تم الإيقاف.';});
+        gameResponse=()=>active()&&heard&&!playing?input.value:null;
+      }
+      fieldset.append(board);
+    }
     if(activity.type==='choice'||activity.type==='multi-choice')optionList(c.options,activity.type==='choice'?'radio':'checkbox');
     else if(activity.type==='true-false')optionList([{id:'true',label:'صح'},{id:'false',label:'خطأ'}],'radio');
     else if(activity.type==='numeric'){
@@ -474,6 +566,7 @@
     else if(activity.type==='interactive-story')storyBoard();
     else if(activity.type==='trace'||activity.type==='free-drawing')drawingBoard();
     else if(activity.type==='coloring')coloringBoard();
+    else if(voiceTypes.has(activity.type))voiceBoard();
     else if(activity.type==='sequence')c.items.forEach((_,i)=>selector('المكان '+(i+1),c.items));
     else if(activity.type==='match')c.left.forEach(o=>selector(o.label,c.right));
     else if(activity.type==='classify')c.items.forEach(o=>selector(o.label,c.groups));
@@ -497,11 +590,11 @@
       else response=Object.fromEntries((activity.type==='match'?c.left:c.items).map((o,i)=>[o.id,controls[i].value]));
       const result=evaluate(activity,response);
       feedback.textContent=result.status==='completed'?'تم إكمال النشاط الفني!':result.status==='correct'?'أحسنت! ⭐':result.status==='incorrect'?'محاولة جميلة، راجعي الإجابة.':'كمّلي الاختيارات الأول.';
-      if(result.status!=='unresolved'){finished=true;fieldset.disabled=true;submit.disabled=true;onResult?.(result);}
+      if(result.status!=='unresolved'){finished=true;fieldset.disabled=true;submit.disabled=true;if(voiceTypes.has(activity.type)){dispose(container);if(speechTypes.has(activity.type))feedback.textContent=result.status==='correct'?'الكلمات المتعرف عليها مطابقة. لا يقيس هذا جودة النطق.':'الكلمات المتعرف عليها غير مطابقة. لا يقيس هذا جودة النطق.';}onResult?.(result);}
     });
     container.append(form);return true;
   }
-  const api=Object.freeze({types,planned,validate,evaluate,checkLessons,render});
+  const api=Object.freeze({types,planned,validate,evaluate,checkLessons,render,dispose});
   if(typeof window!=='undefined')window.LoloActivities=api;
   if(typeof module!=='undefined'&&module.exports)module.exports=api;
 })();

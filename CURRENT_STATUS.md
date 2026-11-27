@@ -1,2 +1,2 @@
 # Current status
-Main 62d1759101793bf48e2b523fe4ef1db3d5f478d6 passed admin 46066569075 and Android 46066569119. Candidate verification/activity-visual-20261127 adds three visual/science/reading contracts and tests. CI pending; no production keys or live content.
+Main 4cc3fc4bdb0bd4e2e9d930d0fc0432d759fbd4b8 passed admin 46068485622 and Android 46068485611; visual fix passed both workflows. Candidate verification/activity-voice-20261127 adds three local voice activities and test stubs; CI pending. No actual device recognition or real production content verified.

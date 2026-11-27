@@ -1,2 +1,2 @@
 # Next Action
-Verify visual activity CI, then trace, free drawing, coloring and consent-aware voice/reading contracts. Homework upload requires secure storage/retention/review. Preserve production gates and remaining V2 requirements.
+Verify voice contracts and admin browser/Android CI. Check real on-device speech support; implement constrained conversation, specialized phoneme provider only with consent/eligibility, and secure homework flow. Remaining V2 and production gates remain.

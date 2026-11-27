@@ -26,10 +26,10 @@ const validator=require('../admin-src/cms-validate.cjs');
   await editor.getByLabel('اسم المنهج',{exact:true}).fill('منهج العلوم التجريبي');
   const picker=editor.getByLabel('إضافة نشاط من المكتبة',{exact:true}).first();
   await page.waitForFunction(()=>document.querySelector('#visualEditor select[disabled]')===null&&Array.from(document.querySelectorAll('#visualEditor select')).some(s=>Array.from(s.options).some(o=>o.value==='choice')));
-  for(const type of ['choice','multi-choice','sequence','match','numeric','classify','fill-blank','free-text','number-line','fractions','drag-drop','geometry','equations','memory-game','puzzle','maze','image-hotspot','science-simulation','interactive-story','trace','free-drawing','coloring']){
+  for(const type of ['choice','multi-choice','sequence','match','numeric','classify','fill-blank','free-text','number-line','fractions','drag-drop','geometry','equations','memory-game','puzzle','maze','image-hotspot','science-simulation','interactive-story','trace','free-drawing','coloring','speech-repeat','dictation','reading-aloud']){
    await picker.selectOption(type);await editor.getByRole('button',{name:'إضافة النشاط',exact:true}).first().click();
   }
-  assert.equal(await editor.locator('.cms-activity').count(),23);
+  assert.equal(await editor.locator('.cms-activity').count(),26);
   const choice=editor.locator('[data-activity-type="choice"]');
   await choice.getByLabel('السؤال أو التعليمات').fill('اختاري الماء');
   await choice.getByRole('button',{name:'معاينة النشاط'}).click();
@@ -118,16 +118,54 @@ const validator=require('../admin-src/cms-validate.cjs');
   const coloring=editor.locator('[data-activity-type="coloring"]');await coloring.getByRole('button',{name:'معاينة النشاط'}).click();
   await sample.getByLabel('لون دائرة',{exact:true}).selectOption('red');await sample.getByLabel('لون مثلث',{exact:true}).selectOption('blue');await sample.getByLabel('لون مربع',{exact:true}).selectOption('green');
   await sample.locator('button[type="submit"]').click();assert.match(await sample.locator('form > p[role="status"]').textContent(),/أحسنت/);await page.locator('#closeDraftPreview').click();
+  const repeat=editor.locator('[data-activity-type="speech-repeat"]');
+  await repeat.getByRole('button',{name:'معاينة النشاط'}).click();
+  await sample.getByRole('button',{name:'ابدئي القراءة أو التكرار'}).click();
+  assert.match(await sample.locator('[aria-live="polite"]').textContent(),/الميكروفون غير مسموح/);
+  await sample.locator('button[type="submit"]').click();
+  assert.match(await sample.locator('form > p[role="status"]').textContent(),/كمّلي/);
+  await page.locator('#closeDraftPreview').click();
+  // Test-only browser speech stubs. No real microphone or external request.
+  const voiceResults=await page.evaluate(async()=>{
+    const root=document.createElement('div');document.body.append(root);let grade=null,started=0,aborted=0,availableCalls=0;
+    Object.defineProperty(window,'speechSynthesis',{configurable:true,value:{getVoices:()=>[{localService:true,lang:'en-US'}],speak:u=>queueMicrotask(()=>u.onend?.()),cancel(){}}});
+    window.SpeechSynthesisUtterance=class{constructor(text){this.text=text;}};
+    class LocalRecognition{
+      static async available(opts){availableCalls++;if(opts.processLocally!==true)throw Error('not local');return 'available';}
+      constructor(){this.processLocally=false;}
+      start(){if(!this.processLocally)throw Error('not local');started++;queueMicrotask(()=>this.onresult?.({resultIndex:0,results:[Object.assign([{transcript:'Good morning'}],{isFinal:true})]}));}
+      abort(){aborted++;}
+    }
+    Object.defineProperty(window,'SpeechRecognition',{configurable:true,value:LocalRecognition});
+    const flush=()=>new Promise(r=>setTimeout(r,0));
+    const a={id:'voice-test',type:'speech-repeat',version:1,prompt:'Repeat',config:{locale:'en-US',text:'Good morning'}};
+    LoloActivities.render(a,root,r=>grade=r.status,{allowLocalMic:()=>true});
+    const button=text=>[...root.querySelectorAll('button')].find(b=>b.textContent===text);
+    button('استمعي').click();await flush();button('ابدئي القراءة أو التكرار').click();await flush();button('تحقق من الإجابة').click();
+    const result={grade,started,aborted,availableCalls};
+    LoloActivities.dispose(root);root.remove();return result;
+  });
+  assert.equal(voiceResults.grade,'correct');assert.equal(voiceResults.started,1);assert.equal(voiceResults.availableCalls,1);assert.ok(voiceResults.aborted>=1);
+  const dictation=editor.locator('[data-activity-type="dictation"]');
+  await dictation.getByRole('button',{name:'معاينة النشاط'}).click();
+  await sample.getByLabel('إجابة الإملاء').fill('apple');
+  await sample.locator('button[type="submit"]').click();
+  assert.match(await sample.locator('form > p[role="status"]').textContent(),/كمّلي/);
+  await sample.getByRole('button',{name:'استمعي',exact:true}).click();
+  await page.waitForFunction(()=>document.querySelector('#draftSample [aria-live="polite"]').textContent.includes('تم الاستماع'));
+  await sample.locator('button[type="submit"]').click();
+  assert.match(await sample.locator('form > p[role="status"]').textContent(),/أحسنت/);
+  await page.locator('#closeDraftPreview').click();
   await page.locator('#checkDraft').click();await page.waitForFunction(()=>document.querySelector('#draftStatus').textContent.includes('متوافق'));
   await page.locator('#saveDraft').click();await page.waitForFunction(()=>document.querySelector('#draftStatus').textContent.includes('تم حفظ'));
-  assert.equal(saved.title,'منهج العلوم التجريبي');assert.equal(saved.units[0].lessons[0].activities.length,23);
+  assert.equal(saved.title,'منهج العلوم التجريبي');assert.equal(saved.units[0].lessons[0].activities.length,26);
   await editor.getByRole('button',{name:'إضافة وحدة',exact:true}).click();
   assert.equal(await editor.locator('.cms-unit').count(),2);
   await editor.locator('.cms-unit').last().getByRole('button',{name:'إضافة درس',exact:true}).click();
   assert.equal(await editor.locator('.cms-lesson').count(),2);
   await page.locator('#draftList button').first().click();
   await page.waitForFunction(()=>document.querySelectorAll('#visualEditor .cms-unit').length===1);
-  assert.equal(await editor.locator('.cms-activity').count(),23);
+  assert.equal(await editor.locator('.cms-activity').count(),26);
   assert.deepEqual(errors,[]);
  }finally{await browser.close();}
 })().catch(e=>{console.error(e);process.exitCode=1;});
