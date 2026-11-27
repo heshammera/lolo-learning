@@ -1,6 +1,6 @@
 (() => {
   const API_ROOT='https://lolo-learning.vercel.app';
-  const ROUTES=new Set(['/api/status','/api/provider-token','/api/challenge-audio','/api/onboarding-audio']);
+  const ROUTES=new Set(['/api/status','/api/provider-token','/api/challenge-audio','/api/onboarding-audio','/api/family']);
   function create({isOnline=()=>navigator.onLine!==false,fetchImpl=(...a)=>fetch(...a),nativeRequest=null,onState=()=>{},timeoutMs=20000}={}){
     let state=isOnline()?'online':'offline';
     function set(next){if(state!==next){state=next;onState(next);}return state;}
@@ -22,7 +22,7 @@
         const operation=nativeRequest
           ? Promise.resolve().then(()=>nativeRequest({url:API_ROOT+path,method,headers:options.headers||{},data:options.body===undefined?undefined:JSON.parse(options.body),connectTimeout:timeoutMs,readTimeout:timeoutMs,disableRedirects:true,responseType:'json'}))
             .then(r=>({ok:r.status>=200&&r.status<300,status:r.status,json:async()=>typeof r.data==='string'?JSON.parse(r.data):r.data}))
-          : Promise.resolve().then(()=>fetchImpl(path,{...options,method,cache:'no-store',signal:controller.signal}));
+          : Promise.resolve().then(()=>fetchImpl(path,{...options,method,cache:'no-store',redirect:'error',signal:controller.signal}));
         const response=await Promise.race([operation,cancel]);
         if(options.signal?.aborted)throw abortError();
         set('online');

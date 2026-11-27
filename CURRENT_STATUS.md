@@ -1,4 +1,4 @@
 # Current Status
-- Main: fb473d63f96eeb653a2c3b7cd130aa7cd43e4bff; run 46052818258 passed unit tests, browser offline profile switching and Android debug build. Family backend at 4875a31 passed PostgreSQL integration and Vercel deployment. Family remains disabled by default.
-- Current candidate: limited revision-controlled progress snapshot backend on verification/progress-sync-20261127, disabled by default, no production DB or client sync.
-- Offline and scoped learning preserved; backups retained. Full V2 remains incomplete, including verified identity/consent, sync UI, event history, CMS, billing and native/live audio validation.
+- Main: 25f9a9dc5d8c7a10c0713232f37a37f954288e73; PostgreSQL run 46053423531 and Android/browser run 46053423600 passed before promotion. Cloud family and sync disabled.
+- Candidate: staging-only parent account panel and first-backup preview on verification/parent-cloud-ui-20261127. CI pending. No real family data or production database provisioned.
+- Existing local profiles, offline mode and scoped learning retained. Full V2 remains incomplete.

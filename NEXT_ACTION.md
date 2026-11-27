@@ -1,2 +1,2 @@
 # Next Action
-Verify progress snapshot unit/PostgreSQL concurrency tests and regression build. Keep cloud family/sync disabled. Continue staging-only parent UI, explicit conflict resolution and offline queue; verified consent, durable limits and database setup required before real family use. See docs/PROGRESS_SYNC.md.
+Verify staging parent UI and regression CI before promotion. Keep cloud feature flags disabled in production. Continue explicit local/remote linkage, transactional restore and conflict resolution, offline queue, verified identity/consent, durable quotas and CMS. See docs/PARENT_CLOUD_UI.md.

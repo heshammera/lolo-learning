@@ -25,3 +25,5 @@
 
 - Family backend promoted at 4875a31 after PostgreSQL run 46052517826 and Android run 46052517789 passed.
 - Local profiles promoted at fb473d6 after run 46052818258 passed offline browser switching and Android build.
+
+- Progress sync backend promoted at 25f9a9d after PostgreSQL and Android/browser checks passed (46053423531, 46053423600); disabled by default.

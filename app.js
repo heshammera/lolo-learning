@@ -2928,6 +2928,7 @@ function syncParentSettingsUI() {
 
 function showParentTab(tab) {
   const settings = tab === 'settings';
+  if(!settings)resetCloudFamily();
   $('#parentLessonsPanel').hidden = settings;
   $('#parentSettingsPanel').hidden = !settings;
   $('#parentLessonsTab').setAttribute('aria-selected', String(!settings));
@@ -2961,6 +2962,7 @@ function closeParentGateModal(restoreFocus = true) {
 }
 
 function closeParentSettings() {
+  resetCloudFamily();
   clearTimeout(parentGateAutoLockTimer);
   parentGateAutoLockTimer = null;
   parentGate.lock();
@@ -3045,6 +3047,64 @@ $('#localProfileForm').addEventListener('submit',event=>{
 });
 renderActiveLocalProfile();
 
+let cloudUiEnabled=false,cloudSyncEnabled=false;
+const familyClient=window.LoloFamilyClient.create(apiFetch,{allowed:()=>cloudUiEnabled&&parentGate.isUnlocked()&&$('#parentSheet').classList.contains('open')&&!$('#parentSettingsPanel').hidden&&document.visibilityState!=='hidden'});
+function resetCloudFamily(){
+  familyClient.clear();$('#cloudEmail').value='';$('#cloudPassword').value='';$('#cloudNickname').value='';$('#cloudConfirm').checked=false;$('#cloudStatus').textContent='';renderCloudFamily();
+}
+function localProgressSnapshot(){
+  if(!course||invalidPath||!storage.profiles.activeId||storage.profiles.selectedId()!==storage.profiles.activeId)return null;
+  const ids=new Set(allLessons().map(l=>l.id));
+  const path=activePath?JSON.parse(JSON.stringify(activePath)):null;
+  if(path&&!pathEngine.validate(path,allLessons(),course.curriculumVersion))return null;
+  return {schemaVersion:1,curriculumVersion:course.curriculumVersion,completedLessonIds:[...mastered].filter(id=>ids.has(id)).sort(),path};
+}
+function renderCloudFamily(){
+  const s=familyClient.state();$('#cloudFamilyPanel').hidden=!cloudUiEnabled;
+  $('#cloudLogin').hidden=s.signedIn;$('#cloudAccount').hidden=!s.signedIn;
+  $('#cloudFamilyPanel').querySelectorAll('button,input,select').forEach(el=>el.disabled=s.busy||navigator.onLine===false);
+  const list=$('#cloudChildren');list.replaceChildren();
+  for(const child of s.children){
+    const row=document.createElement('div');row.className='local-profile-row';
+    const name=document.createElement('strong');name.textContent=child.nickname;row.append(name);
+    if(cloudSyncEnabled){
+      const button=document.createElement('button');button.type='button';button.textContent='معاينة النسخة';button.disabled=s.busy||navigator.onLine===false;
+      button.onclick=()=>{if(!parentGate.isUnlocked())return resetCloudFamily();if(isActive||isStarting)stopSession();$('#cloudConfirm').checked=false;runCloud(()=>familyClient.compare(child.id,storage.profiles.activeId,localProgressSnapshot()),'راجعي الملفين قبل أي حفظ.');};
+      row.append(button);
+    }list.append(row);
+  }
+  const p=s.preview;$('#cloudPreview').hidden=!p||!cloudSyncEnabled;
+  if(p){
+    const remote=p.remote?.completedLessonIds?.length||0;
+    const child=s.children.find(c=>c.id===p.childId);
+    $('#cloudPreviewText').textContent=`ملف الجهاز: ${storage.profiles.current()?.name||''} · ${p.local.completedLessonIds.length} درس مكتمل. الملف السحابي: ${child?.nickname||''} · ${remote} درس · إصدار ${p.revision}. ${p.revision?'في نسخة محفوظة؛ الاستبدال غير متاح.':'لم يُحفظ تقدم سحابي بعد.'}`;
+    $('#cloudConfirmLabel').hidden=p.revision!==0;$('#cloudUpload').hidden=p.revision!==0;
+    $('#cloudUpload').disabled=s.busy||navigator.onLine===false||!$('#cloudConfirm').checked||p.revision!==0;
+  }
+}
+async function runCloud(action,success){
+  if(!cloudUiEnabled||!parentGate.isUnlocked()||navigator.onLine===false)return;
+  $('#cloudStatus').textContent='جاري تنفيذ الطلب…';
+  try{const pending=action();renderCloudFamily();await pending;if(parentGate.isUnlocked()&&$('#parentSheet').classList.contains('open'))$('#cloudStatus').textContent=success;}
+  catch(error){if(parentGate.isUnlocked()&&$('#parentSheet').classList.contains('open'))$('#cloudStatus').textContent=error.status===409?'في نسخة محفوظة أو أحدث. اعملي معاينة جديدة؛ لم يُستبدل أي تقدم.':error.status===401?'بيانات الدخول غير صحيحة أو انتهت الجلسة.':'تعذر إتمام الطلب. جربي مرة تانية عند توفر الاتصال.';}
+  finally{renderCloudFamily();}
+}
+$('#cloudLogin').addEventListener('submit',event=>{
+  event.preventDefault();
+  const email=$('#cloudEmail').value,password=$('#cloudPassword').value;$('#cloudPassword').value='';
+  runCloud(async()=>{await familyClient.login(email,password);await familyClient.list();},'تم تسجيل الدخول.');
+});
+$('#cloudChildForm').addEventListener('submit',event=>{event.preventDefault();const nickname=$('#cloudNickname').value;$('#cloudNickname').value='';runCloud(()=>familyClient.add(nickname,$('#cloudAgeBand').value),'تم إضافة الملف.');});
+$('#cloudRefresh').onclick=()=>runCloud(()=>familyClient.list(),'تم تحديث الملفات.');
+$('#cloudLogout').onclick=()=>runCloud(()=>familyClient.logout(),'تم تسجيل الخروج.');
+$('#cloudConfirm').onchange=renderCloudFamily;
+$('#cloudUpload').onclick=()=>{
+  if(!$('#cloudConfirm').checked||!cloudSyncEnabled)return;
+  $('#cloudConfirm').checked=false;
+  runCloud(()=>familyClient.upload(storage.profiles.activeId,localProgressSnapshot()),'تم حفظ النسخة الأولى من التقدم. بيانات الجهاز لم تتغير.');
+};
+window.addEventListener('offline',resetCloudFamily);
+window.addEventListener('online',()=>{if(parentGate.isUnlocked())renderCloudFamily();});
 function showParentSettingsUnlocked(tab = 'settings') {
   if (!parentGate.isUnlocked()) return openParentSettings(tab);
   $('#parentSheet').classList.add('open');
@@ -3058,8 +3118,10 @@ function showParentSettingsUnlocked(tab = 'settings') {
   $('#pathScope').value = activePath?.scope || 'lesson';
   renderPathChoice();
   scheduleParentAutoLock();
+  cloudUiEnabled=false;cloudSyncEnabled=false;resetCloudFamily();
   if(navigator.onLine===false){$('#apiState').textContent='وضع بدون إنترنت: المناهج والتدريبات المحلية متاحة.';return;}
   apiFetch('/api/status').then(response => response.json()).then(status => {
+    if(parentGate.isUnlocked()&&$('#parentSheet').classList.contains('open')){cloudUiEnabled=status.familyUiEnabled===true;cloudSyncEnabled=status.progressSyncEnabled===true;renderCloudFamily();}
     const labels = {gemini: 'Gemini الأساسي', openai: 'OpenAI', 'gemini-backup': 'Gemini الاحتياطي'};
     const enabled = (status.providers || []).map(provider => labels[provider]);
     $('#apiState').textContent = enabled.length
@@ -3243,6 +3305,7 @@ $('#resetCourse').onclick = () => requestParentSensitiveAction('reset-course');
 $('#clearAnswerHistory').onclick = () => requestParentSensitiveAction('clear-answer-history');
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'hidden') {
+    resetCloudFamily();
     parentGate.lock();
     clearTimeout(parentGateAutoLockTimer);
     parentGateAutoLockTimer = null;

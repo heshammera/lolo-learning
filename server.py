@@ -80,6 +80,7 @@ OPENAI_ENABLED = service_enabled("OPENAI_ENABLED")
 VOICE_ENABLED = service_enabled("LOLO_VOICE_ENABLED")
 FAMILY_ENABLED = os.environ.get('LOLO_FAMILY_ENABLED', 'false').strip().lower() in {'1','true','yes','on'}
 PROGRESS_SYNC_ENABLED = os.environ.get('LOLO_PROGRESS_SYNC_ENABLED','false').strip().lower() in {'1','true','yes','on'}
+PARENT_CLOUD_UI_ENABLED = os.environ.get('LOLO_PARENT_CLOUD_UI_ENABLED','false').strip().lower() in {'1','true','yes','on'}
 FAMILY_RATE_LIMITER = SlidingWindowRateLimiter()
 FAMILY_GLOBAL_LIMITER = SlidingWindowRateLimiter(max_keys=8)
 TTS_ENABLED = service_enabled("LOLO_TTS_ENABLED")
@@ -654,9 +655,9 @@ class Handler(BaseHTTPRequestHandler):
     def do_GET(self):
         path = self.path.split("?", 1)[0]
         if path == "/api/status":
-            return self.send_json(200, {"providers": [name for name, configured in (("gemini", GEMINI_API_KEY and GEMINI_ENABLED), ("openai", OPENAI_API_KEY and OPENAI_ENABLED), ("gemini-backup", GEMINI_BACKUP_API_KEY and GEMINI_BACKUP_ENABLED)) if VOICE_ENABLED and configured], "ttsEnabled": bool(TTS_ENABLED and GEMINI_API_KEY)})
+            return self.send_json(200, {"providers": [name for name, configured in (("gemini", GEMINI_API_KEY and GEMINI_ENABLED), ("openai", OPENAI_API_KEY and OPENAI_ENABLED), ("gemini-backup", GEMINI_BACKUP_API_KEY and GEMINI_BACKUP_ENABLED)) if VOICE_ENABLED and configured], "ttsEnabled": bool(TTS_ENABLED and GEMINI_API_KEY), "familyUiEnabled": bool(FAMILY_ENABLED and PARENT_CLOUD_UI_ENABLED), "progressSyncEnabled": bool(FAMILY_ENABLED and PARENT_CLOUD_UI_ENABLED and PROGRESS_SYNC_ENABLED)})
         relative = "index.html" if path == "/" else path.lstrip("/")
-        allowed_files = {"index.html", "curriculum.json", "pcm-processor.js", "app.js", "storage.js", "assessment-engine.js", "subject-catalog.js", "visual-question-bank.js", "visual-assessment-engine.js", "curriculum-engine.js", "learning-engine.js", "learning-path-engine.js", "network.js", "offline-assets.js", "sw.js", "offline.html", "parent-gate.js", "session-timers.js", "brand.js", "favicon.ico", "favicon-16x16.png", "favicon-32x32.png", "favicon-48x48.png", "apple-touch-icon.png", "site.webmanifest"}
+        allowed_files = {"index.html", "curriculum.json", "pcm-processor.js", "app.js", "storage.js", "assessment-engine.js", "subject-catalog.js", "visual-question-bank.js", "visual-assessment-engine.js", "curriculum-engine.js", "learning-engine.js", "learning-path-engine.js", "network.js", "family-client.js", "offline-assets.js", "sw.js", "offline.html", "parent-gate.js", "session-timers.js", "brand.js", "favicon.ico", "favicon-16x16.png", "favicon-32x32.png", "favicon-48x48.png", "apple-touch-icon.png", "site.webmanifest"}
         is_brand_asset = relative.startswith("assets/branding/") and Path(relative).suffix.lower() in {".png", ".webp", ".json"}
         if relative not in allowed_files and not is_brand_asset:
             return self.send_json(404, {"error": "Not found"})

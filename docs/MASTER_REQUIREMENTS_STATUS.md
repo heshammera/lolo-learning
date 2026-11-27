@@ -28,3 +28,5 @@ Voice safety promoted at 70423f4. Family backend candidate: PostgreSQL schema, o
 Local profiles candidate: independent on-device learning paths, settings and results, protected management UI. No connection to server profiles or multi-device synchronization.
 
 Family backend and local profiles promoted at 4875a31 and fb473d6 respectively. New progress sync candidate: strict limited snapshots, owner authorization, atomic revision checks and exact retry handling. No real data, production configuration, consent or client sync yet.
+
+Progress backend promoted at 25f9a9d. Staging UI candidate adds temporary login, synthetic profiles, explicit first backup preview; no remote overwrite or restore, no persistent linking/queue, consent still open.
