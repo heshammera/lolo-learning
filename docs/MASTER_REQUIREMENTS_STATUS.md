@@ -42,3 +42,5 @@ Activity Library candidate: separate admin metadata, runtime-derived support, te
 Admin identity candidate adds separate admin DB, operator enrollment with encrypted TOTP seed, replay prevention, role policy, revocable short sessions and audit. No admin HTTP surface, account provision or real deployment yet. Prior activity library CI pending.
 
 Admin identity promoted at 0ab2878 after PostgreSQL and Android checks. Separate local admin web candidate: authenticated read-only Activity Library, server-side role checks, HttpOnly cookie, origin guard, local login rate cap. Production HTTPS deployment and all CMS mutation workflows pending.
+
+CMS draft candidate: server-validated structured drafts, role-checked read/edit, atomic revisions, basic JSON template editor. No publication or learner delivery. Full visual editing, review/versioning, client capability compatibility and all remaining V2 requirements pending.

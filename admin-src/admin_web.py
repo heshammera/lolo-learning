@@ -11,6 +11,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
 from admin_identity import AdminStore, FamilyError
+from cms_drafts import Drafts
 ROOT = Path(__file__).resolve().parent
 COOKIE = "lolo_admin_session"
 ASSETS = {"/":("index.html","text/html; charset=utf-8"),
@@ -31,6 +32,7 @@ class AdminServer(ThreadingHTTPServer):
         super().__init__(("127.0.0.1",port),Handler)
         self.store=store
         self.library=library
+        self.drafts=Drafts(store)
         self.host="127.0.0.1:"+str(self.server_port)
         self.origin="http://"+self.host
         self.attempts=deque()
@@ -85,14 +87,14 @@ class Handler(BaseHTTPRequestHandler):
             return cookies[COOKIE].value if COOKIE in cookies else ""
         except CookieError:return ""
 
-    def json_body(self):
+    def json_body(self,maximum=4096):
         if self.headers.get("Content-Type","").split(";",1)[0].strip().lower()!="application/json":
             raise FamilyError(415,"JSON required.")
         try:
             values=self.headers.get_all("Content-Length") or []
             if len(values)!=1 or self.headers.get("Transfer-Encoding"):raise ValueError()
             length=int(values[0])
-            if not 1<=length<=4096:raise ValueError()
+            if not 1<=length<=maximum:raise ValueError()
             raw=self.rfile.read(length)
             if len(raw)!=length:raise ValueError()
             value=json.loads(raw)
@@ -117,6 +119,8 @@ class Handler(BaseHTTPRequestHandler):
                 return self.reply(200,(ROOT.parent/"activity-engine.js").read_bytes(),"text/javascript; charset=utf-8")
             if self.path=="/api/session":
                 return self.reply(200,self.server.store.inspect(self.token()))
+            if self.path=="/api/drafts":
+                return self.reply(200,self.server.drafts.list(self.token()))
             if self.path=="/api/library":
                 self.server.store.inspect(self.token(),"library:read")
                 return self.reply(200,{"activities":self.server.library})
@@ -137,6 +141,16 @@ class Handler(BaseHTTPRequestHandler):
                 token=result.pop("token")
                 # Loopback only; a real HTTPS deployment must require Secure and __Host- cookies.
                 return self.reply(200,result,cookie=f"{COOKIE}={token}; HttpOnly; SameSite=Strict; Path=/; Max-Age=1800")
+            if self.path in ("/api/draft/read","/api/draft/check","/api/draft/save"):
+                body=self.json_body(262144)
+                if self.path=="/api/draft/read" and set(body)=={"id"}:
+                    return self.reply(200,self.server.drafts.read(self.token(),body["id"]))
+                if self.path=="/api/draft/check" and set(body)=={"content"}:
+                    return self.reply(200,self.server.drafts.check(self.token(),body["content"]))
+                if self.path=="/api/draft/save" and set(body)=={"id","revision","content"}:
+                    result=self.server.drafts.save(self.token(),body["id"],body["revision"],body["content"])
+                    return self.reply(200 if result["saved"] else 422,result)
+                raise FamilyError(400,"Invalid fields.")
             if self.path=="/api/logout":
                 if self.json_body()!={}:raise FamilyError(400,"Invalid fields.")
                 try:self.server.store.logout(self.token())

@@ -1,15 +1,15 @@
 'use strict';
 const $=id=>document.getElementById(id);
-let entries=[],identity=null,generation=0;
+let entries=[],identity=null,generation=0,draftId=null,draftRevision=0;
 async function api(path,body){
   const options={credentials:'same-origin',cache:'no-store',redirect:'error'};
   if(body!==undefined)Object.assign(options,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
   const response=await fetch(path,options);
-  if(!response.ok)throw Object.assign(new Error('تعذر تنفيذ الطلب.'),{status:response.status});
+  if(!response.ok){let details=null;try{details=await response.json();}catch{}throw Object.assign(new Error('تعذر تنفيذ الطلب.'),{status:response.status,details});}
   return response.json();
 }
 function clear(message=''){
-  generation++;identity=null;entries=[];
+  generation++;identity=null;entries=[];clearDrafts();
   $('login').hidden=false;$('workspace').hidden=true;$('logout').hidden=true;$('library').hidden=true;$('libraryNav').hidden=true;
   $('cards').replaceChildren();$('sample').replaceChildren();$('preview').hidden=true;
   $('password').value='';$('code').value='';$('message').textContent=message;
@@ -48,6 +48,42 @@ async function loadEngine(){
   if(window.LoloActivities)return;
   await new Promise((resolve,reject)=>{const script=document.createElement('script');script.src='/activity-engine.js';script.onload=resolve;script.onerror=reject;document.head.append(script);});
 }
+function clearDrafts(){
+  draftId=null;draftRevision=0;$('drafts').hidden=true;$('draftNav').hidden=true;$('draftEditor').hidden=true;
+  $('draftList').replaceChildren();$('draftJson').value='';$('draftStatus').textContent='';
+}
+function setDraft(data){
+  draftId=data?.id||null;draftRevision=data?.revision||0;
+  $('draftJson').value=JSON.stringify(data?.content||{schemaVersion:1,subjectId:'science',gradeId:'grade-1',title:'مسودة علوم',units:[{id:'unit-1',title:'النباتات',lessons:[{id:'lesson-1',title:'احتياجات النبات',goal:'التعرف على احتياجات النبات',activities:[{id:'activity-1',type:'true-false',version:1,prompt:'النبات يحتاج الماء.',config:{answer:true}}]}]}]},null,2);
+}
+async function loadDrafts(){
+  const g=generation;
+  const data=await api('/api/drafts');if(g!==generation)return;
+  $('draftList').replaceChildren();
+  for(const d of data.drafts){
+    const btn=document.createElement('button');btn.textContent=d.title+' · v'+d.revision;
+    btn.onclick=async()=>{const current=generation;try{if($('draftEditor').hidden)return;const item=await api('/api/draft/read',{id:d.id});if(current===generation)setDraft(item);}catch{$('draftStatus').textContent='تعذر فتح المسودة.';}};
+    $('draftList').append(btn);
+  }
+}
+$('draftNav').onclick=()=>$('drafts').scrollIntoView({block:'start'});
+$('newDraft').onclick=()=>{setDraft(null);$('draftStatus').textContent='مسودة جديدة غير محفوظة.';};
+async function draftAction(save){
+  const g=generation;
+  const buttons=[$('checkDraft'),$('saveDraft'),$('newDraft')];buttons.forEach(b=>b.disabled=true);
+  try{
+    const content=JSON.parse($('draftJson').value);
+    const result=await api(save?'/api/draft/save':'/api/draft/check',save?{id:draftId,revision:draftRevision,content}:{content});
+    if(g!==generation)return;
+    if(save){draftId=result.id;draftRevision=result.revision;$('draftStatus').textContent='تم حفظ المسودة · إصدار '+draftRevision;await loadDrafts();}
+    else $('draftStatus').textContent=result.valid?'المحتوى متوافق مع المحرك الحالي؛ لم يُنشر.':result.issues.map(i=>i.code+' — '+i.path).join('\n');
+  }catch(e){
+    if(g!==generation)return;
+    if(e.status===401||e.status===403){await refresh();return;}
+    $('draftStatus').textContent=e.status===409?'تم تعديل المسودة من حساب آخر. افتح أحدث نسخة؛ التغييرات المحلية لم تُحفظ.':e.details?.validation?.issues?.map(i=>i.code+' — '+i.path).join('\n')||'تعذر تنفيذ الطلب أو صيغة JSON غير صحيحة.';
+  }finally{buttons.forEach(b=>b.disabled=false);}
+}
+$('checkDraft').onclick=()=>draftAction(false);$('saveDraft').onclick=()=>draftAction(true);
 async function refresh(){
   const g=++generation;
   try{
@@ -55,6 +91,10 @@ async function refresh(){
     $('preview').hidden=true;$('sample').replaceChildren();
     identity=current;$('login').hidden=true;$('workspace').hidden=false;$('logout').hidden=false;$('message').textContent='';
     $('role').textContent='ROLE / '+current.role;
+    const canRead=current.permissions.includes('curriculum:read'),canEdit=current.permissions.includes('curriculum:edit');
+    $('drafts').hidden=!canRead;$('draftNav').hidden=!canRead;$('draftEditor').hidden=!canEdit;
+    if(!canRead)clearDrafts();
+    else{if(!canEdit){$('draftJson').value='';draftId=null;draftRevision=0;}else if(!$('draftJson').value)setDraft(null);await loadDrafts();if(g!==generation)return;}
     const allowed=current.permissions.includes('library:read');
     $('library').hidden=!allowed;$('libraryNav').hidden=!allowed;
     if(!allowed){entries=[];$('cards').replaceChildren();$('sample').replaceChildren();return;}

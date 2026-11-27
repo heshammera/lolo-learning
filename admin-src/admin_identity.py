@@ -35,7 +35,8 @@ class AdminStore:
 
     def migrate(self):
         with self.connect() as db:
-            db.execute(SCHEMA.read_text(encoding="utf-8"))
+            for migration in sorted(SCHEMA.parent.glob("[0-9][0-9][0-9]_*.sql")):
+                db.execute(migration.read_text(encoding="utf-8"))
 
     def provision(self,email,password,role,secret,code):
         """Trusted operator only; require proof of authenticator enrollment."""

@@ -6,6 +6,7 @@ on:
       - 'admin-src/**'
       - 'tests/test_admin_identity.py'
       - 'tests/test_admin_web.py'
+      - 'tests/test_cms_drafts.py'
       - 'activity-engine.js'
       - 'activity-pilot.js'
       - 'family_accounts.py'
@@ -38,3 +39,4 @@ jobs:
           node-version: 22
       - run: python3 -m venv .venv && .venv/bin/pip install -r admin-src/requirements.txt
       - run: .venv/bin/python -m unittest discover -s tests -p 'test_admin*.py' -v
+      - run: .venv/bin/python -m unittest discover -s tests -p 'test_cms_drafts.py' -v
