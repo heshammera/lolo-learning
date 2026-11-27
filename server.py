@@ -51,6 +51,8 @@ class SlidingWindowRateLimiter:
 
 
 API_RATE_LIMITER = SlidingWindowRateLimiter()
+# Separate buckets prevent client-key eviction from evicting the aggregate limit.
+GLOBAL_RATE_LIMITER = SlidingWindowRateLimiter(max_keys=8)
 
 
 def load_local_env():
@@ -69,7 +71,17 @@ load_local_env()
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
 GEMINI_BACKUP_API_KEY = os.environ.get("GEMINI_BACKUP_API_KEY")
 OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
-OPENAI_ENABLED = os.environ.get("OPENAI_ENABLED", "true").strip().lower() in {"1", "true", "yes", "on"}
+def service_enabled(name):
+    return os.environ.get(name, "true").strip().lower() in {"1", "true", "yes", "on"}
+
+
+OPENAI_ENABLED = service_enabled("OPENAI_ENABLED")
+VOICE_ENABLED = service_enabled("LOLO_VOICE_ENABLED")
+TTS_ENABLED = service_enabled("LOLO_TTS_ENABLED")
+GEMINI_ENABLED = service_enabled("GEMINI_ENABLED")
+GEMINI_BACKUP_ENABLED = service_enabled("GEMINI_BACKUP_ENABLED")
+GLOBAL_PAID_LIMIT = bounded_env_int("LOLO_GLOBAL_PAID_REQUESTS_PER_MINUTE", 120)
+CLIENT_TTS_LIMIT = bounded_env_int("LOLO_CLIENT_TTS_REQUESTS_PER_MINUTE", 12)
 MODEL = "models/gemini-3.8-live"
 BACKUP_MODEL = os.environ.get("GEMINI_BACKUP_MODEL", MODEL)
 OPENAI_MODEL = os.environ.get("OPENAI_REALTIME_MODEL", "gpt-realtime-2.1")
@@ -274,25 +286,44 @@ class Handler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(data)
 
+    def send_rate_limit(self, retry_after):
+        data = json.dumps({"error": "طلبات كتير في وقت قصير. جربي تاني بعد شوية."}, ensure_ascii=False).encode()
+        self.send_response(429)
+        self.send_header("Content-Type", "application/json; charset=utf-8")
+        self.send_header("Cache-Control", "no-store")
+        self.send_header("Retry-After", str(retry_after))
+        self.send_header("Content-Length", str(len(data)))
+        self.end_headers()
+        self.wfile.write(data)
+
     def do_POST(self):
         route = self.path.split("?", 1)[0]
         if route not in self.API_LIMITS or self.path != route:
             return self.send_json(404, {"error": "Not found"})
         if self.headers.get("Content-Type", "").split(";", 1)[0].strip().lower() != "application/json":
             return self.send_json(415, {"error": "نوع الطلب غير مدعوم."})
+        # Browser cross-site requests are not expected. Native clients lack this header.
+        # This is defense in depth, not authentication.
+        if self.headers.get("Sec-Fetch-Site", "").lower() == "cross-site":
+            return self.send_json(403, {"error": "الطلب غير مسموح."})
+        if route == "/api/provider-token" and not VOICE_ENABLED:
+            return self.send_json(503, {"error": "الصوت الذكي متوقف مؤقتاً."})
+        if route != "/api/provider-token" and not TTS_ENABLED:
+            return self.send_json(503, {"error": "خدمة القراءة الصوتية متوقفة مؤقتاً."})
         limit, window = self.API_LIMITS[route]
         forwarded_ip = self.headers.get("x-real-ip") if os.environ.get("VERCEL") else None
         source_ip = forwarded_ip or self.client_address[0]
         request_id = hmac_new(_RATE_LIMIT_SECRET, source_ip.encode(), "sha256").hexdigest()
         allowed, retry_after = API_RATE_LIMITER.check((route, request_id), limit, window)
         if not allowed:
-            self.send_response(429)
-            self.send_header("Content-Type", "application/json; charset=utf-8")
-            self.send_header("Cache-Control", "no-store")
-            self.send_header("Retry-After", str(retry_after))
-            self.end_headers()
-            self.wfile.write(json.dumps({"error": "طلبات كتير في وقت قصير. استني لحظة وجربي تاني."}, ensure_ascii=False).encode())
-            return
+            return self.send_rate_limit(retry_after)
+        if route != "/api/provider-token":
+            allowed, retry_after = API_RATE_LIMITER.check(("tts-combined", request_id), CLIENT_TTS_LIMIT)
+            if not allowed:
+                return self.send_rate_limit(retry_after)
+        allowed, retry_after = GLOBAL_RATE_LIMITER.check("all-paid-requests", GLOBAL_PAID_LIMIT)
+        if not allowed:
+            return self.send_rate_limit(retry_after)
         if route == "/api/provider-token":
             return self.create_provider_token()
         if route == "/api/onboarding-audio":
@@ -306,18 +337,23 @@ class Handler(BaseHTTPRequestHandler):
             length = int(raw_length)
         except (TypeError, ValueError):
             return None, "الطلب غير صالح."
-        if length < 0 or length > maximum_bytes:
+        if length <= 0 or length > maximum_bytes:
             return None, "حجم الطلب غير صالح."
         try:
-            body = json.loads(self.rfile.read(length) or b"{}")
-        except (ValueError, json.JSONDecodeError):
+            raw = self.rfile.read(length)
+            if len(raw) != length:
+                return None, "الطلب غير مكتمل."
+            def reject_constant(value):
+                raise ValueError("Non-finite JSON constant")
+            body = json.loads(raw, parse_constant=reject_constant)
+        except (ValueError, RecursionError):
             return None, "الطلب غير صالح."
         if not isinstance(body, dict):
             return None, "الطلب غير صالح."
         return body, None
 
     def create_challenge_audio(self):
-        if not GEMINI_API_KEY:
+        if not TTS_ENABLED or not GEMINI_API_KEY:
             return self.send_json(503, {"error": "صوت لولو مش متاح حالياً."})
         body, error = self.read_json_object(4000)
         if error:
@@ -369,7 +405,7 @@ class Handler(BaseHTTPRequestHandler):
             self.send_json(502, {"error": "الاتصال تأخر في تجهيز صوت لولو."})
 
     def create_onboarding_audio(self):
-        if not GEMINI_API_KEY:
+        if not TTS_ENABLED or not GEMINI_API_KEY:
             return self.send_json(503, {"error": "صوت لولو الترحيبي غير متاح حالياً."})
         body, error = self.read_json_object(1000)
         if error:
@@ -380,7 +416,7 @@ class Handler(BaseHTTPRequestHandler):
             "howto": "هنختار درس صغير، وبعدها نضغط ابدئي مع لولو. أنا هبدأ الكلام وأشرحلك، وإنتي جاوبيني بصوتك أو المسي الصور اللي على الشاشة. لو محتاجة مساعدة هديكي تلميح، وكل ما تخلصي درس هتلاقي نجمة، وتقدري تختاري درس أو اختبار تاني من إعدادات ولي الأمر.",
             "course": "ولي الأمر يختار الصف والمنهج المناسبين، وبعدها نبدأ من التأسيس أو الدرس التالي. تقدري ترجعي للجولة دي من زر المساعدة في أي وقت.",
         }
-        if step not in scripts:
+        if not isinstance(step, str) or step not in scripts:
             return self.send_json(400, {"error": "الخطوة غير معروفة."})
         if step in ONBOARDING_TTS_CACHE:
             return self.send_json(200, ONBOARDING_TTS_CACHE[step])
@@ -433,7 +469,7 @@ class Handler(BaseHTTPRequestHandler):
         already_mastered = body.get("alreadyMastered") is True
         try:
             excellence_count = max(0, int(body.get("excellenceCount", 0)))
-        except (TypeError, ValueError):
+        except (TypeError, ValueError, OverflowError):
             excellence_count = 0
         provider = body.get("provider", "gemini")
         if not isinstance(provider, str):
@@ -448,7 +484,7 @@ class Handler(BaseHTTPRequestHandler):
         }
         if mode not in ("lesson", "test"):
             return self.send_json(400, {"error": "نوع الجلسة غير معروف."})
-        if lesson_id not in LESSONS and lesson_id != "course-complete":
+        if lesson_id not in LESSONS:
             return self.send_json(400, {"error": "الدرس غير موجود في المسار."})
         if provider == "openai":
             if not OPENAI_ENABLED:
@@ -456,6 +492,8 @@ class Handler(BaseHTTPRequestHandler):
             return self.create_openai_token(lesson_id, mode, already_mastered, excellence_count, teacher_settings)
         if provider not in {"gemini", "gemini-backup"}:
             return self.send_json(400, {"error": "مزود الصوت غير معروف."})
+        if not (GEMINI_ENABLED if provider == "gemini" else GEMINI_BACKUP_ENABLED):
+            return self.send_json(503, {"error": "مزود الصوت متوقف مؤقتاً."})
         api_key = GEMINI_API_KEY if provider == "gemini" else GEMINI_BACKUP_API_KEY
         if not api_key:
             return self.send_json(503, {"error": "مفتاح مزود الصوت غير موجود في ملف .env."})
@@ -559,7 +597,7 @@ class Handler(BaseHTTPRequestHandler):
     def do_GET(self):
         path = self.path.split("?", 1)[0]
         if path == "/api/status":
-            return self.send_json(200, {"providers": [name for name, configured in (("gemini", GEMINI_API_KEY), ("openai", OPENAI_API_KEY and OPENAI_ENABLED), ("gemini-backup", GEMINI_BACKUP_API_KEY)) if configured]})
+            return self.send_json(200, {"providers": [name for name, configured in (("gemini", GEMINI_API_KEY and GEMINI_ENABLED), ("openai", OPENAI_API_KEY and OPENAI_ENABLED), ("gemini-backup", GEMINI_BACKUP_API_KEY and GEMINI_BACKUP_ENABLED)) if VOICE_ENABLED and configured], "ttsEnabled": bool(TTS_ENABLED and GEMINI_API_KEY)})
         relative = "index.html" if path == "/" else path.lstrip("/")
         allowed_files = {"index.html", "curriculum.json", "pcm-processor.js", "app.js", "storage.js", "assessment-engine.js", "subject-catalog.js", "visual-question-bank.js", "visual-assessment-engine.js", "curriculum-engine.js", "learning-engine.js", "learning-path-engine.js", "network.js", "offline-assets.js", "sw.js", "offline.html", "parent-gate.js", "session-timers.js", "brand.js", "favicon.ico", "favicon-16x16.png", "favicon-32x32.png", "favicon-48x48.png", "apple-touch-icon.png", "site.webmanifest"}
         is_brand_asset = relative.startswith("assets/branding/") and Path(relative).suffix.lower() in {".png", ".webp", ".json"}

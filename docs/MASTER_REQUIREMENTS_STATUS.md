@@ -20,3 +20,5 @@ Offline milestone candidate: public shell service worker, bundled native UI, bou
 Offline milestone promoted at 0a198c9 after run 46049057338 passed. Visual assessment pilot candidate: 24 draft choice items across 8 lessons; no mastery claims or educator review; broader authored content and runtime verification remain open.
 
 Subject catalog candidate: shared program/lesson enumeration, subject metadata/capability resolution, draft program exclusion, conservative fallbacks and synthetic science path tests. Not a complete universal subject engine, CMS, or published science curriculum.
+
+Visual and subject catalog promoted at 3aa27c8 after run 46050817415 passed. Voice safety candidate adds process-local aggregate limits, kill switches, validation and interruption handling; distributed quota, true authentication and provider policy verification remain open.

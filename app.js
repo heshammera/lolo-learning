@@ -2385,18 +2385,27 @@ async function handleGeminiMessage(event, sessionId, sessionSocket) {
     }
   }
   if (message.toolCall) handleToolCall(message.toolCall);
-  if (message.goAway) setStatus('هنقفل الدرس بعد اللحظة دي');
+  if (message.goAway) {
+    // Provider is ending the connection. Stop safely without issuing another token.
+    pauseInterruptedVoice(sessionId);
+    return;
+  }
   if (message.error) {
     const detail = message.error.message || 'حصلت مشكلة في جلسة Gemini.';
     if (setupHandshake) {
       setupHandshake.reject(new Error(detail));
       setupHandshake = null;
-    } else {
-      showError(detail);
+    } else if(isActive){
+      pauseInterruptedVoice(sessionId);
     }
   }
 }
 
+function pauseInterruptedVoice(sessionId) {
+  if(!sessionTimers.isCurrent(sessionId)||!isActive)return;
+  stopSession();
+  setStatus('الصوت اتوقف مؤقتًا. تقدم الدروس محفوظ، والتدريبات المحلية متاحة. اضغطي ابدئي لما تكوني جاهزة.');
+}
 function closeProviderTransport() {
   if (setupHandshake) { setupHandshake.reject(new Error('تغيير مزود الصوت.')); setupHandshake = null; }
   if (socket) { socket.onmessage = null; socket.onclose = null; socket.onerror = null; try { socket.close(); } catch {} }
@@ -2424,7 +2433,7 @@ async function providerToken(provider, sessionSignal) {
     throw error;
   } finally { clearTimeout(timeout); sessionSignal?.removeEventListener('abort', abortWithSession); }
   const data = await response.json();
-  if (!response.ok) throw new Error(data.error || 'تعذر تجهيز مزود الصوت.');
+  if (!response.ok) throw Object.assign(new Error(data.error || 'تعذر تجهيز مزود الصوت.'),{status:response.status});
   return data;
 }
 
@@ -2456,7 +2465,7 @@ async function connectGemini(provider, sessionId, sessionSignal) {
   sessionSocket.onclose = event => {
     if (!sessionTimers.isCurrent(sessionId) || socket !== sessionSocket) return;
     if (setupHandshake) setupHandshake.reject(new Error(`Gemini قفل الاتصال قبل التجهيز؛ رمز ${event.code}.`));
-    if (isActive) { closeSession(); if (event.code !== 1000) showError('اتقطع اتصال Gemini. ابدئي الدرس مرة تانية.'); }
+    if (isActive) pauseInterruptedVoice(sessionId);
   };
   await ready;
 }
@@ -2474,9 +2483,14 @@ async function connectOpenAI(sessionId, sessionSignal) {
   const sessionAudio = remoteAudio;
   sessionPeer.onconnectionstatechange = () => {
     if (!sessionTimers.isCurrent(sessionId) || realtimePeer !== sessionPeer) return;
-    if (sessionPeer.connectionState === 'failed') {
+    if(sessionPeer.connectionState==='disconnected'){
+      sessionTimers.schedule(sessionId,5000,()=>{
+        if(realtimePeer===sessionPeer&&sessionPeer.connectionState==='disconnected')pauseInterruptedVoice(sessionId);
+      });
+    }
+    if (sessionPeer.connectionState === 'failed' || sessionPeer.connectionState === 'closed') {
       if (setupHandshake) setupHandshake.reject(new Error('اتقطع اتصال OpenAI أثناء تجهيز الدرس.'));
-      else if (isActive) { closeSession(); showError('اتقطع اتصال OpenAI. ابدئي الدرس مرة تانية.'); }
+      else if (isActive) pauseInterruptedVoice(sessionId);
     }
   };
   sessionPeer.ontrack = event => {
@@ -2502,12 +2516,12 @@ async function connectOpenAI(sessionId, sessionSignal) {
     sessionChannel.onerror = () => {
       if (!sessionTimers.isCurrent(sessionId) || realtimeChannel !== sessionChannel) return;
       if (!settled) finish(reject, new Error('تعذر فتح قناة OpenAI الصوتية.'));
-      else if (isActive) { closeSession(); showError('اتقطع اتصال OpenAI. ابدئي الدرس مرة تانية.'); }
+      else if (isActive) pauseInterruptedVoice(sessionId);
     };
     sessionChannel.onclose = () => {
       if (!sessionTimers.isCurrent(sessionId) || realtimeChannel !== sessionChannel) return;
       if (!settled) finish(reject, new Error('OpenAI قفل القناة الصوتية.'));
-      else if (isActive) { closeSession(); showError('اتقطع اتصال OpenAI. ابدئي الدرس مرة تانية.'); }
+      else if (isActive) pauseInterruptedVoice(sessionId);
     };
     sessionSignal.addEventListener('abort', abortReady, {once: true});
   });
@@ -2599,7 +2613,7 @@ async function startSession(continuing = false) {
     const status = await providerStatusPromise;
     if (!sessionTimers.isCurrent(sessionId) || requestController.signal.aborted) return;
     const order = ['openai', 'gemini', 'gemini-backup'].filter(provider => status.providers?.includes(provider));
-    if (!order.length) throw new Error('مفيش مفاتيح API متسجلة في ملف .env.');
+    if (!order.length) throw new Error('الصوت الذكي غير متاح دلوقتي. تقدري تكملي التدريب المحلي.');
     const failures = [];
     for (const provider of order) {
       setStatus('لولو بتجهز الدرس…');
@@ -2613,6 +2627,7 @@ async function startSession(continuing = false) {
         if (!sessionTimers.isCurrent(sessionId) || requestController.signal.aborted) return;
         failures.push({provider, message: error.message});
         closeProviderTransport();
+        if([401,403,429].includes(error.status)||navigator.onLine===false)break;
       }
     }
     if (!sessionTimers.isCurrent(sessionId) || requestController.signal.aborted) return;

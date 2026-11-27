@@ -1,6 +1,5 @@
 # Current Status
-- Main: offline milestone promoted at 0a198c94f187dd0ddc02148869a65dcd2af8445e; GitHub Actions run 46049057338 passed Python/Node tests, Chromium offline smoke test and Android debug build. Actual Vercel deployment, native device upgrade and live AI have not been independently verified here.
-- Learning scope: main at 45b5b0c before offline; Android workflow 46048242427 passed.
-- Backup: backup/pre-lolo-v2 and backup/pre-learning-scope-20261127 retained.
-- Current candidate: visual assessment pilot on verification/local-assessment-20261127. See docs/VISUAL_ASSESSMENT.md; CI pending.
-- Existing baseline safeguards, brand, curriculum v2.1, local parent gate, writing/math assessment, oral repeat, skill tracking and review remain. Full V2 not complete.
+- Main: 3aa27c80b918e811798f74765b7a3c1cc7f01a53; run 46050817415 passed all unit, browser offline and Android debug build checks before promotion. Visual pilot and shared subject catalog are implemented; science is only a synthetic test. 
+- Offline baseline: 0a198c9 deployed successfully per Vercel commit status. Real Android upgrade, live voice and signing continuity still unverified.
+- Backup branches retained. Current voice safety candidate on verification/voice-safety-20261127; CI pending. See docs/VOICE_SAFETY.md.
+- Full V2 incomplete; identity, consent, durable quotas, database, CMS and universal activity strategies remain open.

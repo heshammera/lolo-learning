@@ -18,3 +18,5 @@
 
 - Learning scope milestone promoted to main at 45b5b0c; workflow 46048242427 passed.
 - Offline milestone promoted at 0a198c9; workflow 46049057338 passed unit, browser offline and APK build. Native phone verification remains open.
+
+- Visual comprehension pilot and subject catalog promoted to main at 3aa27c8; run 46050817415 passed. Content remains draft; no published Science course.

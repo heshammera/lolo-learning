@@ -4,6 +4,7 @@ import unittest
 from http.server import ThreadingHTTPServer
 from urllib.error import HTTPError
 from urllib.request import Request, urlopen
+from unittest.mock import patch
 
 import server
 
@@ -105,6 +106,36 @@ class ApiInputTests(unittest.TestCase):
     def test_invalid_mode_and_teacher_settings_do_not_raise(self):
         self.assertEqual(self.post_status("/api/provider-token", {"lessonId": "hello-1", "mode": []})[0], 400)
         self.assertEqual(self.post_status("/api/provider-token", {"lessonId": "missing-lesson", "teacherSettings": {"speechPace": [], "hintLevel": {}, "learningScope": []}})[0], 400)
+
+    def test_global_budget_and_disabled_services_do_not_reach_upstream(self):
+        with patch.object(server, "GLOBAL_RATE_LIMITER", server.SlidingWindowRateLimiter()), patch.object(server, "API_RATE_LIMITER", server.SlidingWindowRateLimiter()), patch.object(server, "GLOBAL_PAID_LIMIT", 1), patch.object(server, "VOICE_ENABLED", True), patch.object(server, "urlopen") as upstream:
+            self.assertEqual(self.post_status("/api/provider-token", [])[0], 400)
+            self.assertEqual(self.post_status("/api/provider-token", [])[0], 429)
+            upstream.assert_not_called()
+        with patch.object(server, "VOICE_ENABLED", False), patch.object(server, "TTS_ENABLED", False), patch.object(server, "urlopen") as upstream:
+            self.assertEqual(self.post_status("/api/provider-token", {})[0], 503)
+            self.assertEqual(self.post_status("/api/challenge-audio", {})[0], 503)
+            with urlopen(self.base_url + "/api/status") as response:
+                data = json.load(response)
+                self.assertEqual(data["providers"], [])
+                self.assertFalse(data["ttsEnabled"])
+            upstream.assert_not_called()
+
+    def test_combined_tts_and_malformed_payloads(self):
+        with patch.object(server, "API_RATE_LIMITER", server.SlidingWindowRateLimiter()), patch.object(server, "GLOBAL_RATE_LIMITER", server.SlidingWindowRateLimiter()), patch.object(server, "CLIENT_TTS_LIMIT", 1), patch.object(server, "TTS_ENABLED", True), patch.object(server, "GEMINI_API_KEY", "test-only"), patch.object(server, "urlopen") as upstream:
+            self.assertEqual(self.post_status("/api/onboarding-audio", {"step": []})[0], 400)
+            self.assertEqual(self.post_status("/api/challenge-audio", {"text": ""})[0], 429)
+            upstream.assert_not_called()
+        with patch.object(server, "API_RATE_LIMITER", server.SlidingWindowRateLimiter()), patch.object(server, "GLOBAL_RATE_LIMITER", server.SlidingWindowRateLimiter()):
+            self.assertEqual(self.post_status("/api/provider-token", {"excellenceCount": float("inf")})[0], 400)
+            self.assertEqual(self.post_status("/api/provider-token", {"lessonId": "course-complete"})[0], 400)
+
+    def test_cross_site_request_is_rejected(self):
+        request = Request(self.base_url + "/api/provider-token", data=b"{}", headers={"Content-Type":"application/json", "Sec-Fetch-Site":"cross-site"})
+        with self.assertRaises(HTTPError) as error:
+            urlopen(request)
+        self.assertEqual(error.exception.code, 403)
+        error.exception.close()
 
     def test_provider_route_throttles_repeated_requests(self):
         old_limits = server.Handler.API_LIMITS

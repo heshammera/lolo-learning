@@ -1,2 +1,2 @@
 # Next Action
-Verify visual assessment and subject catalog candidate CI before promotion. Continue reviewed content and typed activity strategies, then durable authentication/authorization/consent and provider safety. Verify native device/signing/live voice separately.
+Verify voice safety candidate CI and promote only after successful checks. Continue server-side identity/consent and durable quotas before commercial rollout. Native phone testing, signing continuity and live provider validation remain open.
