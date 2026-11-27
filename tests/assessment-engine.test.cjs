@@ -91,4 +91,11 @@ for (const lesson of curriculumLessons) {
   assert.ok(assessment.questions.every(question => curriculumTargets.has(Assessment.normalizeAnswer(question.target))));
   assert.equal(new Set(assessment.questions.map(question => question.questionId)).size, assessment.questions.length);
 }
+for(const value of ['not five','مش خمسه','5 + 1','-5','5.5','five six','five five','five maybe','zero? five','5/2'])assert.equal(Assessment.normalizeMathAnswer(value),null,value);
+assert.equal(Assessment.normalizeMathAnswer('أحد عشر'),11);
+assert.equal(Assessment.normalizeMathAnswer('خمسة تفاحات'),5);
+assert.equal(Assessment.normalizeMathAnswer('5.'),5);
+const strict=Assessment.create();
+assert.equal(strict.grade({kind:'math',answer:'not five',expected:'5'}).status,'unresolved');
+for(const quality of [null,'90',-1,101,NaN])assert.equal(strict.grade({kind:'handwriting',quality}).status,'unresolved');
 console.log('Deterministic assessment checks passed.');

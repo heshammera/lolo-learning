@@ -26,14 +26,21 @@
   }
 
   function normalizeMathAnswer(value) {
-    const normalized = normalizeAnswer(value);
-    if (!normalized) return null;
-    const values = normalized.split(' ').flatMap(word => {
-      if (/^\d{1,2}$/.test(word)) return [Number(word)];
-      return ARABIC_NUMBER_WORDS.has(word) ? [ARABIC_NUMBER_WORDS.get(word)] : [];
-    });
-    const distinct = [...new Set(values)];
-    return distinct.length === 1 ? distinct[0] : null;
+    // Only accept a single unambiguous non-negative integer or a reviewed number phrase.
+    // Do not extract a number from a sentence containing negation, a calculation, or guesses.
+    if(typeof value==='number')return Number.isSafeInteger(value)&&value>=0&&value<=99?value:null;
+    if(typeof value!=='string')return null;
+    const raw=value.normalize('NFKC').trim();
+    if(/[+\-−–×÷*/=<>.,٫٬]/u.test(raw.replace(/[.!؟?،]+$/u,'')))return null;
+    const normalized=normalizeAnswer(raw);
+    const parse=word=>/^\d{1,2}$/.test(word)?Number(word):ARABIC_NUMBER_WORDS.has(word)?ARABIC_NUMBER_WORDS.get(word):null;
+    const exact=parse(normalized);
+    if(exact!==null)return exact;
+    // Optional simple counting nouns, not arbitrary trailing words.
+    const nouns=new Set(['apple','apples','cookie','cookies','star','stars','fish','ball','balls','object','objects','item','items','تفاحه','تفاحات','نجمه','نجوم','سمكه','سمكات','كرات','كره','حاجات','اشياء','اقلام','قلم'].map(normalizeAnswer));
+    const words=normalized.split(' ');
+    if(words.length>=2&&nouns.has(words.at(-1)))return parse(words.slice(0,-1).join(' '));
+    return null;
   }
 
   function makeId(prefix) {
@@ -59,8 +66,8 @@
       let score = null;
 
       if (input.kind === 'handwriting') {
-        const quality = Number(input.quality);
-        if (Number.isFinite(quality)) {
+        const quality = input.quality;
+        if (typeof quality==='number' && Number.isFinite(quality) && quality>=0 && quality<=100) {
           score = Math.max(0, Math.min(100, Math.round(quality)));
           status = score >= 62 ? 'correct' : score >= 48 ? 'partial' : 'incorrect';
           confidence = 0.65;

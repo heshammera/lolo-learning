@@ -1,5 +1,6 @@
 const assert=require('node:assert/strict');
 const {spawn}=require('node:child_process');
+const http=require('node:http');
 const {chromium}=require('playwright');
 const root='http://127.0.0.1:4173';
 const local='http://127.0.0.1:4174';
@@ -8,7 +9,16 @@ const servers=[
   spawn('python3',['-m','http.server','4174','--bind','127.0.0.1','--directory','android-apk/www-bundled'],{stdio:'ignore'}),
 ];
 async function waitServer(url){
-  for(let i=0;i<60;i++){try{if((await fetch(url)).ok)return;}catch{}await new Promise(r=>setTimeout(r,100));}
+  const ready=()=>new Promise(resolve=>{
+    const request=http.get(url,response=>{
+      response.resume();
+      response.on('end',()=>resolve(response.statusCode===200));
+      response.on('error',()=>resolve(false));
+    });
+    request.setTimeout(1500,()=>{request.destroy();resolve(false);});
+    request.on('error',()=>resolve(false));
+  });
+  for(let i=0;i<60;i++){if(await ready())return;await new Promise(r=>setTimeout(r,100));}
   throw Error('Server unavailable '+url);
 }
 async function seed(context){
