@@ -1,0 +1,14 @@
+# Replace placeholders; configure service environment privately. Do not enable public access.
+{$LOLO_ADMIN_DOMAIN} {
+    @operators remote_ip {$LOLO_ADMIN_ALLOWED_CIDR}
+    handle @operators {
+        reverse_proxy 127.0.0.1:4180 {
+            header_up Host {host}
+            header_up X-Forwarded-Proto https
+            header_up X-Lolo-Admin-Proxy {$LOLO_ADMIN_PROXY_TOKEN}
+        }
+    }
+    handle {
+        respond "Forbidden" 403
+    }
+}

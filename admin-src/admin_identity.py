@@ -38,6 +38,16 @@ class AdminStore:
             for migration in sorted(SCHEMA.parent.glob("[0-9][0-9][0-9]_*.sql")):
                 db.execute(migration.read_text(encoding="utf-8"))
 
+    def admit_proxy_login(self):
+        """Shared, fail-closed rolling quota; serializes admission across processes."""
+        with self.connect() as db:
+            db.execute("SELECT pg_advisory_xact_lock(721804381)")
+            db.execute("DELETE FROM lolo_admin_proxy_login WHERE attempted_at <= clock_timestamp() - interval '60 seconds'")
+            count=db.execute("SELECT count(*) FROM lolo_admin_proxy_login").fetchone()[0]
+            if count>=15:return False
+            db.execute("INSERT INTO lolo_admin_proxy_login(attempted_at) VALUES (clock_timestamp())")
+            return True
+
     def provision(self,email,password,role,secret,code):
         """Trusted operator only; require proof of authenticator enrollment."""
         import pyotp
