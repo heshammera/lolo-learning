@@ -7,7 +7,7 @@
 
 ## V2 work
 
-- Skill-progress and spaced-review wiring is in progress; current status and verification boundaries are in `CURRENT_STATUS.md` and `docs/IMPLEMENTATION_PLAN.md`.
+- Added recognized-token skill progress and spaced review for oral repeat quizzes; verified in GitHub Actions and deployed to Vercel. The measurement limits are documented in `docs/CHANGELOG_V2.md`.
 
 - Added baseline docs, API input validation and in-process rate limiting, local-only server binding, security headers, official branding across web/Android, storage recovery handling, and generation-scoped session timers.
 - Built an updated Android debug APK from GitHub Actions.

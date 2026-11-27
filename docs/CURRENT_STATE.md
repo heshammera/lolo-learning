@@ -2,7 +2,7 @@
 
 **Reviewed:** 2026-11-27
 **Baseline:** `458ae22` (`Ignore downloaded Android APK artifact`)
-**Working branch:** `main` (new local schema work; the user requested updates on Vercel-linked main)
+**Working branch:** `main` (all completed changes are pushed to the Vercel-linked branch)
 
 ## Product and runtime
 
