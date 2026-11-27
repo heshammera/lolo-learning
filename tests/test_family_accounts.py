@@ -75,3 +75,50 @@ class FamilyDatabaseTests(unittest.TestCase):
             db.execute("UPDATE lolo_parent_sessions SET expires_at=%s WHERE token_hash=%s",(datetime.now(timezone.utc)-timedelta(seconds=1),digest_token(token)))
         with self.assertRaises(FamilyError):
             self.store.children(token)
+
+    def test_http_routes_and_account_isolation(self):
+        import json
+        import threading
+        from http.server import ThreadingHTTPServer
+        from urllib.request import Request, urlopen
+        from urllib.error import HTTPError
+        httpd=ThreadingHTTPServer(("127.0.0.1",0),server.Handler)
+        thread=threading.Thread(target=httpd.serve_forever,daemon=True)
+        thread.start()
+        def request(body,token=None):
+            headers={"Content-Type":"application/json"}
+            if token:
+                headers["Authorization"]="Bearer "+token
+            req=Request(f"http://127.0.0.1:{httpd.server_port}/api/family",data=json.dumps(body).encode(),headers=headers)
+            try:
+                response=urlopen(req,timeout=10)
+            except HTTPError as error:
+                response=error
+            with response:
+                self.assertEqual(response.headers.get("Cache-Control"),"no-store")
+                return response.status,json.load(response)
+        try:
+            with patch.object(server,"FAMILY_ENABLED",True), patch.dict(os.environ,{"LOLO_DATABASE_URL":self.store.dsn}), patch.object(server,"FAMILY_RATE_LIMITER",server.SlidingWindowRateLimiter()), patch.object(server,"FAMILY_GLOBAL_LIMITER",server.SlidingWindowRateLimiter()):
+                self.assertEqual(request({"action":"children"})[0],401)
+                self.assertEqual(request({"action":"register"})[0],400)
+                a,b=[request({"action":"login","email":email,"password":self.password})[1]["token"] for email in self.emails]
+                status,child=request({"action":"createChild","nickname":"Learner","ageBand":"4-6"},a)
+                self.assertEqual(status,201)
+                self.assertEqual(request({"action":"children"},a),(200,{"children":[child]}))
+                self.assertEqual(request({"action":"children"},b),(200,{"children":[]}))
+                self.assertEqual(request({"action":"deleteChild","childId":child["id"]},b)[0],404)
+                self.assertEqual(request({"action":"logout"},a)[0],200)
+                self.assertEqual(request({"action":"children"},a)[0],401)
+        finally:
+            httpd.shutdown()
+            httpd.server_close()
+            thread.join(timeout=3)
+
+    def test_disabled_parent_cannot_login_or_use_existing_session(self):
+        token=self.store.login(self.emails[0],self.password)["token"]
+        with self.store.connect() as db:
+            db.execute("UPDATE lolo_parents SET disabled_at=CURRENT_TIMESTAMP WHERE id=%s",(self.ids[0],))
+        with self.assertRaises(FamilyError):
+            self.store.login(self.emails[0],self.password)
+        with self.assertRaises(FamilyError):
+            self.store.children(token)
