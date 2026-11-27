@@ -36,9 +36,10 @@ jobs:
         run: npm ci
       - name: Run local security and storage tests
         run: |
-          python3 -m unittest discover -s ../tests -v
-          node ../tests/storage.test.cjs
-          node ../tests/session-timers.test.cjs
+          cd ..
+          python3 -m unittest discover -s tests -v
+          node tests/storage.test.cjs
+          node tests/session-timers.test.cjs
       - name: Build debug APK
         run: |
           npx cap sync android
