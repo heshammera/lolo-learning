@@ -59,3 +59,5 @@ Content runtime promoted at bbc65d8 after family/Android CI. Checkpoint candidat
 
 Local checkpoints verified/promoted at 2352edc (family and Android checks). Signed curriculum UI E2E candidate tests real app, SW offline reload, import, tamper rejection, resume, update and scope boundaries using ephemeral fixture key. Production trust still empty; no live delivery.
 Checkpoint promoted at 2352edc. Signed UI E2E reached offline resume and score but failed visible Next assertion; fixed 7b4258d, rerun pending. Opt-in curated public delivery candidate includes read-only catalog, fixed endpoint, metadata/signature check, parent download UI; no real keys or live catalog, no entitlements yet.
+
+Delivery and signed E2E promoted at 41114e6 after successful Android and family checks. Candidate expansion adds four bounded offline activity contracts, matching authoring fields and tests (11 implemented / 18 planned). Free-text means accepted short answers only; essay review remains pending. Production catalog/trust and device verification still pending.

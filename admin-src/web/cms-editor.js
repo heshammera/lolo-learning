@@ -57,7 +57,22 @@
       const c=a.config;
       if(a.type==='true-false')select(box,'الإجابة الصحيحة',String(c.answer),[{id:'true',label:'صح'},{id:'false',label:'خطأ'}],v=>c.answer=v===''?null:v==='true');
       else if(a.type==='numeric')field(box,'الإجابة الرقمية الصحيحة',c.answer,v=>c.answer=v,{type:'number'});
-      else if(a.type==='choice'||a.type==='multi-choice'){
+      else if(a.type==='fill-blank'||a.type==='free-text'){
+        box.append(el('p','أضيفي البدائل المقبولة. لا يُستخدم هذا النشاط لتقييم المقالات أو الفهم المفتوح.'));
+        c.answers.forEach((answer,i)=>{
+          const row=el('div');row.className='cms-row';box.append(row);
+          field(row,'إجابة مقبولة '+(i+1),answer,v=>c.answers[i]=v,{max:200});
+          if(c.answers.length>1)remove(row,c.answers,i,'حذف البديل');
+        });
+        const add=button(box,'إضافة بديل',()=>{c.answers.push('');rebuild();});add.disabled=c.answers.length>=8;
+      }else if(a.type==='number-line'){
+        for(const [key,label] of [['min','بداية الخط'],['max','نهاية الخط'],['step','المسافة بين العلامات'],['answer','العدد الصحيح']])field(box,label,c[key],v=>c[key]=v,{type:'number'});
+        box.append(el('p','حد أقصى ٢١ علامة. يجب أن تكون الإجابة على إحدى العلامات.'));
+      }else if(a.type==='fractions'){
+        field(box,'البسط الصحيح',c.numerator,v=>c.numerator=v,{type:'number'});
+        field(box,'المقام الصحيح',c.denominator,v=>c.denominator=v,{type:'number'});
+        box.append(el('p','تُقبل الكسور المكافئة ضمن النطاق ٠ إلى ١. الحد الأقصى للمقام ١٠٠٠.'));
+      }else if(a.type==='choice'||a.type==='multi-choice'){
         list(box,'الاختيارات',c.options);
         if(a.type==='choice')select(box,'الإجابة الصحيحة',c.answer,c.options,v=>c.answer=v);
         else{

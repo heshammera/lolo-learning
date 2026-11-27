@@ -1,2 +1,2 @@
 # Next Action
-Verify fixed signed UI E2E and delivery API/client tests. Add full download UI fixture and operator catalog tooling, then expand activity engine, CMS editor and remaining V2 requirements. Production security/consent/key gates remain.
+Verify Android and admin browser/DB CI for activity expansion. Next true accessible drag/drop, geometry, equations and remaining activity types; full direct download UI test, operator catalog tooling and production/security gates remain open. Preserve all V2 requirements.

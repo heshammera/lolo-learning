@@ -9,6 +9,10 @@
     {id:'science-match',type:'match',version:1,prompt:'وصلي كل كائن بالصورة.',config:{left:items('قطة','سمكة'),right:items('🐟','🐈'),pairs:{i1:'i2',i2:'i1'}}},
     {id:'science-count',type:'numeric',version:1,prompt:'عدي الأوراق: 🍃 🍃 🍃',config:{answer:3}},
     {id:'science-groups',type:'classify',version:1,prompt:'صنفي الكائنات.',config:{items:items('قطة','وردة','سمكة'),groups:items('حيوان','نبات'),assignments:{i1:'i1',i2:'i2',i3:'i1'}}},
+    {id:'science-blank',type:'fill-blank',version:1,prompt:'النبات يحتاج إلى ___ لينمو.',config:{answers:['الماء','ماء']}},
+    {id:'science-text',type:'free-text',version:1,prompt:'اكتبي اسم كائن حي من الأمثلة: قطة أو وردة.',config:{answers:['قطة','وردة']}},
+    {id:'math-line',type:'number-line',version:1,prompt:'اختاري العدد الذي يأتي بعد ٣.',config:{min:0,max:10,step:1,answer:4}},
+    {id:'math-fraction',type:'fractions',version:1,prompt:'اكتبي كسرًا مكافئًا للنصف (١/٢).',config:{numerator:1,denominator:2}},
   ];
   const api={status:'draft',lessons:[{id:'science-draft-plants',activities:activities.slice(0,4)},{id:'science-draft-animals',activities:activities.slice(4)}]};
   if(typeof window!=='undefined')window.LoloActivityPilot=api;
