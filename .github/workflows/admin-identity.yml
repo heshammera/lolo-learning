@@ -1,0 +1,34 @@
+name: Admin identity verification
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'admin-src/**'
+      - 'tests/test_admin_identity.py'
+      - 'family_accounts.py'
+      - '.github/workflows/admin-identity.yml'
+permissions:
+  contents: read
+jobs:
+  admin-postgres:
+    runs-on: ubuntu-24.04
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: admin_test
+          POSTGRES_PASSWORD: disposable-ci-only
+          POSTGRES_DB: admin_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U admin_test -d admin_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      LOLO_TEST_ADMIN_DATABASE_URL: postgresql://admin_test:disposable-ci-only@127.0.0.1:5432/admin_test
+    steps:
+      - uses: actions/checkout@v7
+      - run: python3 -m venv .venv && .venv/bin/pip install -r admin-src/requirements.txt
+      - run: .venv/bin/python -m unittest discover -s tests -p 'test_admin_identity.py' -v

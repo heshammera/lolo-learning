@@ -38,3 +38,5 @@ Restore copy promoted at f2e93ad after successful checks. Pending first-backup q
 First-backup queue promoted at ae98c9e after run 46054696792. User approved independent owner CMS and expanded dynamic activity library; keep all prior requirements. Activity registry candidate: seven v1 contracts/evaluators/shared accessible preview renderer, draft science examples only. Server validation, CMS, publishing, download and remaining activities pending.
 
 Activity Library candidate: separate admin metadata, runtime-derived support, template drift audit, target compatibility and local-only visual prototype. Not a deployed or authenticated admin CMS. Existing activity registry CI still required before promotion.
+
+Admin identity candidate adds separate admin DB, operator enrollment with encrypted TOTP seed, replay prevention, role policy, revocable short sessions and audit. No admin HTTP surface, account provision or real deployment yet. Prior activity library CI pending.
