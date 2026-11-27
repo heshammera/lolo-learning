@@ -16,12 +16,25 @@ tools="$(find "$sdk/build-tools" -mindepth 1 -maxdepth 1 -type d | sort -V | tai
 tmp="$(mktemp -d)"
 trap 'rm -rf "$tmp"' EXIT
 printf '%s' "$LOLO_ANDROID_KEYSTORE_BASE64" | base64 --decode > "$tmp/key"
+# Check the actual keystore certificate independently before signing.
+keytool -exportcert -alias "$LOLO_ANDROID_KEY_ALIAS" -keystore "$tmp/key" -storepass:env LOLO_ANDROID_STORE_PASSWORD -file "$tmp/cert.der"
+key_digest="$(sha256sum "$tmp/cert.der" | cut -d' ' -f1)"
+[[ "$key_digest" == "$expected" ]] || { echo "Keystore certificate differs from pinned certificate: $key_digest" >&2; exit 3; }
 "$tools/zipalign" -P 16 -f 4 "$1" "$tmp/aligned.apk"
 "$tools/apksigner" sign --ks "$tmp/key" --ks-key-alias "$LOLO_ANDROID_KEY_ALIAS" --ks-pass env:LOLO_ANDROID_STORE_PASSWORD --key-pass env:LOLO_ANDROID_KEY_PASSWORD --out "$tmp/signed.apk" "$tmp/aligned.apk"
 verification="$("$tools/apksigner" verify --min-sdk-version 24 --print-certs "$tmp/signed.apk")"
-actual="$(printf '%s\n' "$verification" | sed -n 's/^Signer #1 certificate SHA-256 digest: //p' | tr '[:upper:]' '[:lower:]')"
-[[ "$actual" == "$expected" ]] || { echo 'Release signer does not match pinned certificate' >&2; exit 3; }
-[[ "$(printf '%s\n' "$verification" | grep -c '^Signer #[0-9]* certificate SHA-256 digest: ')" == 1 ]] || { echo 'Unexpected signer count' >&2; exit 3; }
+# Normalize only whitespace and separators; do not weaken the pinned certificate check.
+digests="$(printf '%s\n' "$verification" | sed -nE 's/^[[:space:]]*Signer #[0-9]+ certificate SHA-256 digest:[[:space:]]*([[:xdigit:]:]+)[[:space:]]*$/\1/p')"
+[[ -n "$digests" && "$digests" != *"$tools/zipalign" -c -P 16 4 "$tmp/signed.apk"
+badging="$("$tools/aapt" dump badging "$tmp/signed.apk")"
+grep -Fq "package: name='com.heshammera.lolo' versionCode='${LOLO_ANDROID_VERSION_CODE:?Version required}'" <<< "$badging"
+grep -Fxq "sdkVersion:'24'" <<< "$badging"
+if grep -q '^application-debuggable' <<< "$badging"; then echo 'Debuggable release rejected' >&2; exit 3; fi
+cp "$tmp/signed.apk" "$2"
+echo "Verified signed release certificate: $actual"
+\n'* ]] || { echo 'Expected exactly one signer certificate digest'; printf '%s\n' "$verification"; exit 3; }
+actual="$(printf '%s' "$digests" | tr -d ':' | tr '[:upper:]' '[:lower:]')"
+[[ "$actual" == "$expected" ]] || { echo "Release signer does not match pinned certificate: actual=$actual expected=$expected" >&2; exit 3; }
 "$tools/zipalign" -c -P 16 4 "$tmp/signed.apk"
 badging="$("$tools/aapt" dump badging "$tmp/signed.apk")"
 grep -Fq "package: name='com.heshammera.lolo' versionCode='${LOLO_ANDROID_VERSION_CODE:?Version required}'" <<< "$badging"
