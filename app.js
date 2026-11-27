@@ -1140,8 +1140,9 @@ function applyPathChoice() {
 }
 function renderPathStatus() {
   const el = $('#pathStatus');
-  if (invalidPath) { el.textContent = 'الخطة المحفوظة تحتاج مراجعة ولي الأمر.'; return; }
-  if (!activePath) { el.textContent = ''; return; }
+  const liveEl=$('#livePathStatus');
+  if (invalidPath) { el.textContent = 'الخطة المحفوظة تحتاج مراجعة ولي الأمر.'; liveEl.textContent=el.textContent; return; }
+  if (!activePath) { el.textContent = ''; liveEl.textContent=''; return; }
   const program = programList().find(p=>p.id===activePath.programId);
   const unit = program?.units.find(u=>u.id===activePath.unitId);
   const label = activePath.scope==='unit' ? (unit?.title || 'الوحدة') : activePath.scope==='curriculum' ? (program?.title || 'المنهج بالكامل') : 'درس واحد';
@@ -1149,6 +1150,7 @@ function renderPathStatus() {
   el.textContent = activePath.status === 'completed'
     ? `${label} · اكتملت الخطة (${total} من ${total})`
     : `${label} · ${activePath.currentIndex} من ${total} درس اكتمل`;
+  liveEl.textContent=sessionMode==='test' ? '' : el.textContent;
 }
 function updateLessonBadge(lesson) {
   const icons = {math: '🔢', phonics: '🔊', grammar: '🧩', speaking: '🗣️', review: '⭐'};
@@ -1458,7 +1460,7 @@ function renderTopProgress(lessons = allLessons()) {
   const lessonHistory = Array.isArray(lessonStats[currentLesson?.id]?.history) ? lessonStats[currentLesson.id].history : [];
   const savedLessonEvents = lessonHistory.filter(item => item.mode !== 'test');
   let barEvents = activeAnswerEvents;
-  if (sessionMode === 'lesson' && !replay) {
+  if (sessionMode === 'lesson' && !replay && !activePath) {
     const stats = lessonStats[currentLesson?.id] || {};
     const oldCorrect = Math.max(0, (Number(stats.correct) || 0) - lessonHistory.filter(item => item.is_correct).length);
     const oldWrong = Math.max(0, (Number(stats.wrong) || 0) - lessonHistory.filter(item => !item.is_correct).length);
@@ -1521,7 +1523,9 @@ function recordLessonAnswer(lessonId, answer, isCorrect, questionNumber, questio
     setStatus('لولو ماقدرتش تسجل تقييم الإجابة دي. قوليها مرة تانية بصوتك.');
     return {recorded: false};
   }
-  if (answerTurnId && gradedAnswerTurnId === answerTurnId) return {recorded: true, duplicate: true};
+  if (!pathEngine.mayRecordTurn(answerTurnId,gradedAnswerTurnId)) {
+    return {recorded:false,duplicate:answerTurnId>0 && gradedAnswerTurnId===answerTurnId,reason:'مفيش محاولة صوتية جديدة للتقييم.'};
+  }
   // Count each spoken response as its own attempt; live models sometimes reuse
   // a question number, which must not hide a later wrong answer.
   let question = activeAnswerEvents.length + 1;
@@ -1542,7 +1546,7 @@ function recordLessonAnswer(lessonId, answer, isCorrect, questionNumber, questio
   storage.set('lolo-lesson-stats', JSON.stringify(lessonStats));
   updateProgress();
   renderParentReport();
-  if (currentLesson) refreshLessonPicker(currentLesson.programId, currentLesson.unitId);
+  if (currentLesson && !$('#parentSheet').classList.contains('open')) refreshLessonPicker(currentLesson.programId, currentLesson.unitId);
   let mastery = null;
   if (sessionMode === 'lesson') {
     const verifiedAnswers = activeAnswerEvents.filter(item => item.is_correct).slice(0, 2).map(item => item.answer);
@@ -1871,11 +1875,16 @@ function scheduleCompletionFollowUp(lessonId, result) {
   completionFollowUpPending = true;
   const armedAt = Date.now();
   const check = () => {
-    if (!completionFollowUpPending || pendingPathCompletion !== pending || !isActive || currentLesson?.id !== lessonId) return;
-    if (document.visibilityState === 'hidden' || Date.now() >= learningDeadline) return stopSession();
-    const quiet = !modelSpeaking && !openAIAudioPlaying && !playingSources.size && Date.now() - lastTutorOutputAt >= 800;
-    if (Date.now() - armedAt >= 1600 && quiet) {
-      const next = allLessons().find(l => l.id === pathEngine.current(activePath));
+    const nextId = pathEngine.current(activePath);
+    const decision = pathEngine.transition({
+      active:isActive, sameCompletion:completionFollowUpPending && pendingPathCompletion===pending && currentLesson?.id===lessonId,
+      hidden:document.visibilityState==='hidden',now:Date.now(),deadline:learningDeadline,armedAt,
+      lastOutputAt:lastTutorOutputAt,modelSpeaking,audioPlaying:openAIAudioPlaying,queuedAudio:playingSources.size,
+      rewardActive:!!activeRewardGame,nextLessonId:nextId,
+    });
+    if (decision === 'ignore') return;
+    if (decision === 'advance' || decision === 'complete') {
+      const next = allLessons().find(l => l.id === nextId);
       const deadline = learningDeadline;
       closeSession(true);
       if (!next) { learningDeadline = 0; setStatus('برافو! خطة التعلم خلصت.'); renderPathStatus(); return; }
@@ -1884,7 +1893,7 @@ function scheduleCompletionFollowUp(lessonId, result) {
       if (document.visibilityState !== 'hidden' && Date.now() < deadline) startSession(true);
       return;
     }
-    if (Date.now() - armedAt >= 12000) {
+    if (decision === 'pause') {
       stopSession();
       setStatus('التقدم اتحفظ. استكملي الخطة لما تكوني جاهزة.');
       return;
@@ -2023,6 +2032,10 @@ function closeSession(preserveDeadline = false) {
   $('#buddy').classList.remove('talking');
   $('#soundWave').classList.remove('on');
   $('#app').classList.remove('in-lesson');
+  if (!preserveDeadline && sessionMode==='lesson') {
+    const planned=allLessons().find(l=>l.id===pathEngine.current(activePath));
+    if (planned && planned.id!==currentLesson?.id) selectLessonInApp(planned);
+  }
   updateProgress();
   renderPathStatus();
 }
@@ -2120,7 +2133,7 @@ function updateCurrentLesson(lessonId, correctResponses, evidence) {
     excellenceAward = lessonExcellence[lessonId];
   }
   updateProgress();
-  refreshLessonPicker(currentLesson.programId, currentLesson.unitId);
+  if (!$('#parentSheet').classList.contains('open')) refreshLessonPicker(currentLesson.programId, currentLesson.unitId);
   const next = allLessons().find(l => l.id === pathEngine.current(activePath));
   const courseComplete = activePath.scope === 'curriculum' && activePath.status === 'completed';
   const rewardGame = alreadySaved || !parentSettings.rewardEnabled ? null : showRewardGame(currentLesson);
@@ -2228,6 +2241,9 @@ function handleOpenAIMessage(event) {
       }
     }
   } else if (message.type === 'input_audio_buffer.speech_started') {
+    if (isActive && sessionMode==='lesson' && !pendingPathCompletion) {
+      answerTurnId++; answerPending=true; pendingChildAnswer=''; pendingTutorFeedback='';
+    }
     setStatus('سامعة صوتك');
   } else if (message.type === 'response.created') {
     modelSpeaking = true; $('#buddy').classList.add('talking'); $('#soundWave').classList.add('on');
@@ -2246,7 +2262,7 @@ function handleOpenAIMessage(event) {
   }
 }
 
-async function handleGeminiMessage(event) {
+async function handleGeminiMessage(event, sessionId, sessionSocket) {
   let message;
   try {
     let data = event.data;
@@ -2254,6 +2270,7 @@ async function handleGeminiMessage(event) {
     else if (data instanceof Blob) data = await data.text();
     message = JSON.parse(data);
   } catch { return; }
+  if (!sessionTimers.isCurrent(sessionId) || socket !== sessionSocket) return;
   if (message.setupComplete) {
     if (setupHandshake) {
       setupHandshake.resolve();
@@ -2376,7 +2393,7 @@ async function connectGemini(provider, sessionId, sessionSignal) {
   const sessionSocket = new WebSocket(url);
   socket = sessionSocket;
   sessionSocket.binaryType = 'arraybuffer';
-  sessionSocket.onmessage = event => { if (sessionTimers.isCurrent(sessionId) && socket === sessionSocket) handleGeminiMessage(event); };
+  sessionSocket.onmessage = event => { if (sessionTimers.isCurrent(sessionId) && socket === sessionSocket) handleGeminiMessage(event, sessionId, sessionSocket); };
   sessionSocket.onopen = () => {
     if (!sessionTimers.isCurrent(sessionId) || socket !== sessionSocket) return;
     sessionSocket.send(JSON.stringify({setup: {model: data.model, ...data.config}}));
@@ -2498,7 +2515,7 @@ async function startSession(continuing = false) {
   clearCompletionFollowUp();
   activeAnswerEvents = [];
   updateProgress();
-  $('#welcomeStart').disabled = true; $('#mic').disabled = true;
+  $('#welcomeStart').disabled = true; $('#mic').disabled = false; setListening(true);
   $('#errorDot').classList.remove('show'); $('#welcomeError').textContent = '';
   currentLesson = currentLesson || nextLesson();
   lessonWasMasteredAtStart = sessionMode === 'lesson' && mastered.has(currentLesson?.id);
@@ -2510,6 +2527,7 @@ async function startSession(continuing = false) {
       if (!response.ok) throw new Error('تعذر قراءة إعدادات الصوت.');
       return response.json();
     });
+    providerStatusPromise.catch(() => {});
     const acquiredStream = await navigator.mediaDevices.getUserMedia({audio: {channelCount: 1, echoCancellation: true, noiseSuppression: true, autoGainControl: true}, video: false});
     if (!sessionTimers.isCurrent(sessionId) || requestController.signal.aborted) {
       acquiredStream.getTracks().forEach(track => track.stop());
@@ -2594,6 +2612,8 @@ function stopSession() {
   sessionMode = 'lesson';
   $('#app').classList.remove('assessment');
   $('#app').classList.remove('in-lesson');
+  const planned=allLessons().find(l=>l.id===pathEngine.current(activePath));
+  if (planned && planned.id!==currentLesson?.id) selectLessonInApp(planned);
   updateDashboardLesson();
   setStatus('انتهى الدرس');
 }
@@ -2606,7 +2626,7 @@ window.addEventListener('pagehide', () => {
   if (isActive || isStarting) stopSession();
 });
 $('#rewardSkip').onclick = () => finishRewardGame(false);
-$('#homeStart').onclick = startSession;
+$('#homeStart').onclick = () => startSession();
 $('#homeChoose').onclick = () => openParentSettings('lessons');
 function saveParentSettings() {
   parentSettings = {

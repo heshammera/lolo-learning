@@ -5,3 +5,5 @@ Limits: local-only storage and PIN are not server authentication. Legacy live le
 Tests: pure path engine tests cover lesson/unit/curriculum boundaries, order, opt-in skips, duplicate completion, corrupted data, and version mismatch. CI and live device checks are separate; do not label the feature verified until relevant checks pass.
 
 Parent-approved repeat lessons do not require a new choice from the parent. A child can stop by pressing the microphone control or by a spoken request routed through the break tool (provider recognition is not guaranteed). Malformed scope and teacher settings are safely defaulted.
+
+Transition policy is independently tested, including timeouts, audio/reward gating and stale completion. The live lesson tool now requires an observed speech turn and rejects a second grade for that turn; this does not verify correctness, which remains model-assessed. Gemini asynchronous decoding is checked against the connection generation before processing. Resume refreshes the visible lesson after a stop. The microphone control remains available while connecting.

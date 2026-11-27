@@ -41,7 +41,20 @@
     const currentIndex = path.currentIndex + 1;
     return {...path, currentIndex, status: currentIndex === path.lessonIds.length ? 'completed' : 'ready'};
   }
-  const api = Object.freeze({build, validate, current, advance});
+  // Pure transition decision, shared by the runtime and deterministic tests.
+  function transition(state) {
+    if (!state.active || !state.sameCompletion) return 'ignore';
+    if (state.hidden || state.now >= state.deadline) return 'pause';
+    if (state.rewardActive) return 'wait';
+    const quiet = !state.modelSpeaking && !state.audioPlaying && !state.queuedAudio &&
+      state.now - state.lastOutputAt >= 800;
+    if (state.now - state.armedAt >= 1600 && quiet) return state.nextLessonId ? 'advance' : 'complete';
+    return state.now - state.armedAt >= 12000 ? 'pause' : 'wait';
+  }
+  function mayRecordTurn(turnId, gradedTurnId) {
+    return Number.isInteger(turnId) && turnId > 0 && turnId !== gradedTurnId;
+  }
+  const api = Object.freeze({build, validate, current, advance, transition, mayRecordTurn});
   if (typeof window !== 'undefined') window.LoloLearningPath = api;
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
 })();

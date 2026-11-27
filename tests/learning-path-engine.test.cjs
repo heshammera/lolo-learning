@@ -44,3 +44,36 @@ test('resume validates identity, bounds, order and curriculum version',()=>{
   assert.equal(engine.validate({...p,status:'completed'},lessons,'1'),false);
   assert.equal(make('unit',{unitId:'missing'}),null);
 });
+
+test('transition waits for audio and reward; deadline and stale completion cannot advance',()=>{
+  const s={active:true,sameCompletion:true,hidden:false,now:3000,deadline:60000,armedAt:1000,lastOutputAt:1000,modelSpeaking:false,audioPlaying:false,queuedAudio:0,rewardActive:false,nextLessonId:'b'};
+  assert.equal(engine.transition(s),'advance');
+  assert.equal(engine.transition({...s,nextLessonId:null}),'complete');
+  for(const field of ['modelSpeaking','audioPlaying','rewardActive','queuedAudio'])assert.equal(engine.transition({...s,[field]:true}),'wait');
+  assert.equal(engine.transition({...s,lastOutputAt:2700}),'wait');
+  assert.equal(engine.transition({...s,now:14000,modelSpeaking:true}),'pause');
+  assert.equal(engine.transition({...s,deadline:3000}),'pause');
+  assert.equal(engine.transition({...s,hidden:true}),'pause');
+  assert.equal(engine.transition({...s,sameCompletion:false}),'ignore');
+  assert.equal(engine.transition({...s,active:false}),'ignore');
+});
+test('one model grade is permitted per observed speech turn',()=>{
+  assert.equal(engine.mayRecordTurn(0,0),false);
+  assert.equal(engine.mayRecordTurn(1,0),true);
+  assert.equal(engine.mayRecordTurn(1,1),false);
+  assert.equal(engine.mayRecordTurn(2,1),true);
+});
+test('actual curriculum supports every unit and program without crossing scope',()=>{
+  const data=require('../curriculum.json');
+  const programs=[{id:'foundation',units:data.units},...data.programs];
+  const all=programs.flatMap(p=>p.units.flatMap(u=>u.lessons.map(l=>({id:l.id,unitId:u.id,programId:p.id}))));
+  for(const p of programs){
+    const plan=engine.build(all,{scope:'curriculum',programId:p.id},new Set(),data.curriculumVersion);
+    assert.deepEqual(plan.lessonIds,p.units.flatMap(u=>u.lessons.map(l=>l.id)));
+    assert.equal(engine.validate(plan,all,data.curriculumVersion),true);
+    for(const u of p.units){
+      const unit=engine.build(all,{scope:'unit',programId:p.id,unitId:u.id},new Set(),data.curriculumVersion);
+      assert.deepEqual(unit.lessonIds,u.lessons.map(l=>l.id));
+    }
+  }
+});
