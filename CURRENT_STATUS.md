@@ -5,5 +5,5 @@
 - Backup: remote `backup/pre-lolo-v2` points to the pre-change baseline.
 - Main/production: unchanged; no Vercel deployment performed.
 - Verification: 6 Python tests pass; Python/JavaScript syntax, JSON, local HTTP endpoints, assets, and secret-pattern scans pass.
-- Android: local build unavailable because Java is not installed; GitHub Actions is the build path after the development branch is pushed.
+- Android: first remote debug APK build passed; the workflow is being updated from deprecated GitHub Actions and will be rebuilt.
 - See `docs/CHANGELOG_V2.md` for before/after detail and `docs/NEXT_ACTION.md` for the next milestone.

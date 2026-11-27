@@ -38,3 +38,9 @@
 - Credential-pattern scan found no matches in current tracked files or committed Git history; secret values were not printed.
 - Android Gradle build was not run locally because this environment has no Java runtime. The development branch's GitHub Actions build is the Android build check.
 - Live AI/provider calls were not run and no API credits were consumed by tests.
+
+## Milestone 0.2 — Refresh deprecated CI actions
+
+- **Before:** Android workflow used `checkout@v4`, `setup-node@v4`, `setup-java@v4`, and `upload-artifact@v4`; the successful build reported deprecated Node 20 runtimes and deprecated setup-java v4.
+- **After:** workflow uses current major releases (`checkout@v7`, `setup-node@v7`, `setup-java@v6`, `upload-artifact@v7`) to use supported Node 24 runtimes.
+- **Verification:** a new Android workflow run is required; not yet verified.
