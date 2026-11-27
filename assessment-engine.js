@@ -94,7 +94,87 @@
       return result;
     }
 
-    return Object.freeze({grade, attemptCount: () => attempts.size});
+    function createSpokenAssessment(lesson, limit = 5) {
+      const rawTokens = Array.isArray(lesson?.board?.tokens) ? lesson.board.tokens : [];
+      const tokens = [];
+      const seen = new Set();
+      for (const token of rawTokens) {
+        const target = typeof token?.text === 'string' ? token.text.trim() : '';
+        const normalized = normalizeAnswer(target);
+        if (!normalized || normalized.length > 60 || seen.has(normalized)) continue;
+        seen.add(normalized);
+        tokens.push({target, acceptedAnswers: Array.isArray(token.acceptedAnswers) ? token.acceptedAnswers.filter(item => typeof item === 'string') : []});
+      }
+      if (!tokens.length) return {supported: false, reason: 'الدرس لا يحتوي على كلمات أو أرقام قابلة للاختبار.'};
+
+      for (let index = tokens.length - 1; index > 0; index--) {
+        const swapIndex = Math.floor(Math.random() * (index + 1));
+        [tokens[index], tokens[swapIndex]] = [tokens[swapIndex], tokens[index]];
+      }
+      const assessmentId = makeId('spoken');
+      const questions = tokens.slice(0, Math.max(1, Math.min(5, Math.trunc(Number(limit) || 5)))).map((token, index) => ({
+        questionId: `${assessmentId}:q${index + 1}`,
+        target: token.target,
+        acceptedAnswers: token.acceptedAnswers,
+        kind: /^\d{1,2}$/.test(normalizeAnswer(token.target)) ? 'math' : 'spoken_repeat',
+        prompt: `اسمعي وكرري بعد لولو: ${token.target}`,
+        attempts: 0,
+      }));
+      return {supported: true, assessmentId, lessonId: String(lesson.id || ''), questions, currentIndex: 0, attempts: 0, results: [], responsesByQuestion: Object.create(null), responsesByAttempt: Object.create(null)};
+    }
+
+    function gradeSpokenResponse(assessment, questionId, answer, requestedAttemptId = '') {
+      if (!assessment?.supported || !Array.isArray(assessment.questions)) return {recorded: false, reason: 'اختبار الصوت غير مهيأ.'};
+      const suppliedAttemptId = typeof requestedAttemptId === 'string' ? requestedAttemptId.trim() : '';
+      const priorAttempt = suppliedAttemptId && assessment.responsesByAttempt?.[suppliedAttemptId];
+      if (priorAttempt) return {...priorAttempt, duplicate: true};
+      const previous = assessment.responsesByQuestion?.[questionId];
+      if (previous) return {...previous, duplicate: true};
+      const question = assessment.questions[assessment.currentIndex];
+      if (!question || question.questionId !== questionId) return {recorded: false, reason: 'السؤال لا يطابق السؤال الحالي.'};
+      if (typeof answer !== 'string' || !answer.trim()) return {recorded: false, unresolved: true, reason: 'لم يصل كلام واضح من الطفلة.'};
+
+      const attemptId = suppliedAttemptId || `${question.questionId}:attempt-${question.attempts + 1}`;
+      question.attempts += 1;
+      assessment.attempts += 1;
+      const evaluation = grade({
+        questionId: question.questionId,
+        attemptId,
+        kind: question.kind === 'math' ? 'math' : 'text',
+        answer,
+        expected: question.target,
+        acceptedAnswers: question.acceptedAnswers.length ? question.acceptedAnswers : [question.target],
+      });
+      if (evaluation.status === 'unresolved') {
+        const unresolved = {recorded: false, duplicate: false, unresolved: true, questionId: question.questionId, attemptId, reason: 'الإجابة غير واضحة، اطلب إعادة المحاولة.'};
+        assessment.responsesByAttempt[attemptId] = unresolved;
+        return unresolved;
+      }
+
+      const result = {
+        recorded: true,
+        duplicate: false,
+        questionId: question.questionId,
+        attemptId,
+        question: question.prompt,
+        answer: answer.trim(),
+        correctAnswer: question.target,
+        isCorrect: evaluation.isCorrect === true,
+        status: evaluation.status,
+        confidence: evaluation.confidence,
+        questionNumber: assessment.currentIndex + 1,
+      };
+      assessment.responsesByQuestion[question.questionId] = result;
+      assessment.responsesByAttempt[attemptId] = result;
+      assessment.results.push(result);
+      assessment.currentIndex += 1;
+      result.totalQuestions = assessment.questions.length;
+      result.complete = assessment.currentIndex >= assessment.questions.length;
+      result.nextQuestion = assessment.questions[assessment.currentIndex] || null;
+      return result;
+    }
+
+    return Object.freeze({grade, createSpokenAssessment, gradeSpokenResponse, attemptCount: () => attempts.size});
   }
 
   function createAssessmentId() { return makeId('assessment'); }

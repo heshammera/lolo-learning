@@ -22,6 +22,25 @@ class RateLimiterTests(unittest.TestCase):
         self.assertTrue(limiter.check("client-b", 1)[0])
 
 
+class AssessmentToolingTests(unittest.TestCase):
+    def test_spoken_test_grade_is_not_a_model_supplied_tool(self):
+        tool_names = {item["name"] for item in server.TOOL_DECLARATIONS}
+        self.assertIn("submit_spoken_assessment_answer", tool_names)
+        self.assertNotIn("record_lesson_test_result", tool_names)
+        instructions = server.teacher_instructions("hello-1", "test")
+        self.assertIn("لا ترسلي الإجابة أو is_correct", instructions)
+        self.assertIn("submit_spoken_assessment_answer", instructions)
+
+    def test_openai_test_waits_for_app_before_responding(self):
+        lesson = server.openai_audio_input("lesson")
+        test = server.openai_audio_input("test")
+        self.assertNotIn("transcription", lesson)
+        self.assertNotIn("create_response", lesson["turn_detection"])
+        self.assertIs(test["turn_detection"]["create_response"], False)
+        self.assertEqual(test["turn_detection"]["type"], "server_vad")
+        self.assertEqual(test["transcription"]["model"], "gpt-transcribe")
+
+
 class ApiInputTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):

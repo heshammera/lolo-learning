@@ -20,6 +20,7 @@ const DEFAULT_PARENT_SETTINGS = {sessionMinutes: 10, speechPace: 'slow', hintLev
 let parentSettings = {...DEFAULT_PARENT_SETTINGS, ...storage.getJSON('lolo-parent-settings', {})};
 let sessionMode = 'lesson';
 let activeAnswerEvents = [];
+let activeSpeakingAssessment = null;
 let answerPending = false;
 let pendingChildAnswer = '';
 let pendingTutorFeedback = '';
@@ -1026,6 +1027,11 @@ function chooseLesson(lessonId, mode = 'lesson') {
   }
   const lesson = allLessons().find(item => item.id === lessonId);
   if (!lesson) return;
+  const speakingAssessment = mode === 'test' ? assessmentEngine.createSpokenAssessment(lesson) : null;
+  if (speakingAssessment && !speakingAssessment.supported) {
+    showError('الاختبار الصوتي لهذا الدرس لسه محتاج كلمات واضحة في المنهج.');
+    return;
+  }
   if (isActive || isStarting) stopSession();
   answerPending = false;
   pendingChildAnswer = '';
@@ -1035,6 +1041,7 @@ function chooseLesson(lessonId, mode = 'lesson') {
   clearCompletionFollowUp();
   currentLesson = lesson;
   activeAnswerEvents = [];
+  activeSpeakingAssessment = speakingAssessment;
   mathScene = null;
   $('#mathGroups').replaceChildren(); $('#mathObjects').replaceChildren(); $('#mathActions').replaceChildren(); $('#mathEquation').textContent = '';
   sessionMode = mode;
@@ -1397,7 +1404,7 @@ function renderTopProgress(lessons = allLessons()) {
     $('#progressIcon').textContent = '⭐';
     return;
   }
-  const target = sessionMode === 'test' ? 5 : 2;
+  const target = sessionMode === 'test' ? (activeSpeakingAssessment?.questions.length || 5) : 2;
   const replay = lessonWasMasteredAtStart && sessionMode === 'lesson';
   const lessonHistory = Array.isArray(lessonStats[currentLesson?.id]?.history) ? lessonStats[currentLesson.id].history : [];
   const savedLessonEvents = lessonHistory.filter(item => item.mode !== 'test');
@@ -1456,7 +1463,8 @@ function renderTopProgress(lessons = allLessons()) {
   $('#progressIcon').textContent = unresolvedWrong ? '💛' : '⭐';
 }
 
-function recordLessonAnswer(lessonId, answer, isCorrect, questionNumber) {
+function recordLessonAnswer(lessonId, answer, isCorrect, questionNumber, questionId = '') {
+  if (sessionMode === 'test') return {recorded: false, reason: 'الاختبار يقيّم الإجابة من محرك المنهج، وليس من تقدير المعلمة.'};
   if (typeof answer === 'number' && Number.isFinite(answer)) answer = String(answer);
   if (typeof isCorrect === 'string' && /^(true|false)$/i.test(isCorrect.trim())) isCorrect = isCorrect.trim().toLowerCase() === 'true';
   if (!isActive || lessonId !== currentLesson?.id || typeof answer !== 'string' || !answer.trim() || typeof isCorrect !== 'boolean') {
@@ -1493,6 +1501,121 @@ function recordLessonAnswer(lessonId, answer, isCorrect, questionNumber) {
   return {recorded: true, correct: events.correct, wrong: events.wrong, percent: Math.round(events.correct / (events.correct + events.wrong) * 100), mastery};
 }
 
+function saveSpokenAssessmentResult(assessment) {
+  if (!assessment?.supported || assessment.currentIndex !== assessment.questions.length || assessment.results.length !== assessment.questions.length) return null;
+  const total = assessment.questions.length;
+  const correct = assessment.results.filter(item => item.isCorrect).length;
+  const previous = testResults[assessment.lessonId] || {};
+  const resultHistory = [...(previous.history || []), {
+    assessmentId: assessment.assessmentId,
+    questionResults: assessment.results.map(item => ({
+      questionId: item.questionId,
+      attemptId: item.attemptId,
+      question: item.question,
+      answer: item.answer,
+      correct_answer: item.correctAnswer,
+      is_correct: item.isCorrect,
+      status: item.status,
+      confidence: item.confidence,
+    })),
+    correct, total, completedAt: new Date().toISOString(),
+  }].slice(-10);
+  testResults[assessment.lessonId] = {
+    assessmentId: assessment.assessmentId,
+    correct, total, passed: correct / total >= 0.75,
+    attempts: (Number(previous.attempts) || 0) + 1,
+    completedAt: new Date().toISOString(),
+    questionResults: resultHistory.at(-1).questionResults,
+    history: resultHistory,
+  };
+  storage.set('lolo-test-results', JSON.stringify(testResults));
+  renderParentReport();
+  if (currentLesson) refreshLessonPicker(currentLesson.programId, currentLesson.unitId);
+  return testResults[assessment.lessonId];
+}
+
+function recordSpokenAssessmentAnswer(assessmentId, questionId, turnId) {
+  const assessment = activeSpeakingAssessment;
+  if (!isActive || sessionMode !== 'test' || !assessment?.supported || assessmentId !== assessment.assessmentId || assessment.lessonId !== currentLesson?.id) {
+    return {recorded: false, reason: 'جلسة الاختبار تغيّرت.'};
+  }
+  if (turnId && gradedAnswerTurnId === turnId && assessment.lastResponse) return {...assessment.lastResponse, duplicate: true};
+  const question = assessment.questions[assessment.currentIndex];
+  if (!question || question.questionId !== questionId) return {recorded: false, reason: 'معرّف السؤال لا يطابق السؤال الحالي.'};
+  const answer = pendingChildAnswer.trim();
+  if (!answerPending || !answer) return {recorded: false, unresolved: true, reason: 'لسه ماوصلتش إجابة صوتية واضحة.'};
+
+  const attemptId = `${question.questionId}:voice-${turnId || assessment.attempts + 1}`;
+  const evaluation = assessmentEngine.gradeSpokenResponse(assessment, questionId, answer, attemptId);
+  if (evaluation.unresolved) {
+    answerPending = false;
+    pendingChildAnswer = '';
+    pendingTutorFeedback = '';
+    gradedAnswerTurnId = turnId;
+    const response = {...evaluation, assessmentId, totalQuestions: assessment.questions.length, retryQuestion: question.prompt};
+    assessment.lastResponse = response;
+    updateProgress();
+    return response;
+  }
+  if (!evaluation.recorded) return evaluation;
+
+  answerPending = false;
+  pendingChildAnswer = '';
+  pendingTutorFeedback = '';
+  gradedAnswerTurnId = turnId;
+  const questionNumber = evaluation.questionNumber;
+  const events = lessonStats[assessment.lessonId] || {correct: 0, wrong: 0};
+  events[evaluation.isCorrect ? 'correct' : 'wrong'] = (Number(events[evaluation.isCorrect ? 'correct' : 'wrong']) || 0) + 1;
+  events.history = Array.isArray(events.history) ? events.history : [];
+  events.history.push({
+    answer: answer,
+    is_correct: evaluation.isCorrect,
+    mode: 'test',
+    assessmentId,
+    questionId: evaluation.questionId,
+    attemptId: evaluation.attemptId,
+    question: evaluation.question,
+    correct_answer: evaluation.correctAnswer,
+    confidence: evaluation.confidence,
+    completedAt: new Date().toISOString(),
+  });
+  events.history = events.history.slice(-100);
+  lessonStats[assessment.lessonId] = events;
+  activeAnswerEvents.push({answer, is_correct: evaluation.isCorrect, question_number: questionNumber, question_id: evaluation.questionId, attempt_id: evaluation.attemptId});
+  storage.set('lolo-lesson-stats', JSON.stringify(lessonStats));
+  updateProgress();
+  renderParentReport();
+  refreshLessonPicker(currentLesson.programId, currentLesson.unitId);
+
+  const saved = evaluation.complete ? saveSpokenAssessmentResult(assessment) : null;
+  const response = {
+    ...evaluation,
+    assessmentId,
+    nextQuestion: evaluation.nextQuestion ? {questionId: evaluation.nextQuestion.questionId, prompt: evaluation.nextQuestion.prompt} : null,
+    testResult: saved ? {correct: saved.correct, total: saved.total, passed: saved.passed} : null,
+  };
+  response.coachPrompt = spokenAssessmentCoachPrompt(response);
+  assessment.lastResponse = response;
+  return response;
+}
+
+function spokenAssessmentCoachPrompt(result) {
+  if (result.unresolved) return `لم يصل تقييم واضح، ولم تُسجّل درجة. قولي للطفلة بلطف أن تكرر نفس السؤال: «${result.retryQuestion}». لا تقولي صح أو غلط. بعد سماع إجابتها أرسلي submit_spoken_assessment_answer بالمعرّفين assessment_id=${result.assessmentId} وquestion_id=${result.questionId} فقط.`;
+  if (!result.recorded) return 'لم تُسجل الإجابة. لا تعلّقي على صحتها، واطلبي إعادة السؤال الحالي.';
+  const feedback = result.isCorrect
+    ? 'محرك التقييم تحقق محلياً من صحة الإجابة؛ امدحي المحاولة بجملة قصيرة.'
+    : `محرك التقييم تحقق محلياً أن الإجابة غير مطابقة. صححي بلطف وقولي الإجابة المقبولة: ${result.correctAnswer}.`;
+  if (result.complete) {
+    const summary = result.testResult || {correct: result.correct ? 1 : 0, total: result.totalQuestions, passed: false};
+    return `${feedback} انتهى الاختبار. قولي النتيجة المسجلة من المحرك: ${summary.correct} من ${summary.total}، بجملة مشجعة، ثم قولي «تحبي تخلي ماما تختارلك درس تاني؟». لا تطرحي سؤالاً جديداً ولا تعدلي النتيجة.`;
+  }
+  return `${feedback} انتقلي الآن للسؤال التالي المحدد فقط واقرئيه كما هو: «${result.nextQuestion?.prompt || ''}». لا تخترعي سؤالاً ولا إجابة جديدة. بعد سماع إجابتها أرسلي submit_spoken_assessment_answer بالمعرّفين assessment_id=${result.assessmentId} وquestion_id=${result.nextQuestion?.questionId || ''} فقط.`;
+}
+
+function submitSpokenAssessmentAnswer(assessmentId, questionId) {
+  return recordSpokenAssessmentAnswer(assessmentId, questionId, answerTurnId);
+}
+
 function appendTranscript(current, next) {
   if (!next) return current;
   // Gemini may send cumulative transcript snapshots; OpenAI sends deltas.
@@ -1502,6 +1625,14 @@ function appendTranscript(current, next) {
 }
 
 function recordFromSpokenFeedback() {
+  if (sessionMode === 'test' && activeSpeakingAssessment && answerPending && pendingChildAnswer.trim()) {
+    const result = recordSpokenAssessmentAnswer(activeSpeakingAssessment.assessmentId, activeSpeakingAssessment.questions[activeSpeakingAssessment.currentIndex]?.questionId, answerTurnId);
+    if (!result.recorded || result.duplicate) return !!result.recorded;
+    const followUp = spokenAssessmentCoachPrompt(result);
+    if (activeProvider === 'openai') sendOpenAIText(followUp);
+    else send({clientContent: {turns: [{role: 'user', parts: [{text: followUp}]}], turnComplete: true}});
+    return true;
+  }
   if (!isActive || !answerPending || !['lesson', 'test'].includes(sessionMode) || !pendingChildAnswer.trim()) return false;
   const feedback = pendingTutorFeedback.trim().toLocaleLowerCase();
   if (!feedback) return false;
@@ -1730,7 +1861,9 @@ function sendOpenAIText(text) {
   realtimeChannel.send(JSON.stringify({type: 'conversation.item.create', item: {
     type: 'message', role: 'user', content: [{type: 'input_text', text}],
   }}));
-  realtimeChannel.send(JSON.stringify({type: 'response.create'}));
+  realtimeChannel.send(JSON.stringify({type: 'response.create', response: {
+    ...(sessionMode === 'test' ? {tool_choice: 'none'} : {}),
+  }}));
 }
 
 function sendChoice(label) {
@@ -1775,6 +1908,7 @@ function closeSession() {
   pendingTutorFeedback = '';
   answerTurnId = 0;
   gradedAnswerTurnId = 0;
+  activeSpeakingAssessment = null;
   clearCompletionFollowUp();
   modelSpeaking = false;
   if (audioWorklet) audioWorklet.port.onmessage = null;
@@ -1926,40 +2060,7 @@ function openParentPickerFromTutor() {
 }
 
 function saveTestResult(lessonId, questionResults, totalQuestions) {
-  if (sessionMode !== 'test' || lessonId !== currentLesson?.id || totalQuestions !== 5 || !Array.isArray(questionResults) || questionResults.length !== 5 || questionResults.some(item => typeof item?.question !== 'string' || !item.question.trim() || typeof item?.answer !== 'string' || !item.answer.trim() || typeof item?.correct_answer !== 'string' || !item.correct_answer.trim() || typeof item.is_correct !== 'boolean')) {
-    return {saved: false};
-  }
-  for (const [index, item] of questionResults.entries()) {
-    if (activeAnswerEvents.some(event => event.question_number === index + 1)) continue;
-    const stats = lessonStats[lessonId] || {correct: 0, wrong: 0};
-    stats[item.is_correct ? 'correct' : 'wrong'] = (Number(stats[item.is_correct ? 'correct' : 'wrong']) || 0) + 1;
-    stats.history = Array.isArray(stats.history) ? stats.history : [];
-    stats.history.push({answer: item.answer.trim(), is_correct: item.is_correct, mode: 'test', completedAt: new Date().toISOString()});
-    stats.history = stats.history.slice(-100);
-    lessonStats[lessonId] = stats;
-    activeAnswerEvents.push({answer: item.answer, is_correct: item.is_correct, question_number: index + 1});
-  }
-  storage.set('lolo-lesson-stats', JSON.stringify(lessonStats));
-  const correctAnswers = questionResults.filter(item => item.is_correct).length;
-  const attempts = (testResults[lessonId]?.attempts || 0) + 1;
-  const history = [...(testResults[lessonId]?.history || []), {
-    questionResults: questionResults.map(item => ({question: item.question.trim(), answer: item.answer.trim(), correct_answer: item.correct_answer.trim(), is_correct: item.is_correct})),
-    correct: correctAnswers, total: totalQuestions, completedAt: new Date().toISOString(),
-  }].slice(-10);
-  testResults[lessonId] = {
-    correct: correctAnswers,
-    total: totalQuestions,
-    passed: correctAnswers >= 4,
-    attempts,
-    completedAt: new Date().toISOString(),
-    questionResults: history.at(-1).questionResults,
-    history,
-  };
-  storage.set('lolo-test-results', JSON.stringify(testResults));
-  updateProgress();
-  renderParentReport();
-  refreshLessonPicker(currentLesson.programId, currentLesson.unitId);
-  return {saved: true, correct: correctAnswers, total: totalQuestions, passed: correctAnswers >= 4, attempts};
+  return {saved: false, reason: 'نتائج الاختبار تُحسب وتحفظ من محرك التقييم بعد تسجيل كل إجابة صوتية.'};
 }
 
 function handleToolCall(toolCall) {
@@ -1980,6 +2081,9 @@ function handleToolCall(toolCall) {
     } else if (call.name === 'record_lesson_test_result') {
       const result = saveTestResult(call.args?.lesson_id, call.args?.question_results, Number(call.args?.total_questions));
       functionResponses.push({name: call.name, id: call.id, response: {result}});
+    } else if (call.name === 'submit_spoken_assessment_answer') {
+      const result = submitSpokenAssessmentAnswer(call.args?.assessment_id, call.args?.question_id);
+      functionResponses.push({name: call.name, id: call.id, response: {result}});
     }
   }
   if (functionResponses.length) send({toolResponse: {functionResponses}});
@@ -1999,6 +2103,8 @@ function handleOpenAIToolCall(name, args, callId) {
       ? openParentPickerFromTutor()
     : name === 'record_lesson_test_result'
       ? saveTestResult(args?.lesson_id, args?.question_results, Number(args?.total_questions))
+    : name === 'submit_spoken_assessment_answer'
+      ? submitSpokenAssessmentAnswer(args?.assessment_id, args?.question_id)
       : null;
   if (result && realtimeChannel?.readyState === 'open') {
     realtimeChannel.send(JSON.stringify({type: 'conversation.item.create', item: {
@@ -2020,6 +2126,11 @@ function handleOpenAIMessage(event) {
       if (!answerPending) { answerTurnId++; pendingChildAnswer = ''; pendingTutorFeedback = ''; }
       pendingChildAnswer = message.transcript || '';
       answerPending = true; updateProgress();
+      if (sessionMode === 'test' && activeSpeakingAssessment) {
+        const question = activeSpeakingAssessment.questions[activeSpeakingAssessment.currentIndex];
+        const result = recordSpokenAssessmentAnswer(activeSpeakingAssessment.assessmentId, question?.questionId, answerTurnId);
+        if (result.recorded || result.unresolved) sendOpenAIText(result.coachPrompt || spokenAssessmentCoachPrompt(result));
+      }
     }
   } else if (message.type === 'input_audio_buffer.speech_started') {
     setStatus('سامعة صوتك');
@@ -2099,7 +2210,7 @@ async function handleGeminiMessage(event) {
       updateProgress();
     }
     if (content.turnComplete || content.generationComplete) {
-      recordFromSpokenFeedback();
+      if (!message.toolCall) recordFromSpokenFeedback();
       settleUnscoredAnswer();
       modelSpeaking = false;
       $('#buddy').classList.remove('talking');
@@ -2256,6 +2367,14 @@ async function connectOpenAI(sessionId, sessionSignal) {
 
 async function startSession() {
   if (isStarting || isActive) return;
+  currentLesson = currentLesson || nextLesson();
+  if (sessionMode === 'test' && (!activeSpeakingAssessment || activeSpeakingAssessment.lessonId !== currentLesson?.id)) {
+    activeSpeakingAssessment = assessmentEngine.createSpokenAssessment(currentLesson);
+    if (!activeSpeakingAssessment.supported) {
+      showError('الاختبار الصوتي لهذا الدرس غير جاهز بعد.');
+      return;
+    }
+  }
   const sessionId = sessionTimers.begin();
   const requestController = new AbortController();
   sessionController = requestController;
@@ -2329,12 +2448,11 @@ async function startSession() {
     const replayOpening = lessonWasMasteredAtStart
       ? `الدرس ${lessonTitle} متقن من قبل. ابدئي بسؤالها بصوتك: «إحنا خلصنا الدرس ده قبل كده يا بطلة؛ تحبي نعيده سوا؟» لا تعيدي الشرح ولا تطرحي أسئلة تقييمية ولا تسجلي أي إجابة قبل أن توافق بوضوح. إذا وافقت، ابدئي مراجعة قصيرة لهذا الدرس واسألي سؤالاً واحداً في كل مرة. إذا لم توافق، قولي لها تسلم الهاتف لماما لتختار درساً آخر.`
       : null;
-    const opening = replayOpening || (isMathLesson
-      ? (sessionMode === 'test'
-        ? `ابدئي الآن بصوتك من غير انتظار كلام الطفلة. قدمي سؤال الاختبار الأول فقط: ${mathOpeningScript()} انتظري إجابتها، ولا تذكري شيئاً خارج الحالة المرئية.`
-        : `قولي الآن هذه الافتتاحية في رد صوتي واحد: ${mathOpeningScript()} بعد السؤال اسكتي واسمعي إجابتها. لا تضيفي شيئاً غير الموجود في الحالة المرئية.`) + mathContext
-      : sessionMode === 'test'
-        ? `ابدئي الكلام فوراً: أهلاً يا بطلة، ده اختبار صغير على ${lessonTitle}. هنلعب خمس أسئلة، سؤال سؤال. ابدئي بأول سؤال مرتبط بالدرس وانتظري إجابتها.`
+    const firstAssessmentQuestion = activeSpeakingAssessment?.questions[0];
+    const opening = replayOpening || (sessionMode === 'test'
+      ? `ابدئي فوراً بصوت لولو: «أهلاً يا بطلة! ده اختبار سماع وترديد صغير على ${lessonTitle}. هسمّعك كلمات من درسنا وإنتي تكرريها معايا». عدد الأسئلة ${activeSpeakingAssessment.questions.length}. اقرئي السؤال الأول كما هو فقط: «${firstAssessmentQuestion.prompt}». assessment_id هو ${activeSpeakingAssessment.assessmentId} وquestion_id هو ${firstAssessmentQuestion.questionId}. بعد سماع جوابها، لا تقولي صح أو غلط ولا السؤال التالي؛ استدعي submit_spoken_assessment_answer بالمعرّفين فقط، ثم اتبعي coachPrompt الذي يرجع من التطبيق.`
+      : isMathLesson
+        ? `قولي الآن هذه الافتتاحية في رد صوتي واحد: ${mathOpeningScript()} بعد السؤال اسكتي واسمعي إجابتها. لا تضيفي شيئاً غير الموجود في الحالة المرئية.${mathContext}`
         : `ابدئي الكلام فوراً من غير انتظار الطفلة: أهلاً يا بطلة! درسنا النهارده ${lessonTitle}. ${currentLesson?.goal || currentLesson?.focus || ''} الصور الظاهرة قدامك هي: ${visibleCards || 'اختيارات الدرس المصورة'}. اشرحي فكرة واحدة بجملتين بسيطتين، واسألي سؤالاً سهلاً من الصور دي عشان تبدأ.`);
     if (activeProvider === 'openai') sendOpenAIText(opening);
     else send({clientContent: {turns: [{role: 'user', parts: [{text: opening}]}], turnComplete: true}});

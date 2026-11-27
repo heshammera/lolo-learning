@@ -22,7 +22,7 @@ Gemini Live / Gemini backup / OpenAI Realtime
 
 - `curriculum.json` is the curriculum source of truth.
 - Browser UI and client persistence are trusted only for convenience, not authoritative scoring or identity.
-- `assessment-engine.js` normalizes and checks supported writing/math responses, but is not yet the source of truth for model-led oral sessions or authoritative server-side results.
+- `assessment-engine.js` handles deterministic writing/math responses and lesson-board-token oral repeat checks. OpenAI oral tests use app-gated VAD and local transcript matching; Gemini still relies on model tool calls. ASR is not pronunciation grading, and local results remain editable.
 - API provider keys remain server-only. Browser sessions receive short-lived tokens.
 - Android `appId` remains `com.heshammera.lolo`; Android currently loads the hosted site.
 

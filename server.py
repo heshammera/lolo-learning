@@ -117,10 +117,16 @@ TOOL_DECLARATIONS = [{
     },
 }, {
     "name": "record_lesson_answer",
-    "description": "حدّثي الشريط ونتيجة الدرس بعد كل إجابة واضحة تم تقييمها فعلياً. أرسلي الإجابة المسموعة وحقيقتها؛ لا تخمّني ولا تسجلي غير الواضح.",
+    "description": "للدرس العادي فقط: حدّثي الشريط بعد إجابة واضحة. لا تستخدميها في الاختبار الشفهي؛ استخدمي submit_spoken_assessment_answer وأرسلي assessment_id وquestion_id فقط، فالتطبيق يقرأ الإجابة المسموعة ويصححها بنفسه.",
     "parameters": {"type": "OBJECT", "properties": {
         "lesson_id": {"type": "STRING"}, "answer": {"type": "STRING"}, "is_correct": {"type": "BOOLEAN"}, "question_number": {"type": "INTEGER"},
     }, "required": ["lesson_id", "answer", "is_correct"]},
+}, {
+    "name": "submit_spoken_assessment_answer",
+    "description": "أرسلي assessment_id وquestion_id للسؤال الجاري فقط بعد سماع إجابة الطفلة. لا ترسلي is_correct أو الإجابة؛ التطبيق يقرأ التعرّف الصوتي ويحسب النتيجة مستقلًا.",
+    "parameters": {"type": "OBJECT", "properties": {
+        "assessment_id": {"type": "STRING"}, "question_id": {"type": "STRING"},
+    }, "required": ["assessment_id", "question_id"]},
 }, {
     "name": "start_next_lesson",
     "description": "ابدئي الدرس التالي غير المتقن فقط عندما تطلب الطفلة ذلك صراحة أو توافق على عرضه. ستحدّث الأداة الصور وتعيد currentLesson وvisualState الجديدين؛ لا تبدئي الشرح قبل النتيجة.",
@@ -129,19 +135,16 @@ TOOL_DECLARATIONS = [{
     "name": "open_parent_picker",
     "description": "أوقفي المحادثة وافتحي إعدادات ولي الأمر لاختيار درس أو اختبار باللمس عندما تقول الطفلة إنها تريد من ماما الاختيار أو عندما يطلب المتحدث صراحةً تغيير الدرس كولي أمر. لا تحاولي التحقق من هوية الصوت.",
     "parameters": {"type": "OBJECT", "properties": {}},
-}, {
-    "name": "record_lesson_test_result",
-    "description": "احفظي نتيجة الاختبار بعد الأسئلة الخمسة فقط. أرسلي لكل سؤال الإجابة المسموعة وتقييم صحتها في question_results؛ لا تحتسبي المحاولة أو الإجابة غير الواضحة صحيحة.",
-    "parameters": {
-        "type": "OBJECT",
-        "properties": {
-            "lesson_id": {"type": "STRING"},
-            "question_results": {"type": "ARRAY", "items": {"type": "OBJECT", "properties": {"question": {"type": "STRING"}, "answer": {"type": "STRING"}, "correct_answer": {"type": "STRING"}, "is_correct": {"type": "BOOLEAN"}}, "required": ["question", "answer", "correct_answer", "is_correct"]}},
-            "total_questions": {"type": "INTEGER"},
-        },
-        "required": ["lesson_id", "question_results", "total_questions"],
-    },
 }]
+
+
+def openai_audio_input(mode):
+    """Keep VAD enabled and expose a transcript for app-graded oral tests."""
+    audio_input = {"turn_detection": {"type": "server_vad", "silence_duration_ms": 400}}
+    if mode == "test":
+        audio_input["turn_detection"]["create_response"] = False
+        audio_input["transcription"] = {"model": "gpt-transcribe"}
+    return audio_input
 
 
 def teacher_instructions(lesson_id, mode="lesson", already_mastered=False, excellence_count=0, teacher_settings=None):
@@ -167,15 +170,11 @@ def teacher_instructions(lesson_id, mode="lesson", already_mastered=False, excel
         lesson_context = "ابدئي مراجعة مرنة للطفلة، واسألي ولي الأمر عن الدرس الذي يريده."
     if mode == "test":
         flow_instructions = (
-            "هذه جلسة اختبار شفهي للدرس الحالي، وليست شرح الدرس. ابدئي بتمهيد مرح قصير، ثم اطرحي خمسة أسئلة فقط، سؤالاً واحداً في كل مرة وانتظري الإجابة. "
-            "قبل طرح كل سؤال حددي لنفسك الإجابة المقبولة بوضوح وتحققي من أنها تطابق هدف الدرس. استخدمي أسئلة لها إجابة محددة، ولا تعرضي الإجابة ولا تعطي تلميحاً قبل المحاولة الأولى. "
-            "في الاختبار الشفهي، إذا لمست الطفلة صورة فلا تعتبري اللمسة إجابة ولا تسجليها في النتيجة. علقي بصوتك على محاولتها فقط، انطقي الكلمة أو السؤال المرتبط بالصورة واطلبي منها الإجابة بصوتها؛ انتظري كلامها ثم قيّميه. لا تقولي إن الإجابة صحيحة لمجرد أنها لمست الصورة. بعد كل إجابة منطوقة وواضحة استدعي record_lesson_answer مرة واحدة بالإجابة التي قالتها ونتيجة التحقق ورقم السؤال؛ انتظري تحديث الشريط ثم تابعي. إذا لم تفهمي كلامها أو كان التعرف الصوتي غير مؤكد، اطلبي منها تكراره ولا تسجليه صح أو غلط حتى يتضح. "
-            "في مسائل الماث احسبي الحل بنفسك قبل تأكيد الإجابة، وعدّي العناصر واحدة واحدة؛ لا توافقي على رقم لمجرد أنه قريب أو لأنها قالت الرقم بثقة. "
-            "في النهاية قولي النتيجة بصوت مشجع، ثم استدعي record_lesson_test_result مرة واحدة مستخدمة lesson_id الحالي وtotal_questions يساوي خمسة وquestion_results فيها خمسة عناصر بالترتيب. لكل سؤال أرسلي نص السؤال كما طرحتيه، وإجابة الطفلة كما سمعتيها، والإجابة الصحيحة المحددة، وis_correct يساوي true فقط عند المطابقة الفعلية. لا تستدعي record_lesson_mastery في الاختبار ولا تغيّري تقدم الدرس. "
-            "لو حكت الطفلة شيئاً خارج السؤال، ردي باهتمام بجملة قصيرة ثم اربطيه بسؤال الاختبار بلطف. إذا بدت متضايقة أوقفي الأسئلة وطمّنيها؛ لا تضغطي عليها لإكمال الاختبار. "
+            "هذه جلسة اختبار سماع وترديد، وليست اختبار محادثة مفتوح أو شرحاً. التطبيق سيرسل assessment_id والسؤال الحالي ونص السؤال وإجابته المرجعية من كلمات المنهج. اقرئي السؤال المحدد كما وصلك، ثم انتظري إجابة الطفلة. "
+            "لا تحكمي على الإجابة ولا تقولي صح أو غلط ولا تطرحي السؤال التالي قبل استدعاء submit_spoken_assessment_answer مع assessment_id وquestion_id الحاليين فقط. لا ترسلي الإجابة أو is_correct؛ التطبيق يطابق تسجيل الطفلة مع مفتاح المنهج ويحرك التقدم ويحفظ النتيجة. "
+            "بعد نتيجة الأداة اتبعي حرفياً coachPrompt الذي أعاده التطبيق: تشجيع قصير إن كانت صحيحة، تصحيح لطيف إن كانت خاطئة، وطلب التكرار دون احتساب إذا كانت غير واضحة. اقرئي nextQuestion.prompt فقط كما أعاده التطبيق. لا تخترعي سؤالاً أو هدفاً ولا تستدعي record_lesson_answer أو record_lesson_mastery أو أي أداة لحفظ نتيجة الاختبار. التطبيق يحفظ النتيجة فور اكتمال الأسئلة المحددة. "
+            "إذا تكلمت الطفلة خارج السؤال، ردي باهتمام قصير ثم عودي للسؤال الجاري دون تسجيل كلامها كإجابة. إذا بدت متضايقة أوقفي الاختبار وطمّنيها. هذا الاختبار يقيس سماع الكلمة أو الرقم وترديده فقط، ولا تدّعي تقييم دقة النطق. "
         )
-        if is_math:
-            flow_instructions += "قبل كل سؤال في اختبار الماث اعرضي مشهداً مناسباً بأداة show_math_scene من غير إظهار الناتج الصحيح؛ خلي الطفلة تعد أو تلمس أو تقارن بنفسها. "
     else:
         flow_instructions = (
             "تحققي من كل إجابة بمقارنتها بهدف الدرس والإجابة المطلوبة قبل الرد. لا تقولي برافو أو صح أو ممتاز على إجابة خاطئة أو غير واضحة؛ افصلي تشجيع المحاولة عن صحة الإجابة: عند الخطأ قولي مثلاً «حلو إنك حاولتي، بس الإجابة مش كده»، ثم قدمي التصحيح بلطف وامنحيها فرصة تجريب ثانية. إذا لم تفهميها اطلبي إعادة الإجابة ولا تفترضي أنها صحيحة. "
@@ -184,8 +183,8 @@ def teacher_instructions(lesson_id, mode="lesson", already_mastered=False, excel
             "لا تعلني الإتقان إلا إذا أعادت الأداة saved=true؛ عندها افرحي بها بجملة قصيرة وقولي حرفياً: «الدرس ده خلصناه! تحبي تخلي ماما تختارلك درس تاني؟» وانتظري اختيارها، ولا تبدئي التالي تلقائياً. إذا طلبت الطفلة الدرس التالي بنفسها، استدعي start_next_lesson ثم اتبعي بيانات الدرس والصور الجديدة. إذا لم يوجد درس تالٍ أو رفضت الطفلة الاختيار، قولي حرفياً: «ادي التليفون لماما وقوليلها: لولو قالتلي إني خلصت الدرس ده، واختاريلي درس تاني». عندما تقول الطفلة إن ماما جاهزة أو يقول المتحدث صراحة إنه ولي الأمر ويريد الاختيار، استدعي open_parent_picker لفتح قائمة ولي الأمر. لا تدّعي أنك تعرفين الأم من بصمة الصوت أو هوية المتحدث؛ اعتمدي فقط على طلب الاختيار الصريح. "
         )
     board_instructions = (
-        ("في اختبار الماث استخدمي العناصر المعروضة فقط، وعند الحاجة لمشهد مختلف استدعي show_math_scene وانتظري visualState؛ لا تذكري أي عنصر أو عدد حتى يظهر في الحالة. " if is_math else
-         "في الاختبار لا تعتمدي على لوحة الكلمات الملونة لأنها مخفية؛ اعتمدي على أسئلة مسموعة وصور الاختيارات فقط. ")
+        ("في الاختبار الشفهي استخدمي فقط السؤال الحالي الذي يرسله التطبيق. لا تعرضي مشهداً أو أرقاماً أخرى ولا تحسبي أو تقيّمي الإجابة من نفسك. " if is_math else
+         "في الاختبار الشفهي استخدمي فقط السؤال الحالي الذي يرسله التطبيق؛ لا تخترعي سؤالاً ولا تقيّمي الإجابة بنفسك. ")
         if mode == "test" else
         ("استخدمي مساحة اللعب الظاهرة فقط؛ اللوحة الملونة وبطاقات الصور مخفية في درس الماث. اشرحي ما تراه الطفلة حرفياً، ولا تطلبي قراءة رقم أو كتابة. استجيبي للمس العنصر الظاهر نفسه. " if is_math else
          "استخدمي لوحة الكلمات الملونة على الشاشة كوسيلة شرح: انطقي الكلمات المعروضة واحدة واحدة، واربطي لون كل جزء بدوره في الجملة بكلام بسيط، من غير أن تطلبي من الطفلة القراءة. استجيبي للنقر على كلمة بإعادة نطقها وشرحها. ")
@@ -493,7 +492,7 @@ class Handler(BaseHTTPRequestHandler):
                 "type": "realtime", "model": OPENAI_MODEL,
                 "instructions": teacher_instructions(lesson_id, mode, already_mastered, excellence_count, teacher_settings),
                 "audio": {
-                    "input": {"turn_detection": {"type": "server_vad", "silence_duration_ms": 400}},
+                    "input": openai_audio_input(mode),
                     "output": {"voice": os.environ.get("OPENAI_REALTIME_VOICE", "shimmer")},
                 },
                 "tools": [
@@ -512,17 +511,17 @@ class Handler(BaseHTTPRequestHandler):
                      "description": "سجلي الإتقان فقط بعد التحقق من إجابتين مستقلتين صحيحتين، مع نص الإجابتين المسموعتين.",
                      "parameters": {"type": "object", "properties": {"lesson_id": {"type": "string"}, "correct_responses": {"type": "integer"}, "evidence": {"type": "array", "items": {"type": "string"}}}, "required": ["lesson_id", "correct_responses", "evidence"]}},
                     {"type": "function", "name": "record_lesson_answer",
-                     "description": "حدّثي شريط الدرس بعد كل إجابة واضحة تم التحقق منها؛ أرسلي الإجابة المسموعة وصحتها دون تخمين.",
+                     "description": "للدرس العادي فقط. في الاختبار الشفهي لا ترسلي إجابة أو is_correct؛ استخدمي submit_spoken_assessment_answer كي يصحح التطبيق بنفسه.",
                      "parameters": {"type": "object", "properties": {"lesson_id": {"type": "string"}, "answer": {"type": "string"}, "is_correct": {"type": "boolean"}, "question_number": {"type": "integer"}}, "required": ["lesson_id", "answer", "is_correct"]}},
+                    {"type": "function", "name": "submit_spoken_assessment_answer",
+                     "description": "في الاختبار الشفهي أرسلي assessment_id وquestion_id الحاليين فقط بعد سماع إجابة الطفلة. لا ترسلي الإجابة أو is_correct؛ التطبيق يقرأ التعرّف الصوتي ويقيّمها ويحفظها.",
+                     "parameters": {"type": "object", "properties": {"assessment_id": {"type": "string"}, "question_id": {"type": "string"}}, "required": ["assessment_id", "question_id"]}},
                     {"type": "function", "name": "start_next_lesson",
                      "description": "ابدئي الدرس التالي غير المتقن فقط بعد طلب الطفلة أو موافقتها؛ أعيدي visualState وبيانات الدرس الجديد قبل شرحه.",
                      "parameters": {"type": "object", "properties": {"lesson_id": {"type": "string"}}, "required": ["lesson_id"]}},
                     {"type": "function", "name": "open_parent_picker",
                      "description": "أوقفي الصوت وافتحي قائمة ولي الأمر عند طلب ماما اختيار درس أو اختبار.",
                      "parameters": {"type": "object", "properties": {}}},
-                    {"type": "function", "name": "record_lesson_test_result",
-                     "description": "احفظي نتيجة الاختبار بعد الأسئلة الخمسة مع تقييم كل إجابة على حدة.",
-                     "parameters": {"type": "object", "properties": {"lesson_id": {"type": "string"}, "question_results": {"type": "array", "items": {"type": "object", "properties": {"question": {"type": "string"}, "answer": {"type": "string"}, "correct_answer": {"type": "string"}, "is_correct": {"type": "boolean"}}, "required": ["question", "answer", "correct_answer", "is_correct"]}}, "total_questions": {"type": "integer"}}, "required": ["lesson_id", "question_results", "total_questions"]}},
                 ],
                 "tool_choice": "auto",
             }

@@ -1,5 +1,5 @@
 # Next Action
 
-1. Build the curriculum-authored spoken question/session contract and route oral answers through the assessment engine; remove tutor-praise regex and model-supplied correctness from score decisions.
+1. Extend the bounded oral repeat test into authored comprehension questions and safer pronunciation feedback; add app-controlled Gemini grading before treating its results as equivalent to OpenAI.
 2. Add curriculum validation and explicit skill/mastery records before introducing adaptive review scheduling.
 3. Keep `main`/production unchanged until explicitly requested; retain the rollback branch.

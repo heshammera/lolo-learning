@@ -13,7 +13,8 @@
 - [x] Build and smoke-check local web/API and Android app.
 - [x] Push only the development branch; do not modify `main` or production deployment.
 - [x] Add deterministic assessment for advanced writing, math, ordering, confidence bands, question/attempt IDs, and idempotency.
-- [ ] Make curriculum-authored spoken questions the source of truth for oral grading; stop accepting AI correctness claims and tutor praise as evidence.
+- [x] Add a bounded oral listen-and-repeat assessment sourced from lesson-board tokens; locally grade OpenAI transcripts and prevent OpenAI from auto-responding before the app score.
+- [ ] Add authored open-comprehension questions, reliable pronunciation evaluation, and equivalent app-controlled grading for Gemini; do not treat ASR transcript match as pronunciation mastery.
 - [ ] Add versioned curriculum schemas, validators, skill mapping, mastery states, and spaced review.
 
 ## Ordered milestones from the master prompt
@@ -35,4 +36,4 @@ Each milestone has its own acceptance checks. Do not make a database, a paid ser
 
 The first assessment module is wired into advanced handwriting, letter/word ordering, multiple-choice writing activities, and math-writing questions. It provides deterministic answer normalization and grading, per-question and per-attempt identifiers, and in-memory idempotency. Writing-path reports retain the evaluation outcome and confidence.
 
-This does **not** yet make model-led live lessons or oral quizzes trustworthy. `record_lesson_answer`, tutor feedback parsing, two-answer mastery, and model-submitted spoken test results still need a curriculum-authored question/session contract and independent validation. Client-side progress also remains editable by the device owner.
+Oral quizzes now use up to five lesson-board words/numbers, deduplicated and locally matched against the recognized OpenAI transcript; OpenAI VAD remains active but automatic responses are disabled in test mode, and app-initiated responses disallow tools for that turn. The transcript is a rough recognition signal, not reliable pronunciation or comprehension grading. Gemini still depends on model tool-calling for quiz flow. This does **not** make model-led live lessons or mastery trustworthy: regular lesson answers still use model claims and feedback parsing. Client-side progress also remains editable by the device owner.
