@@ -1,6 +1,6 @@
 'use strict';
 const $=id=>document.getElementById(id);
-let entries=[],identity=null,generation=0,draftId=null,draftRevision=0;
+let entries=[],identity=null,generation=0,draftId=null,draftRevision=0,draftBusy=false;
 async function api(path,body){
   const options={credentials:'same-origin',cache:'no-store',redirect:'error'};
   if(body!==undefined)Object.assign(options,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
@@ -62,14 +62,15 @@ async function loadDrafts(){
   $('draftList').replaceChildren();
   for(const d of data.drafts){
     const btn=document.createElement('button');btn.textContent=d.title+' · v'+d.revision;
-    btn.onclick=async()=>{const current=generation;try{if($('draftEditor').hidden)return;const item=await api('/api/draft/read',{id:d.id});if(current===generation)setDraft(item);}catch{$('draftStatus').textContent='تعذر فتح المسودة.';}};
+    btn.onclick=async()=>{const current=generation;try{if($('draftEditor').hidden||draftBusy)return;draftBusy=true;try{const item=await api('/api/draft/read',{id:d.id});if(current===generation)setDraft(item);}finally{draftBusy=false;}}catch{$('draftStatus').textContent='تعذر فتح المسودة.';}};
     $('draftList').append(btn);
   }
 }
 $('draftNav').onclick=()=>$('drafts').scrollIntoView({block:'start'});
-$('newDraft').onclick=()=>{setDraft(null);$('draftStatus').textContent='مسودة جديدة غير محفوظة.';};
+$('newDraft').onclick=()=>{if(draftBusy||!identity?.permissions.includes('curriculum:edit'))return;setDraft(null);$('draftStatus').textContent='مسودة جديدة غير محفوظة.';};
 async function draftAction(save){
-  const g=generation;
+  if(draftBusy||!identity?.permissions.includes('curriculum:edit'))return;
+  draftBusy=true;const g=generation;
   const buttons=[$('checkDraft'),$('saveDraft'),$('newDraft')];buttons.forEach(b=>b.disabled=true);
   try{
     const content=JSON.parse($('draftJson').value);
@@ -81,7 +82,7 @@ async function draftAction(save){
     if(g!==generation)return;
     if(e.status===401||e.status===403){await refresh();return;}
     $('draftStatus').textContent=e.status===409?'تم تعديل المسودة من حساب آخر. افتح أحدث نسخة؛ التغييرات المحلية لم تُحفظ.':e.details?.validation?.issues?.map(i=>i.code+' — '+i.path).join('\n')||'تعذر تنفيذ الطلب أو صيغة JSON غير صحيحة.';
-  }finally{buttons.forEach(b=>b.disabled=false);}
+  }finally{draftBusy=false;buttons.forEach(b=>b.disabled=false);}
 }
 $('checkDraft').onclick=()=>draftAction(false);$('saveDraft').onclick=()=>draftAction(true);
 async function refresh(){
@@ -92,7 +93,7 @@ async function refresh(){
     identity=current;$('login').hidden=true;$('workspace').hidden=false;$('logout').hidden=false;$('message').textContent='';
     $('role').textContent='ROLE / '+current.role;
     const canRead=current.permissions.includes('curriculum:read'),canEdit=current.permissions.includes('curriculum:edit');
-    $('drafts').hidden=!canRead;$('draftNav').hidden=!canRead;$('draftEditor').hidden=!canEdit;
+    $('drafts').hidden=!canRead;$('draftNav').hidden=!canRead;$('draftEditor').hidden=!canRead;$('draftJson').readOnly=!canEdit;$('newDraft').hidden=!canEdit;$('checkDraft').hidden=!canEdit;$('saveDraft').hidden=!canEdit;
     if(!canRead)clearDrafts();
     else{if(!canEdit){$('draftJson').value='';draftId=null;draftRevision=0;}else if(!$('draftJson').value)setDraft(null);await loadDrafts();if(g!==generation)return;}
     const allowed=current.permissions.includes('library:read');
