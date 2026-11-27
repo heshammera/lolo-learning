@@ -11,3 +11,5 @@
 - Main 3e33a65 (visual editor verified). CMS review cleanup corrected on verification/cms-review-20261127. Signed package foundation candidate verification/content-packages-20261127; CI pending, no active download or production keys.
 
 - Main 829bc63 after family, admin and Android checks. Content installation candidate verification/content-install-20261127; staging exporter and atomic device storage; CI pending, no live delivery.
+
+- Main d7e5747 verified. Extra curricula candidate verification/extra-curricula-20261127; no production content keys, network delivery, or migration of prior progress. CI pending.

@@ -66,14 +66,26 @@
             if(prior&&p.sequence===prior.sequence){
               done(prior.envelope.payload===candidate.payload&&prior.envelope.keyId===candidate.keyId?{valid:true,code:'ALREADY_INSTALLED',package:p}:{valid:false,code:'SEQUENCE_CONFLICT'});return;
             }
-            store.put({draftId:expectedDraftId,sequence:p.sequence,envelope:candidate});
-            done({valid:true,code:'INSTALLED',package:p});
+            const commit=()=>{store.put({draftId:expectedDraftId,sequence:p.sequence,envelope:candidate});done({valid:true,code:'INSTALLED',package:p});};
+            if(prior)commit();
+            else{const count=store.count();count.onsuccess=()=>{if(count.result>=20)done({valid:false,code:'PACKAGE_LIMIT'});else commit();};}
           };
         });
       }catch{return {valid:false,code:'STORAGE_UNAVAILABLE'};}
       finally{db?.close();}
     }
-    return Object.freeze({read,install});
+    async function list(){
+      let db;
+      try{
+        db=await open(indexedDB);
+        const rows=await transaction(db,'readonly',(store,done)=>{const req=store.getAllKeys(undefined,21);req.onsuccess=()=>done(req.result);});
+        if(rows.length>20)return {valid:false,code:'PACKAGE_LIMIT',packages:[]};
+        const results=await Promise.all(rows.map(id=>read(id)));
+        return {valid:true,packages:results.filter(r=>r.valid).map(r=>r.package),unavailable:results.filter(r=>!r.valid).length};
+      }catch{return {valid:false,code:'STORAGE_UNAVAILABLE',packages:[]};}
+      finally{db?.close();}
+    }
+    return Object.freeze({read,install,list});
   }
   const api=Object.freeze({create});
   if(typeof module!=='undefined'&&module.exports)module.exports=api;

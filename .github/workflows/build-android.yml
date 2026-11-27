@@ -22,6 +22,8 @@ on:
       - 'content-schema.js'
       - 'content-package.js'
       - 'content-install.js'
+      - 'content-trust.js'
+      - 'extra-learning.js'
       - 'admin-src/**'
       - 'progress_sync.py'
       - 'offline-assets.js'
@@ -78,7 +80,7 @@ jobs:
           node --check learning-path-engine.js
           node --check network.js
           node --check sw.js
-          node --test tests/offline.test.cjs tests/family-client.test.cjs tests/activity-engine.test.cjs tests/activity-library.test.cjs tests/content-package.test.cjs
+          node --test tests/offline.test.cjs tests/family-client.test.cjs tests/activity-engine.test.cjs tests/activity-library.test.cjs tests/content-package.test.cjs tests/extra-learning.test.cjs
           python3 -m py_compile server.py
           node tests/parent-gate.test.cjs
           node scripts/validate-curriculum.js

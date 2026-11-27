@@ -1,0 +1,22 @@
+const {test}=require('node:test');
+const assert=require('node:assert/strict');
+const engine=require('../extra-learning.js');
+const lesson=(id)=>({id,title:id,goal:'Learn',activities:[{id:'a-'+id,type:'true-false',version:1,prompt:'Test',config:{answer:true}}]});
+const p={draftId:'d',releaseId:'r',sequence:1,content:{schemaVersion:1,subjectId:'science',gradeId:'grade-1',title:'Science',units:[{id:'u1',title:'Unit',lessons:[lesson('l1'),lesson('l2')]},{id:'u2',title:'Unit 2',lessons:[lesson('l3')]}]}};
+test('three scopes, revision pinning and deterministic progress',()=>{
+  assert.equal(engine.plan(p,'lesson','u1','l1').steps.length,1);
+  assert.equal(engine.plan(p,'unit','u1').steps.length,2);
+  assert.equal(engine.plan(p,'curriculum').steps.length,3);
+  assert.equal(engine.plan(p,'lesson','u1','l3'),null);
+  let s=engine.plan(p,'unit','u1');
+  assert.equal(engine.current(p,s).activity.id,'a-l1');
+  assert.equal(engine.advance(p,s,'a-l2',{status:'correct'}),null);
+  s=engine.advance(p,s,'a-l1',{status:'correct'});
+  assert.equal(s.correct,1);assert.equal(s.index,1);
+  assert.equal(engine.current(p,s).activity.id,'a-l2');
+  assert.equal(engine.valid({...p,sequence:2},s),false);
+  assert.equal(engine.valid(p,{...s,index:999}),false);
+  s=engine.advance(p,s,'a-l2',{status:'incorrect'});
+  assert.equal(engine.current(p,s),null);
+  assert.equal(s.correct,1);assert.equal(s.index,2);
+});

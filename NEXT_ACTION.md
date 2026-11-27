@@ -1,2 +1,2 @@
 # Next Action
-Verify active export/IndexedDB CI. Next explicit trusted key deployment, signed package import/download UI gated by parent, generic learner lesson/path runtime isolated from existing progress, delivery manifest and remaining V2. Production admin still local-only.
+Verify supplemental curriculum runtime and signed fixture in browser; promote only passing changes. Next trusted distribution endpoint/config and release manifest, taxonomy, progress policy, then remaining activity types and all prior V2 requirements. Production admin remains local-only.
