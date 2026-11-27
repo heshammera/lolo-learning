@@ -13,7 +13,8 @@ TOKEN = re.compile(r"[A-Za-z0-9_-]{43}")
 AGE_BANDS = frozenset(("4-6", "7-9", "10-12", "13-17", "unspecified"))
 SESSION_HOURS = 12
 MAX_CHILDREN = 12
-SCHEMA = Path(__file__).resolve().parent / "database" / "migrations" / "001_family.sql"
+MIGRATIONS = Path(__file__).resolve().parent / "database" / "migrations"
+from progress_sync import InvalidProgress, uuid_value, validate_write
 
 
 class FamilyError(Exception):
@@ -89,7 +90,8 @@ class FamilyStore:
 
     def migrate(self):
         with self.connect() as db:
-            db.execute(SCHEMA.read_text(encoding="utf-8"))
+            for migration in sorted(MIGRATIONS.glob("[0-9][0-9][0-9]_*.sql")):
+                db.execute(migration.read_text(encoding="utf-8"))
 
     def provision(self, email, password):
         """Operator only. No public registration route; no verified-parent claim."""
@@ -161,6 +163,50 @@ class FamilyStore:
             deleted = db.execute("DELETE FROM lolo_children WHERE id=%s AND parent_id=%s", (child_id,parent_id)).rowcount
             if not deleted:
                 raise FamilyError(404, "الملف غير موجود.")
+
+    def owned_progress_child(self, db, token, child_id, lock=False):
+        parent_id = self.authenticated_parent(db,token)
+        try:
+            child_id=uuid_value(child_id)
+        except InvalidProgress as exc:
+            raise FamilyError(400,str(exc)) from None
+        query="SELECT id FROM lolo_children WHERE id=%s AND parent_id=%s"
+        if lock:
+            query += " FOR UPDATE"
+        if not db.execute(query,(child_id,parent_id)).fetchone():
+            raise FamilyError(404,"الملف غير موجود.")
+        return child_id
+
+    def read_progress(self, token, child_id):
+        with self.connect() as db:
+            child_id=self.owned_progress_child(db,token,child_id)
+            row=db.execute("SELECT revision,snapshot,updated_at FROM lolo_child_progress WHERE child_id=%s",(child_id,)).fetchone()
+            if not row:
+                return {"revision":0,"snapshot":None,"updatedAt":None}
+            return {"revision":row[0],"snapshot":row[1],"updatedAt":row[2].isoformat()}
+
+    def write_progress(self, token, child_id, base_revision, operation_id, snapshot):
+        from psycopg.types.json import Jsonb
+        try:
+            base_revision,operation,snapshot=validate_write(base_revision,operation_id,snapshot)
+        except InvalidProgress as exc:
+            raise FamilyError(400,str(exc)) from None
+        with self.connect() as db:
+            # Lock the owned child even for its first snapshot; concurrent writers serialize.
+            child_id=self.owned_progress_child(db,token,child_id,lock=True)
+            row=db.execute("SELECT revision,snapshot,last_operation,updated_at FROM lolo_child_progress WHERE child_id=%s",(child_id,)).fetchone()
+            revision=row[0] if row else 0
+            if row and row[2]==operation:
+                if row[1]!=snapshot or base_revision!=revision-1:
+                    raise FamilyError(409,"معرّف العملية مستخدم من قبل.")
+                return {"revision":revision,"snapshot":row[1],"updatedAt":row[3].isoformat()}
+            if base_revision!=revision:
+                raise FamilyError(409,"في نسخة أحدث من التقدم. راجع الاختلافات قبل الحفظ.")
+            updated=db.execute("""INSERT INTO lolo_child_progress(child_id,revision,snapshot,last_operation)
+                VALUES (%s,%s,%s,%s) ON CONFLICT(child_id) DO UPDATE SET revision=EXCLUDED.revision,
+                snapshot=EXCLUDED.snapshot,last_operation=EXCLUDED.last_operation,updated_at=CURRENT_TIMESTAMP
+                RETURNING updated_at""",(child_id,revision+1,Jsonb(snapshot),operation)).fetchone()[0]
+            return {"revision":revision+1,"snapshot":snapshot,"updatedAt":updated.isoformat()}
 
     def logout(self, token):
         with self.connect() as db:

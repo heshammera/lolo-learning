@@ -79,6 +79,7 @@ def service_enabled(name):
 OPENAI_ENABLED = service_enabled("OPENAI_ENABLED")
 VOICE_ENABLED = service_enabled("LOLO_VOICE_ENABLED")
 FAMILY_ENABLED = os.environ.get('LOLO_FAMILY_ENABLED', 'false').strip().lower() in {'1','true','yes','on'}
+PROGRESS_SYNC_ENABLED = os.environ.get('LOLO_PROGRESS_SYNC_ENABLED','false').strip().lower() in {'1','true','yes','on'}
 FAMILY_RATE_LIMITER = SlidingWindowRateLimiter()
 FAMILY_GLOBAL_LIMITER = SlidingWindowRateLimiter(max_keys=8)
 TTS_ENABLED = service_enabled("LOLO_TTS_ENABLED")
@@ -344,12 +345,14 @@ class Handler(BaseHTTPRequestHandler):
             return self.send_json(403, {"error": "الطلب غير مسموح."})
         if self.headers.get("Content-Type", "").split(";",1)[0].strip().lower() != "application/json":
             return self.send_json(415, {"error": "نوع الطلب غير مدعوم."})
-        body,error = self.read_json_object(4096)
+        body,error = self.read_json_object(32768)
         if error:
             return self.send_json(400, {"error": error})
         action = body.get("action")
-        if not isinstance(action,str) or action not in ("login","children","createChild","deleteChild","logout"):
+        if not isinstance(action,str) or action not in ("login","children","createChild","deleteChild","logout","readProgress","writeProgress"):
             return self.send_json(400, {"error": "العملية غير متاحة."})
+        if action in ("readProgress","writeProgress") and not PROGRESS_SYNC_ENABLED:
+            return self.send_json(503, {"error": "المزامنة غير متاحة حاليًا."})
         ip = (self.headers.get("x-real-ip") if os.environ.get("VERCEL") else None) or self.client_address[0]
         key = hmac_new(_RATE_LIMIT_SECRET,ip.encode(),"sha256").hexdigest()
         allowed,retry = FAMILY_RATE_LIMITER.check((key,"login" if action=="login" else "manage"), 5 if action=="login" else 60, 60)
@@ -369,6 +372,10 @@ class Handler(BaseHTTPRequestHandler):
                 return self.send_json(200,{"children":store.children(token)})
             if action == "createChild":
                 return self.send_json(201,store.create_child(token,body.get("nickname"),body.get("ageBand","unspecified")))
+            if action == "readProgress":
+                return self.send_json(200,store.read_progress(token,body.get("childId")))
+            if action == "writeProgress":
+                return self.send_json(200,store.write_progress(token,body.get("childId"),body.get("baseRevision"),body.get("operationId"),body.get("snapshot")))
             if action == "deleteChild":
                 store.delete_child(token,body.get("childId"))
             else:

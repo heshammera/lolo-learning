@@ -22,3 +22,6 @@
 - Visual comprehension pilot and subject catalog promoted to main at 3aa27c8; run 46050817415 passed. Content remains draft; no published Science course.
 
 - Voice safety milestone promoted at 70423f4 after run 46051660196 passed. Distributed quotas and account authorization remain open.
+
+- Family backend promoted at 4875a31 after PostgreSQL run 46052517826 and Android run 46052517789 passed.
+- Local profiles promoted at fb473d6 after run 46052818258 passed offline browser switching and Android build.

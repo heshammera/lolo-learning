@@ -26,3 +26,5 @@ Visual and subject catalog promoted at 3aa27c8 after run 46050817415 passed. Voi
 Voice safety promoted at 70423f4. Family backend candidate: PostgreSQL schema, operator provisioning, salted password hashes, expiring/revocable sessions and parent-owned profiles. Disabled by default; no production DB, registration UI, identity/consent or progress migration yet.
 
 Local profiles candidate: independent on-device learning paths, settings and results, protected management UI. No connection to server profiles or multi-device synchronization.
+
+Family backend and local profiles promoted at 4875a31 and fb473d6 respectively. New progress sync candidate: strict limited snapshots, owner authorization, atomic revision checks and exact retry handling. No real data, production configuration, consent or client sync yet.

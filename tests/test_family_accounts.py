@@ -122,3 +122,49 @@ class FamilyDatabaseTests(unittest.TestCase):
             self.store.login(self.emails[0],self.password)
         with self.assertRaises(FamilyError):
             self.store.children(token)
+
+    def test_progress_revision_retry_and_ownership(self):
+        import uuid
+        from progress_sync import VERSION
+        a,b=[self.store.login(email,self.password)["token"] for email in self.emails]
+        child=self.store.create_child(a,"Learner","4-6")["id"]
+        empty={"schemaVersion":1,"curriculumVersion":VERSION,"completedLessonIds":[],"path":None}
+        progressed={**empty,"completedLessonIds":["hello-1"]}
+        self.assertEqual(self.store.read_progress(a,child)["revision"],0)
+        op=str(uuid.uuid4())
+        first=self.store.write_progress(a,child,0,op,progressed)
+        self.assertEqual(first["revision"],1)
+        self.assertEqual(self.store.write_progress(a,child,0,op,progressed),first)
+        for token,revision,operation,snapshot,status in [
+            (a,0,str(uuid.uuid4()),empty,409),
+            (a,0,op,empty,409),
+            (b,1,str(uuid.uuid4()),empty,404),
+            (a,1,str(uuid.uuid4()),{**empty,"transcript":"not allowed"},400),
+        ]:
+            with self.assertRaises(FamilyError) as error:
+                self.store.write_progress(token,child,revision,operation,snapshot)
+            self.assertEqual(error.exception.status,status)
+        with self.assertRaises(FamilyError):
+            self.store.read_progress(b,child)
+        self.assertEqual(self.store.read_progress(a,child),first)
+        second=self.store.write_progress(a,child,1,str(uuid.uuid4()),empty)
+        self.assertEqual(second["revision"],2)
+        self.store.delete_child(a,child)
+        with self.store.connect() as db:
+            self.assertEqual(db.execute("SELECT count(*) FROM lolo_child_progress WHERE child_id=%s",(child,)).fetchone()[0],0)
+
+    def test_concurrent_progress_writes_do_not_overwrite(self):
+        from concurrent.futures import ThreadPoolExecutor
+        import uuid
+        from progress_sync import VERSION
+        token=self.store.login(self.emails[0],self.password)["token"]
+        child=self.store.create_child(token,"Learner","4-6")["id"]
+        def write(lesson):
+            snapshot={"schemaVersion":1,"curriculumVersion":VERSION,"completedLessonIds":[lesson],"path":None}
+            try:
+                return self.store.write_progress(token,child,0,str(uuid.uuid4()),snapshot)["revision"]
+            except FamilyError as exc:
+                return exc.status
+        with ThreadPoolExecutor(max_workers=2) as pool:
+            self.assertEqual(sorted(pool.map(write,["hello-1","hello-2"])),[1,409])
+        self.assertEqual(self.store.read_progress(token,child)["revision"],1)

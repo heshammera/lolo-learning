@@ -4,11 +4,13 @@ on:
   push:
     paths:
       - 'family_accounts.py'
+      - 'progress_sync.py'
       - 'database/**'
       - 'api/family.py'
       - 'server.py'
       - 'requirements.txt'
       - 'tests/test_family_accounts.py'
+      - 'tests/test_progress_sync.py'
       - 'scripts/family_admin.py'
       - '.github/workflows/family-backend.yml'
 permissions:
@@ -38,4 +40,6 @@ jobs:
       - name: Install PostgreSQL driver
         run: python3 -m venv .venv && .venv/bin/pip install -r requirements.txt
       - name: Test isolated family database
-        run: .venv/bin/python -m unittest discover -s tests -p 'test_family_accounts.py' -v
+        run: |
+          .venv/bin/python -m unittest discover -s tests -p 'test_family_accounts.py' -v
+          .venv/bin/python -m unittest discover -s tests -p 'test_progress_sync.py' -v
