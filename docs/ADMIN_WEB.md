@@ -4,3 +4,5 @@ Admin login uses a same-origin JSON POST with exact Host/Origin validation, a bo
 This is loopback HTTP only, not a production server. Before public launch: dedicated HTTPS deployment, Secure __Host- cookie, distributed throttling, reverse-proxy configuration and security review, MFA recovery and encryption key lifecycle, independent browser/mobile tests. Never expose the current HTTP listener via a public reverse proxy.
 
 The loopback cookie is not Secure and cookie isolation is by hostname, not port; use a dedicated local browser profile, avoid running other untrusted services on the same hostname, and never treat the local listener as production-ready. Library previews re-check the current library permission and clear old content on refresh.
+
+An opt-in restricted HTTPS staging candidate is described in [ADMIN_HTTPS_STAGING.md](ADMIN_HTTPS_STAGING.md). Local HTTP behavior is unchanged. No real deployment or owner provisioning has been performed.

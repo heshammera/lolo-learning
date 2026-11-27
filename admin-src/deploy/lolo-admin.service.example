@@ -1,0 +1,21 @@
+[Unit]
+Description=LOLO isolated admin HTTPS staging
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=lolo-admin
+Group=lolo-admin
+WorkingDirectory=/opt/lolo-learning
+EnvironmentFile=/etc/lolo-admin/admin.env
+ExecStart=/opt/lolo-learning/.venv/bin/python /opt/lolo-learning/admin-src/admin_web.py
+Restart=on-failure
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+UMask=0077
+
+[Install]
+WantedBy=multi-user.target

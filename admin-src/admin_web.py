@@ -1,6 +1,8 @@
-"""Local-only administration web service. Never mount on the student origin."""
+"""Isolated administration service: loopback or explicitly gated HTTPS proxy staging."""
 import json
 import os
+import re
+from hmac import compare_digest
 import subprocess
 import sys
 import threading
@@ -15,6 +17,17 @@ from cms_drafts import Drafts
 from content_packages import export_active
 ROOT = Path(__file__).resolve().parent
 COOKIE = "lolo_admin_session"
+SECURE_COOKIE = "__Host-lolo_admin_session"
+
+
+def proxy_config(origin,secret):
+    # Dedicated DNS origin, no path, credentials, wildcard, IP or nonstandard port.
+    label=r"[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?"
+    if not isinstance(origin,str) or len(origin)>261 or not re.fullmatch(r"https://(?:"+label+r"\.)+[a-z]{2,63}",origin):
+        raise RuntimeError("Dedicated HTTPS admin origin required.")
+    if not isinstance(secret,str) or not re.fullmatch(r"[A-Za-z0-9_-]{43,128}",secret):
+        raise RuntimeError("Private proxy token required.")
+    return origin,secret
 ASSETS = {"/":("index.html","text/html; charset=utf-8"),
            "/admin.css":("admin.css","text/css; charset=utf-8"),
            "/admin.js":("admin.js","text/javascript; charset=utf-8"),
@@ -30,7 +43,8 @@ def load_library():
 
 class AdminServer(ThreadingHTTPServer):
     daemon_threads=True
-    def __init__(self,port,store,library,signing=None):
+    def __init__(self,port,store,library,signing=None,proxy=None):
+        if proxy is not None:proxy=proxy_config(*proxy)
         super().__init__(("127.0.0.1",port),Handler)
         self.store=store
         self.library=library
@@ -38,6 +52,12 @@ class AdminServer(ThreadingHTTPServer):
         self.signing=signing
         self.host="127.0.0.1:"+str(self.server_port)
         self.origin="http://"+self.host
+        self.proxy_secret=None
+        self.cookie_name=COOKIE
+        if proxy is not None:
+            self.origin,self.proxy_secret=proxy
+            self.host=self.origin.removeprefix("https://")
+            self.cookie_name=SECURE_COOKIE
         self.attempts=deque()
         self.limit_lock=threading.Lock()
         self.login_slots=threading.BoundedSemaphore(2)
@@ -73,12 +93,17 @@ class Handler(BaseHTTPRequestHandler):
         self.send_header("Referrer-Policy","no-referrer")
         self.send_header("Content-Security-Policy",CSP)
         self.send_header("Permissions-Policy","camera=(), microphone=(), geolocation=()")
+        if self.server.proxy_secret is not None:self.send_header("Strict-Transport-Security","max-age=31536000")
         if cookie:self.send_header("Set-Cookie",cookie)
         self.end_headers()
         self.wfile.write(body)
 
     def valid_host(self):
-        return self.headers.get_all("Host")==[self.server.host]
+        if self.headers.get_all("Host")!=[self.server.host]:return False
+        if self.server.proxy_secret is None:return True
+        values=self.headers.get_all("X-Lolo-Admin-Proxy") or []
+        return (self.headers.get_all("X-Forwarded-Proto")==["https"] and len(values)==1
+                and values[0].isascii() and compare_digest(values[0],self.server.proxy_secret))
 
     def valid_origin(self):
         return self.headers.get_all("Origin")==[self.server.origin] and self.headers.get("Sec-Fetch-Site","same-origin")=="same-origin"
@@ -87,8 +112,13 @@ class Handler(BaseHTTPRequestHandler):
         try:
             cookies=SimpleCookie()
             cookies.load(self.headers.get("Cookie",""))
-            return cookies[COOKIE].value if COOKIE in cookies else ""
+            name=self.server.cookie_name
+            return cookies[name].value if name in cookies else ""
         except CookieError:return ""
+
+    def session_cookie(self,token,age):
+        secure="; Secure" if self.server.proxy_secret is not None else ""
+        return f"{self.server.cookie_name}={token}; HttpOnly; SameSite=Strict; Path=/; Max-Age={age}{secure}"
 
     def json_body(self,maximum=4096):
         if self.headers.get("Content-Type","").split(";",1)[0].strip().lower()!="application/json":
@@ -139,11 +169,13 @@ class Handler(BaseHTTPRequestHandler):
                 if set(body)!={"email","password","code"}:raise FamilyError(400,"Invalid fields.")
                 if not self.server.admit_login() or not self.server.login_slots.acquire(blocking=False):
                     raise FamilyError(429,"Too many requests.")
-                try:result=self.server.store.login(body["email"],body["password"],body["code"])
+                try:
+                    if self.server.proxy_secret is not None and not self.server.store.admit_proxy_login():
+                        raise FamilyError(429,"Too many requests.")
+                    result=self.server.store.login(body["email"],body["password"],body["code"])
                 finally:self.server.login_slots.release()
                 token=result.pop("token")
-                # Loopback only; a real HTTPS deployment must require Secure and __Host- cookies.
-                return self.reply(200,result,cookie=f"{COOKIE}={token}; HttpOnly; SameSite=Strict; Path=/; Max-Age=1800")
+                return self.reply(200,result,cookie=self.session_cookie(token,1800))
             if self.path in ("/api/draft/transition","/api/draft/history","/api/draft/rollback"):
                 body=self.json_body()
                 if self.path=="/api/draft/transition" and set(body)=={"id","revision","action"}:
@@ -175,14 +207,16 @@ class Handler(BaseHTTPRequestHandler):
                 try:self.server.store.logout(self.token())
                 except FamilyError as exc:
                     if exc.status!=401:raise
-                return self.reply(200,{"ok":True},cookie=f"{COOKIE}=; HttpOnly; SameSite=Strict; Path=/; Max-Age=0")
+                return self.reply(200,{"ok":True},cookie=self.session_cookie("",0))
             return self.reply(404,{"error":"Not found."})
         except Exception as exc:self.error_response(exc)
 
 
 def main():
-    if os.environ.get("LOLO_ADMIN_LOCAL_WEB")!="true":
-        raise RuntimeError("Local admin web disabled.")
+    local=os.environ.get("LOLO_ADMIN_LOCAL_WEB")=="true"
+    https=os.environ.get("LOLO_ADMIN_HTTPS_STAGING")=="true"
+    if local==https:raise RuntimeError("Select exactly one admin mode.")
+    proxy=proxy_config(os.environ.get("LOLO_ADMIN_ORIGIN"),os.environ.get("LOLO_ADMIN_PROXY_TOKEN")) if https else None
     dsn=os.environ.get("LOLO_ADMIN_DATABASE_URL")
     if not dsn or dsn==os.environ.get("LOLO_DATABASE_URL"):
         raise RuntimeError("Separate admin database required.")
@@ -197,8 +231,8 @@ def main():
         key=serialization.load_pem_private_key(key_file.read_bytes(),password=None)
         if not isinstance(key,ec.EllipticCurvePrivateKey) or not isinstance(key.curve,ec.SECP256R1):raise RuntimeError("P-256 key required.")
         signing=(os.environ["LOLO_ADMIN_SIGNING_KEY_ID"],key)
-    with AdminServer(int(os.environ.get("LOLO_ADMIN_PORT","4180")),store,load_library(),signing) as server:
-        print("Local-only admin: "+server.origin,flush=True)
+    with AdminServer(int(os.environ.get("LOLO_ADMIN_PORT","4180")),store,load_library(),signing,proxy=proxy) as server:
+        print("HTTPS proxy staging: "+server.origin if https else "Local-only admin: "+server.origin,flush=True)
         server.serve_forever()
 
 
