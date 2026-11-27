@@ -96,9 +96,10 @@
   const colors=Object.freeze({red:'#e85a62',blue:'#4889dd',green:'#62a65b',yellow:'#f5c94c',purple:'#9868cf'});
   const color=v=>typeof v==='string'&&Object.hasOwn(colors,v);
   const regions=Object.freeze({circle:'دائرة',triangle:'مثلث',square:'مربع'});
-  const point=p=>Array.isArray(p)&&p.length===2&&p.every(v=>typeof v==='number'&&Number.isFinite(v)&&v>=0&&v<=100);
+  const dense=a=>Array.isArray(a)&&Array.from({length:a.length},(_,i)=>Object.hasOwn(a,i)).every(Boolean);
+  const point=p=>Array.isArray(p)&&p.length===2&&dense(p)&&p.every(v=>typeof v==='number'&&Number.isFinite(v)&&v>=0&&v<=100);
   const dist=(a,b)=>Math.hypot(a[0]-b[0],a[1]-b[1]);
-  const stroke=s=>Array.isArray(s)&&s.length>=2&&s.length<=512&&s.every(point);
+  const stroke=s=>Array.isArray(s)&&s.length>=2&&s.length<=512&&dense(s)&&s.every(point);
   const pathLength=s=>s.slice(1).reduce((n,p,i)=>n+dist(p,s[i]),0);
   function traceGrade(g,s){
     if(!stroke(s)||pathLength(s)<10)return 'unresolved';
@@ -160,7 +161,7 @@
       case 'free-text':resolved=answerText(response);correct=resolved&&c.answers.some(a=>normalize(a)===normalize(response));break;
       case 'number-line':resolved=onLine(c,response);correct=resolved&&response===c.answer;break;
       case 'trace':return {status:traceGrade(c.glyph,response)};
-      case 'free-drawing':return {status:Array.isArray(response)&&response.length>=1&&response.length<=16&&response.every(stroke)&&response.reduce((n,s)=>n+pathLength(s),0)>=10?'completed':'unresolved'};
+      case 'free-drawing':return {status:Array.isArray(response)&&response.length>=1&&response.length<=16&&dense(response)&&response.every(stroke)&&response.reduce((n,s)=>n+pathLength(s),0)>=10?'completed':'unresolved'};
       case 'coloring':resolved=exact(response,Object.keys(regions))&&Object.values(response).every(color);correct=resolved&&Object.keys(regions).every(k=>response[k]===c.answers[k]);break;
       case 'image-hotspot':resolved=regionId(c.diagram,response);correct=response===c.answer;break;
       case 'science-simulation':resolved=integer(response)&&response>=0&&response<=c.maxCount;correct=resolved&&response*c.unitMass===c.leftMass;break;
@@ -418,12 +419,13 @@
       function draw(){ctx.fillStyle='#fff';ctx.fillRect(0,0,320,320);if(activity.type==='trace'){const guide=guides[c.glyph];path(guide,'#e2d6f4',28);path(guide,'#ae97d0',2);ctx.fillStyle='#428b56';ctx.beginPath();ctx.arc(guide[0][0]*3.2,guide[0][1]*3.2,7,0,Math.PI*2);ctx.fill();}for(const s of strokes)path(s,'#6341a3',5);if(active)path(active,'#6341a3',5);}
       function sample(ev){const b=canvas.getBoundingClientRect();return b.width&&b.height?[Math.max(0,Math.min(100,(ev.clientX-b.left)/b.width*100)),Math.max(0,Math.min(100,(ev.clientY-b.top)/b.height*100))]:null;}
       canvas.addEventListener('pointerdown',ev=>{if(fieldset.disabled||pointer!==null||ev.button!==0||strokes.length>=(activity.type==='trace'?1:16))return;const p=sample(ev);if(!p)return;pointer=ev.pointerId;active=[p];canvas.setPointerCapture?.(pointer);draw();});
-      canvas.addEventListener('pointermove',ev=>{if(pointer!==ev.pointerId||!active||fieldset.disabled)return;const p=sample(ev);if(p&&active.length<512&&dist(p,active.at(-1))>=.7){active.push(p);draw();}});
-      function end(ev,keep){if(pointer!==ev.pointerId)return;if(keep&&active&&active.length>=2)strokes.push(active);pointer=null;active=null;draw();}
+      function appendSample(ev){const p=sample(ev);if(p&&active&&active.length<512&&dist(p,active.at(-1))>=.7)active.push(p);}
+      canvas.addEventListener('pointermove',ev=>{if(pointer!==ev.pointerId||!active||fieldset.disabled)return;for(const event of (ev.getCoalescedEvents?.()||[]))appendSample(event);appendSample(ev);draw();});
+      function end(ev,keep){if(pointer!==ev.pointerId)return;if(keep&&!fieldset.disabled&&active){appendSample(ev);if(active.length>=2)strokes.push(active);}pointer=null;active=null;draw();}
       canvas.addEventListener('pointerup',ev=>end(ev,true));canvas.addEventListener('pointercancel',ev=>end(ev,false));canvas.addEventListener('lostpointercapture',ev=>end(ev,false));
       gameNotice(board,activity.type==='trace'?'ابدئي من النقطة الخضراء وتتبعي المسار بحركة واحدة.':'ارسمي ما تحبين. لا توجد درجة لجمال الرسم.');
       board.append(canvas);gameButton(board,'مسح وإعادة الرسم',()=>{if(fieldset.disabled)return;strokes.length=0;active=null;pointer=null;draw();});
-      gameResponse=()=>activity.type==='trace'?strokes[0]||null:strokes;fieldset.append(board);draw();
+      gameResponse=()=>active?null:activity.type==='trace'?strokes[0]||null:strokes;fieldset.append(board);draw();
     }
     function coloringBoard(){
       const ns='http://www.w3.org/2000/svg',svg=doc.createElementNS(ns,'svg');svg.setAttribute('viewBox','0 0 240 100');svg.setAttribute('class','activity-coloring-svg');svg.setAttribute('aria-hidden','true');
