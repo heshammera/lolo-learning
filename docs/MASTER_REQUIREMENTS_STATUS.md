@@ -24,3 +24,5 @@ Subject catalog candidate: shared program/lesson enumeration, subject metadata/c
 Visual and subject catalog promoted at 3aa27c8 after run 46050817415 passed. Voice safety candidate adds process-local aggregate limits, kill switches, validation and interruption handling; distributed quota, true authentication and provider policy verification remain open.
 
 Voice safety promoted at 70423f4. Family backend candidate: PostgreSQL schema, operator provisioning, salted password hashes, expiring/revocable sessions and parent-owned profiles. Disabled by default; no production DB, registration UI, identity/consent or progress migration yet.
+
+Local profiles candidate: independent on-device learning paths, settings and results, protected management UI. No connection to server profiles or multi-device synchronization.

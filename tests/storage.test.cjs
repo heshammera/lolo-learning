@@ -11,6 +11,7 @@ function loadStorage(map = new Map(), setThrows = false) {
       setItem: (key, value) => { if (setThrows) throw new Error('quota'); map.set(key, value); },
       removeItem: key => map.delete(key),
     },
+    crypto: require('node:crypto').webcrypto,
     dispatchEvent: event => warnings.push(event.detail),
   };
   delete require.cache[storagePath];
@@ -39,5 +40,37 @@ function loadStorage(map = new Map(), setThrows = false) {
     assert.equal(storage.get('lolo-selected-program'), 'connect-plus-1');
     assert.equal(storage.remove('lolo-selected-program'), true);
   }
-  console.log('Storage resilience checks passed.');
+  {
+    const {storage,map}=loadStorage(new Map([['lolo-mastered','["hello-1"]'],['lolo-parent-gate-v1','shared-pin']]));
+    assert.equal(storage.profiles.activeId,'default');
+    assert.equal(storage.profiles.create('Second learner'),true);
+    const child=storage.profiles.list()[1];
+    assert.equal(storage.profiles.select(child.id),true);
+    // The old document is still pinned to the first profile until reload.
+    assert.deepEqual(storage.getJSON('lolo-mastered',[]),['hello-1']);
+    const second=loadStorage(map).storage;
+    assert.equal(second.profiles.activeId,child.id);
+    assert.deepEqual(second.getJSON('lolo-mastered',[]),[]);
+    assert.equal(second.get('lolo-parent-gate-v1'),'shared-pin');
+    second.set('lolo-mastered','["hello-2"]');
+    second.set('lolo-parent-settings','{"sessionMinutes":5}');
+    assert.equal(second.profiles.rename(child.id,'Second'),true);
+    assert.equal(second.profiles.select('default'),true);
+    const first=loadStorage(map).storage;
+    assert.deepEqual(first.getJSON('lolo-mastered',[]),['hello-1']);
+    assert.deepEqual(first.getJSON('lolo-parent-settings',{}),{});
+    assert.equal(first.profiles.select(child.id),true);
+    const restored=loadStorage(map).storage;
+    assert.deepEqual(restored.getJSON('lolo-mastered',[]),['hello-2']);
+    assert.equal(restored.getJSON('lolo-parent-settings',{}).sessionMinutes,5);
+  }
+  {
+    const {storage,map}=loadStorage(new Map([['lolo-local-profiles-v1','{broken'],['lolo-mastered','["hello-1"]']]));
+    assert.equal(storage.profiles.activeId,null);
+    assert.equal(storage.get('lolo-mastered'),null);
+    assert.equal(storage.set('lolo-mastered','[]'),false);
+    assert.equal(map.get('lolo-mastered'),'["hello-1"]');
+    assert.equal(storage.profiles.create('new'),false);
+  }
+  console.log('Storage resilience and local profile isolation checks passed.');
 })().catch(error => { console.error(error); process.exitCode = 1; });

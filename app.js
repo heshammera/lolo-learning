@@ -2561,6 +2561,7 @@ async function startSession(continuing = false) {
   if (continuing !== true || !learningDeadline) learningDeadline = Date.now() + Math.max(1,Math.min(30,Number(parentSettings.sessionMinutes)||10))*60000;
   if (Date.now() >= learningDeadline) return;
   currentLesson = currentLesson || nextLesson();
+  if(!storage.profiles.activeId){setStatus('ملفات التعلم تحتاج مراجعة ولي الأمر.');return;}
   if(!currentLesson||!lessonSubject(currentLesson).live){setStatus('الصوت الذكي غير متاح لهذه المادة بعد. تقدري تكملي التدريب المحلي.');openOfflinePractice();return;}
   if (sessionMode === 'test' && (!activeSpeakingAssessment || activeSpeakingAssessment.lessonId !== currentLesson?.id)) {
     activeSpeakingAssessment = assessmentEngine.createSpokenAssessment(currentLesson);
@@ -3001,6 +3002,49 @@ function parentGateError(result) {
   $('#parentGateStatus').textContent = messages[result?.reason] || 'ماقدرناش نكمل العملية. راجعي البيانات وجربي تاني.';
 }
 
+function renderLocalProfiles(){
+  if(!parentGate.isUnlocked())return;
+  const list=$('#localProfilesList');list.replaceChildren();
+  const profiles=storage.profiles.list();
+  for(const profile of profiles){
+    const row=document.createElement('div');row.className='local-profile-row';row.dataset.active=String(profile.id===storage.profiles.activeId);
+    const name=document.createElement('strong');name.textContent=profile.name+(profile.id===storage.profiles.activeId?' · الملف الحالي':'');
+    const rename=document.createElement('button');rename.type='button';rename.textContent='تعديل الاسم';
+    rename.onclick=()=>{
+      if(!parentGate.isUnlocked())return openParentSettings('settings');
+      const value=prompt('اكتبي اسمًا مستعارًا للملف:',profile.name);
+      if(value===null)return;
+      if(!parentGate.isUnlocked())return openParentSettings('settings');
+      if(!storage.profiles.rename(profile.id,value)){$('#localProfilesStatus').textContent='تعذر تعديل الاسم. راجعي الاسم أو أعيدي فتح التطبيق.';return;}
+      renderLocalProfiles();renderActiveLocalProfile();
+    };
+    row.append(name,rename);
+    if(profile.id!==storage.profiles.activeId){
+      const select=document.createElement('button');select.type='button';select.textContent='فتح الملف';select.dataset.profileId=profile.id;
+      select.onclick=()=>{
+        if(!parentGate.isUnlocked())return openParentSettings('settings');
+        if(isActive||isStarting)stopSession();
+        if(!storage.profiles.select(profile.id)){$('#localProfilesStatus').textContent='تعذر فتح الملف. أعيدي فتح التطبيق وجربي تاني.';return;}
+        closeParentSettings();location.reload();
+      };row.append(select);
+    }
+    list.append(row);
+  }
+  $('#localProfileForm').hidden=profiles.length===0||profiles.length>=12;
+}
+function renderActiveLocalProfile(){
+  const profile=storage.profiles.current();
+  $('#activeLocalProfile').textContent=profile?'ملف التعلم: '+profile.name:'ملفات التعلم تحتاج مراجعة';
+}
+$('#localProfileForm').addEventListener('submit',event=>{
+  event.preventDefault();
+  if(!parentGate.isUnlocked())return openParentSettings('settings');
+  const input=$('#localProfileName');
+  if(!storage.profiles.create(input.value)){$('#localProfilesStatus').textContent='تعذر إضافة الملف. اختاري اسمًا مستعارًا صالحًا أو راجعي التخزين.';return;}
+  input.value='';renderLocalProfiles();$('#localProfilesStatus').textContent='اتضاف ملف جديد. اختاري فتح الملف للبدء.';
+});
+renderActiveLocalProfile();
+
 function showParentSettingsUnlocked(tab = 'settings') {
   if (!parentGate.isUnlocked()) return openParentSettings(tab);
   $('#parentSheet').classList.add('open');
@@ -3008,6 +3052,7 @@ function showParentSettingsUnlocked(tab = 'settings') {
   showParentTab(tab);
   $('#parentClose').focus();
   syncParentSettingsUI();
+  renderLocalProfiles();
   renderParentReport();
   $('#parentProgress').textContent = `${parentProgressSummary()} تقدري تختاري درسًا أو وحدة أو منهجًا بالكامل.`;
   $('#pathScope').value = activePath?.scope || 'lesson';
@@ -3217,6 +3262,13 @@ document.addEventListener('keydown', event => {
   else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
 });
 window.addEventListener('storage', event => {
+  if(!event.key||event.key===storage.profiles.key){
+    if(storage.profiles.selectedId()!==storage.profiles.activeId){
+      if(isActive||isStarting)stopSession();
+      closeParentSettings();location.reload();return;
+    }
+    renderActiveLocalProfile();if(parentGate.isUnlocked())renderLocalProfiles();
+  }
   if (event.key && event.key !== window.LoloParentGate.PIN_KEY) return;
   parentGate.lock();
   closeParentSettings();
