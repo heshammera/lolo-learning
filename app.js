@@ -3385,7 +3385,7 @@ $('#lockParentGate').onclick = () => { closeParentSettings(); closeParentGateMod
 $('#parentSheet').addEventListener('click', () => { parentGate.touch(); if (parentGate.isUnlocked()) scheduleParentAutoLock(); });
 $('#parentSheet').addEventListener('keydown', () => { parentGate.touch(); if (parentGate.isUnlocked()) scheduleParentAutoLock(); });
 $('#parentLessonsTab').onclick = () => showParentTab('lessons');
-$('#parentSettingsTab').onclick = () => showParentTab('settings');
+$('#parentSettingsTab').onclick = () => {showParentTab('settings');renderExtraContent();};
 for (const id of ['learningPath', 'sessionMinutes', 'speechPace', 'hintLevel', 'rewardSeconds']) $(`#${id}`).onchange = saveParentSettings;
 for (const id of ['repeatWords', 'rewardEnabled']) $(`#${id}`).onchange = saveParentSettings;
 $('#lessonTab').onclick = () => showPickerTab('lessons');
