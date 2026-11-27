@@ -142,6 +142,15 @@ class Handler(BaseHTTPRequestHandler):
                 token=result.pop("token")
                 # Loopback only; a real HTTPS deployment must require Secure and __Host- cookies.
                 return self.reply(200,result,cookie=f"{COOKIE}={token}; HttpOnly; SameSite=Strict; Path=/; Max-Age=1800")
+            if self.path in ("/api/draft/transition","/api/draft/history","/api/draft/rollback"):
+                body=self.json_body()
+                if self.path=="/api/draft/transition" and set(body)=={"id","revision","action"}:
+                    return self.reply(200,self.server.drafts.transition(self.token(),body["id"],body["revision"],body["action"]))
+                if self.path=="/api/draft/history" and set(body)=={"id"}:
+                    return self.reply(200,self.server.drafts.history(self.token(),body["id"]))
+                if self.path=="/api/draft/rollback" and set(body)=={"id","target","expectedActive"}:
+                    return self.reply(200,self.server.drafts.rollback(self.token(),body["id"],body["target"],body["expectedActive"]))
+                raise FamilyError(400,"Invalid fields.")
             if self.path in ("/api/draft/read","/api/draft/check","/api/draft/save"):
                 body=self.json_body(262144)
                 if self.path=="/api/draft/read" and set(body)=={"id"}:

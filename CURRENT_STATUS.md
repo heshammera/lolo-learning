@@ -5,3 +5,5 @@
 - CMS draft candidate verification/cms-drafts-20261127; local-only, no production DB changes or publication. Admin web HTTP tests succeeded; latest regression build pending.
 
 - Main 20dbc12 passed admin CI 46058400090 and Android CI 46058400081. Visual editor candidate verification/cms-visual-20261127; browser verification pending. Admin still loopback-only.
+
+- Main remains 20dbc12. Visual editor browser failure addressed in 3e33a65; rerun pending. CMS review/release candidate verification/cms-review-20261127; local-only staged publication. CI pending.

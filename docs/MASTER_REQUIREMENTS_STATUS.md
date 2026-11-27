@@ -46,3 +46,5 @@ Admin identity promoted at 0ab2878 after PostgreSQL and Android checks. Separate
 CMS draft candidate: server-validated structured drafts, role-checked read/edit, atomic revisions, basic JSON template editor. No publication or learner delivery. Full visual editing, review/versioning, client capability compatibility and all remaining V2 requirements pending.
 
 CMS draft foundation promoted at 20dbc12 after admin and Android checks. Visual editor candidate: no-code unit/lesson/activity editing with all seven runtime configs and preview, save/check against existing backend. Publishing, taxonomy management, client delivery and remaining types pending.
+
+Visual editor first CI failed browser locator; accessible select labels fixed in 3e33a65 (not yet verified). Staged CMS review/release candidate adds separate reviewer, revisioned transitions, snapshot history and rollback; no student publishing or production service. All prior requirements retained.

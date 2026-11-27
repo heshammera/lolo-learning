@@ -1,2 +1,2 @@
 # Next Action
-Verify visual editor browser, admin database and student regressions. Then implement review/approval and immutable release versioning, rollback, target client capability checks, content delivery and remaining activity types. Preserve prior V2 requirements and production security gates.
+Verify visual editor browser rerun and CMS review/release tests before merging. Then deployed-client capability manifest, signed/versioned content delivery and offline learner runtime, central taxonomy, remaining activity types and original V2 requirements. No production admin exposure yet.

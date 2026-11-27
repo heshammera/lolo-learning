@@ -1,6 +1,6 @@
 'use strict';
 const $=id=>document.getElementById(id);
-let entries=[],identity=null,generation=0,draftId=null,draftRevision=0,draftBusy=false,draftBaseline='';
+let entries=[],identity=null,generation=0,draftId=null,draftRevision=0,draftBusy=false,draftBaseline='',draftState='draft';
 async function api(path,body){
   const options={credentials:'same-origin',cache:'no-store',redirect:'error'};
   if(body!==undefined)Object.assign(options,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
@@ -50,11 +50,64 @@ async function loadEngine(){
 }
 function clearDrafts(){
   draftId=null;draftRevision=0;$('drafts').hidden=true;$('draftNav').hidden=true;$('draftEditor').hidden=true;
-  $('draftList').replaceChildren();$('draftJson').value='';draftBaseline='';$('visualEditor').replaceChildren();$('draftPreview').hidden=true;$('draftSample').replaceChildren();$('draftStatus').textContent='';
+  $('draftList').replaceChildren();$('draftJson').value='';draftBaseline='';draftState='draft';$('workflowActions').replaceChildren();$('releaseHistory').replaceChildren();$('workflowState').textContent='';$('visualEditor').replaceChildren();$('draftPreview').hidden=true;$('draftSample').replaceChildren();$('draftStatus').textContent='';
 }
-function canEditDraft(){return !!identity?.permissions.includes('curriculum:edit')&&!draftBusy;}
+const workflowLabels={draft:'مسودة',review:'قيد المراجعة',approved:'معتمد',published:'إصدار تجريبي محفوظ'};
+function renderWorkflow(){
+  const box=$('workflowActions');box.replaceChildren();$('releaseHistory').replaceChildren();
+  $('workflowState').textContent=$('draftJson').value?'الحالة: '+(workflowLabels[draftState]||draftState):'';
+  const editable=identity?.permissions.includes('curriculum:edit')&&draftState==='draft';
+  $('saveDraft').hidden=!editable;$('checkDraft').hidden=!editable;
+  if(!draftId||!identity)return;
+  const permissions=identity.permissions;
+  function add(label,action,permission,states){
+    if(!states.includes(draftState)||!permissions.includes(permission))return;
+    const b=document.createElement('button');b.type='button';b.textContent=label;
+    b.onclick=()=>workflowAction(action);box.append(b);
+  }
+  add('إرسال للمراجعة','submit','curriculum:edit',['draft']);
+  add('اعتماد المنهج','approve','curriculum:review',['review']);
+  add('إعادة للمسودة','return','curriculum:review',['review','approved']);
+  add('حفظ إصدار تجريبي','publish','curriculum:publish',['approved']);
+  add('فتح تعديل جديد','reopen','curriculum:edit',['published']);
+  const h=document.createElement('button');h.type='button';h.textContent='سجل الإصدارات';h.onclick=()=>loadReleases();box.append(h);
+}
+async function workflowAction(action){
+  if(draftBusy||!draftId)return;
+  if($('draftJson').value!==draftBaseline){$('draftStatus').textContent='احفظ التعديلات قبل تغيير الحالة.';return;}
+  if(!confirm('تأكيد تغيير حالة المنهج؟ الإصدار التجريبي لا يصل إلى الطلاب.'))return;
+  const g=generation,id=draftId;draftBusy=true;$('visualEditor').disabled=true;
+  try{
+    await api('/api/draft/transition',{id,revision:draftRevision,action});
+    const data=await api('/api/draft/read',{id});
+    if(g!==generation)return;draftBusy=false;setDraft(data);await loadDrafts();$('draftStatus').textContent='تم تحديث حالة المنهج.';
+  }catch(e){if(g===generation)$('draftStatus').textContent=e.status===403?'الصلاحية غير كافية؛ الاعتماد يتطلب مراجعًا غير آخر محرر.':'تعذر تحديث الحالة؛ افتح أحدث نسخة وتحقق من التوافق.';}
+  finally{draftBusy=false;$('visualEditor').disabled=false;}
+}
+async function loadReleases(){
+  if(!draftId||draftBusy)return;
+  const g=generation,id=draftId;
+  try{
+    const result=await api('/api/draft/history',{id});
+    if(g!==generation||id!==draftId)return;
+    const box=$('releaseHistory');box.replaceChildren();
+    const active=result.releases.find(r=>r.active);
+    for(const r of result.releases){
+      const row=document.createElement('div');row.className='cms-row';
+      const name=document.createElement('span');name.textContent='إصدار '+r.version+(r.active?' · نشط تجريبيًا':'');row.append(name);
+      if(!r.active&&active&&identity?.permissions.includes('curriculum:publish')){
+        const b=document.createElement('button');b.type='button';b.textContent='رجوع لهذا الإصدار';
+        b.onclick=async()=>{if(draftBusy||id!==draftId||!confirm('استعادة هذا الإصدار التجريبي دون حذف أي نسخة؟'))return;draftBusy=true;try{await api('/api/draft/rollback',{id,target:r.id,expectedActive:active.id});draftBusy=false;if(g===generation&&id===draftId)await loadReleases();}catch{if(g===generation)$('draftStatus').textContent='تعذر الرجوع؛ راجع حالة الإصدار.';}finally{draftBusy=false;}};row.append(b);
+      }
+      box.append(row);
+    }
+    if(!result.releases.length)box.textContent='لا توجد إصدارات محفوظة.';
+  }catch{if(g===generation)$('draftStatus').textContent='تعذر قراءة سجل الإصدارات.';}
+}
+function canEditDraft(){return !!identity?.permissions.includes('curriculum:edit')&&!draftBusy&&draftState==='draft';}
 function confirmDiscard(){return !$('draftJson').value||$('draftJson').value===draftBaseline||confirm('توجد تغييرات غير محفوظة. هل تريد فتح مسودة أخرى؟');}
 function renderEditor(){
+  renderWorkflow();
   $('draftPreview').hidden=true;$('draftSample').replaceChildren();
   if(!$('draftJson').value){$('visualEditor').replaceChildren();return;}
   window.LoloCmsEditor.mount($('visualEditor'),{
@@ -72,7 +125,7 @@ function renderEditor(){
 }
 $('closeDraftPreview').onclick=()=>{$('draftPreview').hidden=true;$('draftSample').replaceChildren();};
 function setDraft(data){
-  draftId=data?.id||null;draftRevision=data?.revision||0;
+  draftId=data?.id||null;draftRevision=data?.revision||0;draftState=data?.status||'draft';
   $('draftJson').value=JSON.stringify(data?.content||{schemaVersion:1,subjectId:'science',gradeId:'grade-1',title:'مسودة علوم',units:[{id:'unit-1',title:'النباتات',lessons:[{id:'lesson-1',title:'احتياجات النبات',goal:'التعرف على احتياجات النبات',activities:[{id:'activity-1',type:'true-false',version:1,prompt:'النبات يحتاج الماء.',config:{answer:true}}]}]}]},null,2);
   draftBaseline=$('draftJson').value;renderEditor();
 }
@@ -81,7 +134,7 @@ async function loadDrafts(){
   const data=await api('/api/drafts');if(g!==generation)return;
   $('draftList').replaceChildren();
   for(const d of data.drafts){
-    const btn=document.createElement('button');btn.textContent=d.title+' · v'+d.revision;
+    const btn=document.createElement('button');btn.textContent=d.title+' · v'+d.revision+' · '+(d.status||'draft');
     btn.onclick=async()=>{const current=generation;try{if($('draftEditor').hidden||draftBusy||!confirmDiscard())return;draftBusy=true;try{const item=await api('/api/draft/read',{id:d.id});if(current===generation){draftBusy=false;setDraft(item);}}finally{draftBusy=false;}}catch{$('draftStatus').textContent='تعذر فتح المسودة.';}};
     $('draftList').append(btn);
   }
@@ -89,14 +142,14 @@ async function loadDrafts(){
 $('draftNav').onclick=()=>$('drafts').scrollIntoView({block:'start'});
 $('newDraft').onclick=()=>{if(draftBusy||!identity?.permissions.includes('curriculum:edit')||!confirmDiscard())return;setDraft(null);$('draftStatus').textContent='مسودة جديدة غير محفوظة.';};
 async function draftAction(save){
-  if(draftBusy||!identity?.permissions.includes('curriculum:edit'))return;
+  if(!canEditDraft())return;
   draftBusy=true;$('visualEditor').disabled=true;const g=generation;
   const buttons=[$('checkDraft'),$('saveDraft'),$('newDraft')];buttons.forEach(b=>b.disabled=true);
   try{
     const content=JSON.parse($('draftJson').value);
     const result=await api(save?'/api/draft/save':'/api/draft/check',save?{id:draftId,revision:draftRevision,content}:{content});
     if(g!==generation)return;
-    if(save){draftId=result.id;draftRevision=result.revision;draftBaseline=$('draftJson').value;$('draftStatus').textContent='تم حفظ المسودة · إصدار '+draftRevision;await loadDrafts();}
+    if(save){draftId=result.id;draftRevision=result.revision;draftState=result.status||'draft';draftBaseline=$('draftJson').value;$('draftStatus').textContent='تم حفظ المسودة · إصدار '+draftRevision;await loadDrafts();renderWorkflow();}
     else $('draftStatus').textContent=result.valid?'المحتوى متوافق مع المحرك الحالي؛ لم يُنشر.':result.issues.map(i=>i.code+' — '+i.path).join('\n');
   }catch(e){
     if(g!==generation)return;
