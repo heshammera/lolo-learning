@@ -32,3 +32,5 @@ Family backend and local profiles promoted at 4875a31 and fb473d6 respectively. 
 Progress backend promoted at 25f9a9d. Staging UI candidate adds temporary login, synthetic profiles, explicit first backup preview; no remote overwrite or restore, no persistent linking/queue, consent still open.
 
 Restore candidate: explicit copy of limited remote snapshot into a new local profile; no automatic overwrite, identity link or sync queue.
+
+Restore copy promoted at f2e93ad after successful checks. Pending first-backup queue candidate retains approved snapshot and operation ID after lost response, explicit authenticated retry only. No unattended sync or update of existing remote versions.

@@ -2,7 +2,7 @@
   const uuid=/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/;
   const tokenPattern=/^[A-Za-z0-9_-]{43}$/;
   const bands=new Set(['4-6','7-9','10-12','13-17','unspecified']);
-  function create(request,{allowed=()=>false,now=Date.now,randomId=()=>crypto.randomUUID()}={}){
+  function create(request,{allowed=()=>false,now=Date.now,randomId=()=>crypto.randomUUID(),queueStore=null}={}){
     let generation=0,session=null,controller=null,busy=false,children=[],preview=null;
     function clear(){
       generation++;controller?.abort();controller=null;session=null;children=[];preview=null;busy=false;
@@ -33,7 +33,7 @@
       if(g!==generation||!allowed())throw fail('اتقفلت لوحة ولي الأمر.');
       const expires=Date.parse(result?.expiresAt);
       if(!tokenPattern.test(result?.token||'')||!uuid.test(result?.parentId||'')||!Number.isFinite(expires)||expires<=now())throw fail('استجابة الدخول غير صالحة.');
-      session={token:result.token,expires};return state();
+      session={token:result.token,expires,parentId:result.parentId};return state();
     }
     async function list(){
       const result=await call({action:'children'});
@@ -52,19 +52,53 @@
       preview={childId,localProfileId,revision:data.revision,remote:data.snapshot,local:JSON.parse(JSON.stringify(snapshot)),operationId:randomId()};
       return state();
     }
+    function queued(){
+      try{
+        const q=queueStore?.read();
+        if(!q||q.version!==1||!uuid.test(q.parentId)||!uuid.test(q.childId)||!uuid.test(q.operationId)||typeof q.localProfileId!=='string'||q.baseRevision!==0||!q.snapshot||!['pending','conflict'].includes(q.status))return null;
+        return q;
+      }catch{return null;}
+    }
+    function pending(){
+      const q=queued();
+      if(!q)return null;
+      const authorized=!!live()&&session.parentId===q.parentId&&children.some(c=>c.id===q.childId);
+      return {status:q.status,authorized,localProfileId:q.localProfileId};
+    }
+    function discard(){
+      if(!allowed()||busy)return false;
+      return queueStore?.remove()===true;
+    }
+    async function sendQueued(q,localProfileId,snapshot){
+      if(!live()||session.parentId!==q.parentId||!children.some(c=>c.id===q.childId)||q.localProfileId!==localProfileId||JSON.stringify(snapshot)!==JSON.stringify(q.snapshot)||q.status!=='pending')throw fail('الطلب المحفوظ يحتاج مراجعة الحساب والملف والتقدم.',409);
+      try{
+        const result=await call({action:'writeProgress',childId:q.childId,baseRevision:0,operationId:q.operationId,snapshot:q.snapshot});
+        if(result?.revision!==1)throw fail('تعذر تأكيد الحفظ.');
+        if(queueStore&&!queueStore.remove())throw fail('تم إرسال الطلب، لكن تعذر تحديث حالة الطابور.');
+        preview=null;return result;
+      }catch(e){
+        if(e.status===409){preview=null;if(queueStore)queueStore.write({...q,status:'conflict'});}
+        throw e;
+      }
+    }
+    async function resume(localProfileId,snapshot){
+      const q=queued();
+      if(!q)throw fail('مفيش طلب محفوظ.');
+      return sendQueued(q,localProfileId,snapshot);
+    }
     async function upload(localProfileId,snapshot){
       const p=preview;
       if(!p||p.localProfileId!==localProfileId||JSON.stringify(snapshot)!==JSON.stringify(p.local)||!children.some(c=>c.id===p.childId))throw fail('التقدم المحلي تغيّر. اعملي معاينة جديدة.');
       // Initial backup only: never overwrite an existing remote snapshot in this milestone.
       if(p.revision!==0)throw fail('في نسخة محفوظة بالفعل. الاستبدال غير متاح في النسخة التجريبية.',409);
-      try{
-        const result=await call({action:'writeProgress',childId:p.childId,baseRevision:p.revision,operationId:p.operationId,snapshot:p.local});
-        if(result?.revision!==1)throw fail('تعذر تأكيد الحفظ.');
-        preview=null;return result;
-      }catch(e){if(e.status===409)preview=null;throw e;}
+      if(!live()||busy)throw fail('سجّلي الدخول من جديد.',401);
+      if(queued())throw fail('في طلب محفوظ بالفعل. راجعيه قبل إنشاء طلب جديد.',409);
+      const q={version:1,parentId:session.parentId,childId:p.childId,localProfileId,baseRevision:0,operationId:p.operationId,snapshot:p.local,status:'pending'};
+      if(queueStore&&!queueStore.write(q))throw fail('تعذر حفظ الطلب محليًا. لم يُرسل.');
+      return sendQueued(q,localProfileId,snapshot);
     }
     async function logout(){try{if(live())await call({action:'logout'});}finally{clear();}}
-    return Object.freeze({state,clear,login,list,add,compare,upload,logout});
+    return Object.freeze({state,clear,login,list,add,compare,upload,pending,resume,discard,logout});
   }
   const api=Object.freeze({create});
   if(typeof module!=='undefined'&&module.exports)module.exports=api;

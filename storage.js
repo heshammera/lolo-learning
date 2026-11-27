@@ -9,7 +9,7 @@
 
   const PROFILE_KEY='lolo-local-profiles-v1';
   const LEGACY='default';
-  const SCOPED=new Set(['lolo-current-lesson','lolo-explicit-lesson-choice','lolo-grade-id','lolo-lesson-excellence','lolo-lesson-stats','lolo-mastered','lolo-onboarding-complete','lolo-parent-settings','lolo-path-program','lolo-selected-program','lolo-skill-progress-v1','lolo-test-results','lolo-trace-results','lolo-welcome-tour-v1-complete','lolo-writing-path-overrides','lolo-writing-path-results','lolo-learning-path-v1','lolo-visual-assessment-v1']);
+  const SCOPED=new Set(['lolo-current-lesson','lolo-explicit-lesson-choice','lolo-grade-id','lolo-lesson-excellence','lolo-lesson-stats','lolo-mastered','lolo-onboarding-complete','lolo-parent-settings','lolo-path-program','lolo-selected-program','lolo-skill-progress-v1','lolo-test-results','lolo-trace-results','lolo-welcome-tour-v1-complete','lolo-writing-path-overrides','lolo-writing-path-results','lolo-learning-path-v1','lolo-visual-assessment-v1','lolo-pending-cloud-backup-v1']);
   const idValid=id=>id===LEGACY||(typeof id==='string'&&/^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/.test(id));
   const nameValid=name=>typeof name==='string'&&name.trim().length>=1&&name.trim().length<=40&&!/[\p{C}]/u.test(name);
   function readProfiles(){

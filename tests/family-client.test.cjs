@@ -49,3 +49,38 @@ test('late login response after clear cannot restore session',async()=>{
   resolve({ok:true,status:200,json:async()=>({token:'a'.repeat(43),expiresAt:'2099-01-01T00:00:00Z',parentId:id})});
   await assert.rejects(p);assert.equal(c.state().signedIn,false);
 });
+
+test('durable approved backup retries the same operation after lost response and fresh login',async()=>{
+  let saved=null,lose=true,requests=[],parent=id;
+  const store={read:()=>saved,write:q=>{saved=JSON.parse(JSON.stringify(q));return true;},remove:()=>{saved=null;return true;}};
+  const client=create(async(path,o)=>{
+    const b=JSON.parse(o.body);
+    if(b.action==='writeProgress'){requests.push(b);if(lose){lose=false;throw Error('response lost');}}
+    const data=b.action==='login'?{token:'a'.repeat(43),expiresAt:'2099-01-01T00:00:00Z',parentId:parent}:b.action==='children'?{children:[{id,nickname:'Test',ageBand:'unspecified'}]}:b.action==='readProgress'?{revision:0,snapshot:null}:{revision:1};
+    return {ok:true,status:200,json:async()=>data};
+  },{allowed:()=>true,randomId:()=>id,queueStore:store});
+  await client.login('test@example.test','password');await client.list();await client.compare(id,'default',snapshot);
+  await assert.rejects(client.upload('default',snapshot));
+  assert.equal(saved.operationId,id);assert.equal(JSON.stringify(saved).includes('a'.repeat(43)),false);
+  client.clear();assert.equal(client.pending().authorized,false);
+  await assert.rejects(client.resume('default',snapshot));
+  parent='22222222-2222-4222-8222-222222222222';
+  await client.login('other@example.test','password');await client.list();
+  await assert.rejects(client.resume('default',snapshot));
+  parent=id;await client.login('test@example.test','password');await client.list();
+  await assert.rejects(client.resume('other',snapshot));
+  await assert.rejects(client.resume('default',{...snapshot,completedLessonIds:[]}));
+  assert.equal(requests.length,1);
+  assert.equal((await client.resume('default',snapshot)).revision,1);
+  assert.deepEqual(requests[0],requests[1]);assert.equal(saved,null);
+});
+test('queue write failure blocks upload before any request',async()=>{
+  let writes=0;
+  const c=create(async(path,o)=>{
+    const b=JSON.parse(o.body);if(b.action==='writeProgress')writes++;
+    const data=b.action==='login'?{token:'a'.repeat(43),expiresAt:'2099-01-01T00:00:00Z',parentId:id}:b.action==='children'?{children:[{id,nickname:'Test',ageBand:'unspecified'}]}:{revision:0,snapshot:null};
+    return {ok:true,status:200,json:async()=>data};
+  },{allowed:()=>true,randomId:()=>id,queueStore:{read:()=>null,write:()=>false,remove:()=>true}});
+  await c.login('test@example.test','password');await c.list();await c.compare(id,'default',snapshot);
+  await assert.rejects(c.upload('default',snapshot));assert.equal(writes,0);
+});

@@ -4,3 +4,5 @@
 - Existing local profiles, offline mode and scoped learning retained. Full V2 remains incomplete.
 
 - Restore candidate on verification/progress-restore-20261127: explicit restore-as-copy; version and path validation; staged new namespace publication; original file preserved. CI pending.
+
+- Main f2e93ad passed restore browser/build run 46054259371. Queue candidate on verification/sync-queue-20261127; CI pending. Production cloud disabled.

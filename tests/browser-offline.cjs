@@ -114,7 +114,7 @@ async function verifyPractice(page){
     const staging=await browser.newContext({serviceWorkers:'block'});
     await seed(staging);
     const remoteChild='11111111-1111-4111-8111-111111111111', token='a'.repeat(43);
-    let revision=0,remote=null,writes=0;
+    let revision=0,remote=null,writes=0,firstOperation=null;
     const actions=[];
     await staging.route('**/api/status',route=>route.fulfill({json:{providers:[],familyUiEnabled:true,progressSyncEnabled:true}}));
     await staging.route('**/api/family',async route=>{
@@ -127,7 +127,8 @@ async function verifyPractice(page){
       else if(body.action==='writeProgress'){
         writes++;assert.equal(body.childId,remoteChild);assert.equal(body.baseRevision,0);
         assert.deepEqual(Object.keys(body.snapshot).sort(),['completedLessonIds','curriculumVersion','path','schemaVersion']);
-        revision=1;remote=body.snapshot;data={revision,snapshot:remote};
+        if(writes===1){firstOperation=body.operationId;revision=1;remote=body.snapshot;await route.abort();return;}
+        assert.equal(body.operationId,firstOperation);assert.deepEqual(body.snapshot,remote);data={revision,snapshot:remote};
       }
       await route.fulfill({json:data});
     });
@@ -153,8 +154,23 @@ async function verifyPractice(page){
     assert.equal(writes,0);
     await sp.locator('#cloudConfirm').check();
     await sp.locator('#cloudUpload').click();
-    await sp.waitForFunction(()=>document.querySelector('#cloudStatus').textContent.includes('تم حفظ'));
+    await sp.locator('#cloudPendingBox:not([hidden])').waitFor();
+    await sp.waitForFunction(()=>!document.querySelector('#cloudResume').disabled);
     assert.equal(writes,1);
+    await sp.locator('#parentClose').click();
+    await sp.reload({waitUntil:'domcontentloaded'});
+    await sp.waitForFunction(()=>!document.querySelector('#mic').disabled);
+    await sp.locator('#parentOpen').click();
+    await sp.locator('#parentGatePin').fill('638294');
+    await sp.locator('#parentGateVerify button[type="submit"]').click();
+    await sp.locator('#cloudFamilyPanel:not([hidden])').waitFor();
+    await sp.locator('#cloudEmail').fill('synthetic@example.test');
+    await sp.locator('#cloudPassword').fill('synthetic-password');
+    await sp.locator('#cloudLogin button[type="submit"]').click();
+    await sp.locator('#cloudChildren button').first().waitFor();
+    await sp.locator('#cloudResume').click();
+    await sp.waitForFunction(()=>document.querySelector('#cloudStatus').textContent.includes('تم حفظ'));
+    assert.equal(writes,2);
     await sp.locator('#cloudChildren button').first().click();
     await sp.locator('#cloudPreview:not([hidden])').waitFor();
     assert.equal(await sp.locator('#cloudUpload').isVisible(),false);
@@ -168,7 +184,7 @@ async function verifyPractice(page){
     assert.equal(await sp.evaluate(()=>window.LoloStorage.get('lolo-learning-path-v1')),oldPath);
     const copyId=await sp.evaluate(()=>window.LoloStorage.profiles.list()[1].id);
     assert.deepEqual(await sp.evaluate(id=>JSON.parse(localStorage.getItem('lolo-profile:'+id+':lolo-learning-path-v1')),copyId),remote.path);
-    assert.equal(writes,1);
+    assert.equal(writes,2);
     assert.equal(await sp.evaluate(t=>JSON.stringify(localStorage).includes(t)||JSON.stringify(sessionStorage).includes(t),token),false);
     await sp.locator('#parentClose').click();
     await sp.locator('#parentOpen').click();
@@ -176,8 +192,8 @@ async function verifyPractice(page){
     await sp.locator('#parentGateVerify button[type="submit"]').click();
     await sp.locator('#cloudLogin:not([hidden])').waitFor();
     assert.equal(await sp.locator('#cloudAccount').isVisible(),false);
-    assert.equal(writes,1);
-    assert.deepEqual(actions,['login','children','readProgress','writeProgress','readProgress']);
+    assert.equal(writes,2);
+    assert.deepEqual(actions,['login','children','readProgress','writeProgress','login','children','writeProgress','readProgress']);
     assert.deepEqual(stagingErrors,[]);
     await staging.close();
     // Simulate native offline connectivity while serving the bundled files locally.

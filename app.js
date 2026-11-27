@@ -3048,7 +3048,8 @@ $('#localProfileForm').addEventListener('submit',event=>{
 renderActiveLocalProfile();
 
 let cloudUiEnabled=false,cloudSyncEnabled=false;
-const familyClient=window.LoloFamilyClient.create(apiFetch,{allowed:()=>cloudUiEnabled&&parentGate.isUnlocked()&&$('#parentSheet').classList.contains('open')&&!$('#parentSettingsPanel').hidden&&document.visibilityState!=='hidden'});
+const BACKUP_QUEUE_KEY='lolo-pending-cloud-backup-v1';
+const familyClient=window.LoloFamilyClient.create(apiFetch,{queueStore:{read:()=>storage.getJSON(BACKUP_QUEUE_KEY,null),write:q=>storage.set(BACKUP_QUEUE_KEY,JSON.stringify(q)),remove:()=>storage.remove(BACKUP_QUEUE_KEY)},allowed:()=>cloudUiEnabled&&parentGate.isUnlocked()&&$('#parentSheet').classList.contains('open')&&!$('#parentSettingsPanel').hidden&&document.visibilityState!=='hidden'});
 function resetCloudFamily(){
   familyClient.clear();$('#cloudEmail').value='';$('#cloudPassword').value='';$('#cloudNickname').value='';$('#cloudConfirm').checked=false;$('#cloudRestoreConfirm').checked=false;$('#cloudStatus').textContent='';renderCloudFamily();
 }
@@ -3092,13 +3093,20 @@ function renderCloudFamily(){
       row.append(button);
     }list.append(row);
   }
+  const q=familyClient.pending();
+  $('#cloudPendingBox').hidden=!q||!cloudSyncEnabled;
+  if(q){
+    $('#cloudPendingText').textContent=q.status==='conflict'?'في تعارض مع نسخة سحابية. راجعي النسخة قبل أي محاولة جديدة.':'في طلب حفظ وافقتِ عليه قبل كده. سجّلي الدخول لنفس الحساب وراجعيه لإكماله.';
+    $('#cloudResume').disabled=s.busy||navigator.onLine===false||!q.authorized||q.status!=='pending';
+    $('#cloudDiscard').disabled=s.busy;
+  }
   const p=s.preview;$('#cloudPreview').hidden=!p||!cloudSyncEnabled;
   if(p){
     const remote=p.remote?.completedLessonIds?.length||0;
     const child=s.children.find(c=>c.id===p.childId);
     $('#cloudPreviewText').textContent=`ملف الجهاز: ${storage.profiles.current()?.name||''} · ${p.local.completedLessonIds.length} درس مكتمل. الملف السحابي: ${child?.nickname||''} · ${remote} درس · إصدار ${p.revision}. ${p.revision?'في نسخة محفوظة؛ الاستبدال غير متاح.':'لم يُحفظ تقدم سحابي بعد.'}`;
     $('#cloudConfirmLabel').hidden=p.revision!==0;$('#cloudUpload').hidden=p.revision!==0;
-    $('#cloudUpload').disabled=s.busy||navigator.onLine===false||!$('#cloudConfirm').checked||p.revision!==0;
+    $('#cloudUpload').disabled=s.busy||navigator.onLine===false||!$('#cloudConfirm').checked||p.revision!==0||!!q;
     $('#cloudRestoreBox').hidden=p.revision===0||!restoredProfileEntries(p.remote);
     $('#cloudRestore').disabled=s.busy||!$('#cloudRestoreConfirm').checked||storage.profiles.list().length>=12;
   }
@@ -3123,6 +3131,15 @@ $('#cloudUpload').onclick=()=>{
   if(!$('#cloudConfirm').checked||!cloudSyncEnabled)return;
   $('#cloudConfirm').checked=false;
   runCloud(()=>familyClient.upload(storage.profiles.activeId,localProgressSnapshot()),'تم حفظ النسخة الأولى من التقدم. بيانات الجهاز لم تتغير.');
+};
+$('#cloudResume').onclick=()=>{
+  if(!cloudSyncEnabled||!parentGate.isUnlocked()||!familyClient.pending()?.authorized)return;
+  runCloud(()=>familyClient.resume(storage.profiles.activeId,localProgressSnapshot()),'تم حفظ النسخة الأولى من التقدم. بيانات الجهاز لم تتغير.');
+};
+$('#cloudDiscard').onclick=()=>{
+  if(!parentGate.isUnlocked()||!confirm('إلغاء طلب الحفظ المحلي؟ قد يكون الخادم استلمه بالفعل؛ اعملي معاينة جديدة للتحقق.'))return;
+  if(familyClient.discard()){$('#cloudStatus').textContent='تم إلغاء الطلب المحلي. لم تُحذف أي نسخة سحابية.';}
+  renderCloudFamily();
 };
 $('#cloudRestoreConfirm').onchange=renderCloudFamily;
 $('#cloudRestore').onclick=()=>{
