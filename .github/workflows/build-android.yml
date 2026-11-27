@@ -5,6 +5,8 @@ on:
   push:
     paths:
       - 'android-apk/**'
+      - 'assets/branding/**'
+      - 'scripts/generate_brand_assets.py'
       - '.github/workflows/build-android.yml'
 
 permissions:

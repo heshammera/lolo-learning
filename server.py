@@ -4,11 +4,46 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
+from collections import deque
+from hashlib import sha256
+from hmac import new as hmac_new
+from threading import Lock
+from time import monotonic
 import json
 import os
+import secrets
 
 ROOT = Path(__file__).resolve().parent
 PORT = int(os.environ.get("PORT", "4173"))
+HOST = os.environ.get("HOST", "127.0.0.1")
+_RATE_LIMIT_SECRET = secrets.token_bytes(32)
+
+
+class SlidingWindowRateLimiter:
+    """Small process-local safety limit; production needs a shared edge limiter."""
+
+    def __init__(self, max_keys=4096):
+        self.max_keys = max_keys
+        self._events = {}
+        self._lock = Lock()
+
+    def check(self, key, limit, window_seconds=60):
+        now = monotonic()
+        with self._lock:
+            if len(self._events) >= self.max_keys and key not in self._events:
+                oldest_key = min(self._events, key=lambda item: self._events[item][-1])
+                self._events.pop(oldest_key, None)
+            events = self._events.setdefault(key, deque())
+            cutoff = now - window_seconds
+            while events and events[0] <= cutoff:
+                events.popleft()
+            if len(events) >= limit:
+                return False, max(1, int(window_seconds - (now - events[0]) + 0.999))
+            events.append(now)
+            return True, 0
+
+
+API_RATE_LIMITER = SlidingWindowRateLimiter()
 
 
 def load_local_env():
@@ -206,6 +241,18 @@ def live_config(lesson_id, mode="lesson", already_mastered=False, excellence_cou
 
 
 class Handler(BaseHTTPRequestHandler):
+    API_LIMITS = {
+        "/api/provider-token": (10, 60),
+        "/api/onboarding-audio": (8, 60),
+        "/api/challenge-audio": (8, 60),
+    }
+
+    def end_headers(self):
+        self.send_header("X-Content-Type-Options", "nosniff")
+        self.send_header("Referrer-Policy", "strict-origin-when-cross-origin")
+        self.send_header("Permissions-Policy", "microphone=(self)")
+        super().end_headers()
+
     def send_json(self, status, value):
         data = json.dumps(value, ensure_ascii=False).encode()
         self.send_response(status)
@@ -216,24 +263,51 @@ class Handler(BaseHTTPRequestHandler):
         self.wfile.write(data)
 
     def do_POST(self):
-        if self.path == "/api/provider-token":
+        route = self.path.split("?", 1)[0]
+        if route not in self.API_LIMITS or self.path != route:
+            return self.send_json(404, {"error": "Not found"})
+        limit, window = self.API_LIMITS[route]
+        forwarded_ip = self.headers.get("x-real-ip") if os.environ.get("VERCEL") else None
+        source_ip = forwarded_ip or self.client_address[0]
+        request_id = hmac_new(_RATE_LIMIT_SECRET, source_ip.encode(), "sha256").hexdigest()
+        allowed, retry_after = API_RATE_LIMITER.check((route, request_id), limit, window)
+        if not allowed:
+            self.send_response(429)
+            self.send_header("Content-Type", "application/json; charset=utf-8")
+            self.send_header("Cache-Control", "no-store")
+            self.send_header("Retry-After", str(retry_after))
+            self.end_headers()
+            self.wfile.write(json.dumps({"error": "طلبات كتير في وقت قصير. استني لحظة وجربي تاني."}, ensure_ascii=False).encode())
+            return
+        if route == "/api/provider-token":
             return self.create_provider_token()
-        if self.path == "/api/onboarding-audio":
+        if route == "/api/onboarding-audio":
             return self.create_onboarding_audio()
-        if self.path == "/api/challenge-audio":
+        if route == "/api/challenge-audio":
             return self.create_challenge_audio()
-        return self.send_json(404, {"error": "Not found"})
+
+    def read_json_object(self, maximum_bytes):
+        raw_length = self.headers.get("Content-Length", "0")
+        try:
+            length = int(raw_length)
+        except (TypeError, ValueError):
+            return None, "الطلب غير صالح."
+        if length < 0 or length > maximum_bytes:
+            return None, "حجم الطلب غير صالح."
+        try:
+            body = json.loads(self.rfile.read(length) or b"{}")
+        except (ValueError, json.JSONDecodeError):
+            return None, "الطلب غير صالح."
+        if not isinstance(body, dict):
+            return None, "الطلب غير صالح."
+        return body, None
 
     def create_challenge_audio(self):
         if not GEMINI_API_KEY:
             return self.send_json(503, {"error": "صوت لولو مش متاح حالياً."})
-        try:
-            length = int(self.headers.get("Content-Length", "0"))
-            if length > 4000:
-                return self.send_json(400, {"error": "السؤال أطول من المسموح."})
-            body = json.loads(self.rfile.read(length) or b"{}")
-        except (ValueError, json.JSONDecodeError):
-            return self.send_json(400, {"error": "الطلب غير صالح."})
+        body, error = self.read_json_object(4000)
+        if error:
+            return self.send_json(400, {"error": error})
         text = body.get("text")
         if not isinstance(text, str) or not text.strip() or len(text) > 600:
             return self.send_json(400, {"error": "نص السؤال غير صالح."})
@@ -283,13 +357,9 @@ class Handler(BaseHTTPRequestHandler):
     def create_onboarding_audio(self):
         if not GEMINI_API_KEY:
             return self.send_json(503, {"error": "صوت لولو الترحيبي غير متاح حالياً."})
-        try:
-            length = int(self.headers.get("Content-Length", "0"))
-            if length > 1000:
-                return self.send_json(400, {"error": "الطلب غير صالح."})
-            body = json.loads(self.rfile.read(length) or b"{}")
-        except (ValueError, json.JSONDecodeError):
-            return self.send_json(400, {"error": "الطلب غير صالح."})
+        body, error = self.read_json_object(1000)
+        if error:
+            return self.send_json(400, {"error": error})
         step = body.get("step")
         scripts = {
             "welcome": "أهلاً يا بطلة! أنا لولو، معلمتك وصاحبتك في رحلة التعلم. هنتعلم الإنجليزي والماث باللعب والصور، وهكلمك بالمصري وأسمع إجابتك وأساعدك خطوة خطوة. مش محتاجة تقرأي أو تكتبي، اتكلمي معايا براحتك!",
@@ -339,14 +409,12 @@ class Handler(BaseHTTPRequestHandler):
             self.send_json(502, {"error": "الاتصال تأخر في تجهيز صوت لولو."})
 
     def create_provider_token(self):
-        try:
-            length = int(self.headers.get("Content-Length", "0"))
-            if length > 2000:
-                return self.send_json(400, {"error": "الطلب غير صالح."})
-            body = json.loads(self.rfile.read(length) or b"{}")
-        except (ValueError, json.JSONDecodeError):
-            return self.send_json(400, {"error": "الطلب غير صالح."})
+        body, error = self.read_json_object(2000)
+        if error:
+            return self.send_json(400, {"error": error})
         lesson_id = body.get("lessonId", "")
+        if not isinstance(lesson_id, str) or len(lesson_id) > 160:
+            return self.send_json(400, {"error": "الدرس غير موجود في المسار."})
         mode = body.get("mode", "lesson")
         already_mastered = body.get("alreadyMastered") is True
         try:
@@ -354,6 +422,9 @@ class Handler(BaseHTTPRequestHandler):
         except (TypeError, ValueError):
             excellence_count = 0
         provider = body.get("provider", "gemini")
+        if not isinstance(provider, str):
+            return self.send_json(400, {"error": "مزود الصوت غير معروف."})
+        excellence_count = min(excellence_count, 1000)
         raw_settings = body.get("teacherSettings") if isinstance(body.get("teacherSettings"), dict) else {}
         teacher_settings = {
             "speechPace": raw_settings.get("speechPace") if raw_settings.get("speechPace") in {"slow", "normal"} else "slow",
@@ -397,8 +468,7 @@ class Handler(BaseHTTPRequestHandler):
                 return self.send_json(502, {"error": "Google لم يرجع رمز جلسة صوتية."})
             self.send_json(200, {"provider": provider, "token": token, "model": model, "config": config})
         except HTTPError as error:
-            detail = error.read(1200).decode("utf-8", errors="replace")
-            print("Gemini token rejected:", error.code, detail[:300])
+            print("Gemini token rejected:", error.code)
             self.send_json(502, {"error": "Google رفض المفتاح أو لم يفعّل Gemini Live للمشروع."})
         except (URLError, TimeoutError, json.JSONDecodeError) as error:
             print("Gemini token request failed:", type(error).__name__)
@@ -472,20 +542,18 @@ class Handler(BaseHTTPRequestHandler):
         path = self.path.split("?", 1)[0]
         if path == "/api/status":
             return self.send_json(200, {"providers": [name for name, configured in (("gemini", GEMINI_API_KEY), ("openai", OPENAI_API_KEY and OPENAI_ENABLED), ("gemini-backup", GEMINI_BACKUP_API_KEY)) if configured]})
-        if path == "/favicon.ico":
-            self.send_response(204)
-            self.send_header("Cache-Control", "public, max-age=86400")
-            self.end_headers()
-            return
         relative = "index.html" if path == "/" else path.lstrip("/")
-        if relative not in {"index.html", "curriculum.json", "pcm-processor.js", "app.js", "favicon.svg"}:
+        allowed_files = {"index.html", "curriculum.json", "pcm-processor.js", "app.js", "brand.js", "favicon.ico", "favicon-16x16.png", "favicon-32x32.png", "favicon-48x48.png", "apple-touch-icon.png", "site.webmanifest"}
+        is_brand_asset = relative.startswith("assets/branding/") and Path(relative).suffix.lower() in {".png", ".webp", ".json"}
+        if relative not in allowed_files and not is_brand_asset:
             return self.send_json(404, {"error": "Not found"})
         file = (ROOT / relative).resolve()
         if ROOT not in file.parents or not file.is_file():
             return self.send_json(404, {"error": "Not found"})
         content = file.read_bytes()
         mime = {".html": "text/html; charset=utf-8", ".json": "application/json; charset=utf-8",
-                ".js": "text/javascript; charset=utf-8", ".svg": "image/svg+xml"}.get(file.suffix, "application/octet-stream")
+                ".webmanifest": "application/manifest+json; charset=utf-8", ".js": "text/javascript; charset=utf-8",
+                ".ico": "image/vnd.microsoft.icon", ".png": "image/png", ".webp": "image/webp"}.get(file.suffix, "application/octet-stream")
         self.send_response(200)
         self.send_header("Content-Type", mime)
         self.send_header("Cache-Control", "no-store")
@@ -495,5 +563,5 @@ class Handler(BaseHTTPRequestHandler):
 
 
 if __name__ == "__main__":
-    print(f"Lolo English is available on http://localhost:{PORT}")
-    ThreadingHTTPServer(("0.0.0.0", PORT), Handler).serve_forever()
+    print(f"Lolo Learning is available on http://{HOST}:{PORT}")
+    ThreadingHTTPServer((HOST, PORT), Handler).serve_forever()

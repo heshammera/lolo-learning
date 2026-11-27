@@ -1,0 +1,10 @@
+{
+  "name": "LOLO Learning",
+  "primary": "#703FBF",
+  "accent": "#FCB000",
+  "mint": "#7BDDB1",
+  "sky": "#53BDF2",
+  "paper": "#FAF8FF",
+  "assets": {"logo": "/assets/branding/logos/lolo-logo.webp", "icon": "/assets/branding/icons/lolo-icon.webp"},
+  "sourceFiles": {"logo": "assets/branding/original/lolo-logo-original.png", "icon": "assets/branding/original/lolo-icon-original.png"}
+}
