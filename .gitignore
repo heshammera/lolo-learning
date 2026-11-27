@@ -12,3 +12,5 @@ __pycache__/
 /android-apk/android/.idea/
 /android-apk/android/.DS_Store
 /outputs/lolo-android-apk/
+
+/android-apk/www-bundled/

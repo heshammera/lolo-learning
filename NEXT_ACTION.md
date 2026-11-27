@@ -1,2 +1,2 @@
 # Next Action
-Verify the learning-scope milestone on the verification branch before promoting to main. See docs/LEARNING_PATH_ARCHITECTURE.md and docs/MASTER_REQUIREMENTS_STATUS.md. Continue with authored question banks, robust evidence and child safety, provider-independent grading, server identity and consent. Keep backup/pre-lolo-v2 and backup/pre-learning-scope-20261127 unchanged.
+Verify offline milestone CI, then promote the tested changes to main; verify Vercel static assets and Android airplane-mode cold boot/upgrade/live provider. Continue remaining V2 requirements in docs/MASTER_REQUIREMENTS_STATUS.md.

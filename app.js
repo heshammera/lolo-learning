@@ -4,6 +4,14 @@ const assessmentEngine = window.LoloAssessment.create();
 const curriculumEngine = window.LoloCurriculum;
 const learningEngine = window.LoloLearning;
 const pathEngine = window.LoloLearningPath;
+const nativeBundle=window.LoloNativeBundled===true;
+const nativeApi=nativeBundle ? options=>{
+  const plugin=window.Capacitor?.Plugins?.CapacitorHttp;
+  if(!plugin?.request)throw new Error('خدمة الاتصال في التطبيق غير متاحة.');
+  return plugin.request(options);
+} : null;
+const network=window.LoloNetwork.create({nativeRequest:nativeApi,onState:renderNetworkNotice});
+const apiFetch=(path,options)=>network.request(path,options);
 const PATH_KEY = 'lolo-learning-path-v1';
 let activePath = null;
 let invalidPath = false;
@@ -175,6 +183,7 @@ function showWelcomeStep(step) {
 
 async function playWelcomeNarration(step, button) {
   const audio = $('#welcomeAudio');
+  if(navigator.onLine===false&&!welcomeAudioCache.has(step)){network.markOffline();$('#welcomeAudioStatus').textContent='صوت الترحيب يحتاج نت. تقدري تكملي الاختيار من غير صوت.';return;}
   if (!audio.paused) {
     audio.pause();
     button.textContent = '▶️ كمّلي سماع لولو';
@@ -186,7 +195,7 @@ async function playWelcomeNarration(step, button) {
   $('#welcomeAudioStatus').textContent = 'لولو بتحضّر صوتها...';
   try {
     if (!mediaUrl) {
-      const response = await fetch('/api/onboarding-audio', {
+      const response = await apiFetch('/api/onboarding-audio', {
         method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({step}),
       });
       const data = await response.json();
@@ -209,7 +218,7 @@ async function playWelcomeNarration(step, button) {
       audio.hidden = false;
       $('#welcomeAudioStatus').textContent = 'الصوت جاهز؛ اضغطي ▶️ في المشغّل لو ما بدأش تلقائيًا.';
     } else {
-      $('#welcomeAudioStatus').textContent = error.message || 'الصوت مش جاهز دلوقتي، جربي تاني.';
+      $('#welcomeAudioStatus').textContent = 'صوت الترحيب مش متاح دلوقتي. تقدري تكملي من غير صوت.';
     }
     $('#welcomeAudioStatus').classList.add('error');
   } finally {
@@ -687,7 +696,7 @@ function renderWritingTask() {
   $('#traceClear').hidden = item.type !== 'draw' && item.type !== 'order';
   $('#traceNext').hidden = item.type !== 'draw' && item.type !== 'order';
   $('#traceFeedback').textContent = item.type === 'draw' ? 'اكتبي بإصبعك، وخدي وقتك 💛' : 'اختاري أو رتّبي إجابتك 💛';
-  state.selected = []; state.attempts = 0;
+  state.selected = []; state.attempts = 0; state.audioBlocked=false;
   if (item.type === 'draw') {
     state.currentItemMode = item.mode; state.prompts = state.items; state.mask = null;
     drawTraceTarget();
@@ -757,6 +766,7 @@ function checkWritingDraw() {
   submitWritingAnswer(null, item.target, score, evaluation);
 }
 function submitWritingAnswer(_callerCorrect, answer, score = null, recordedEvaluation = null) {
+  if(traceState?.audioBlocked){$('#traceFeedback').textContent='اسمعي السؤال الأول أو اختاري تدريبًا آخر.';return;}
   const state = traceState, item = state?.items[state.index];
   if (!state || state.mode !== 'advanced' || state.waiting) return;
   if (item.type === 'order' && state.selected.length !== item.target.length) {
@@ -879,6 +889,7 @@ function startTraceTest(lessonId) {
 
 function closeTraceTest() {
   traceSpeechRequestId++;
+  window.speechSynthesis?.cancel();
   traceSpeechAudio?.pause(); traceSpeechAudio = null;
   $('#traceSheet').classList.remove('open');
   $('#traceSheet').setAttribute('aria-hidden', 'true');
@@ -997,11 +1008,42 @@ function nextTraceTarget() {
   $('#traceCanvas').hidden = true; $('#traceNext').hidden = true;
   renderParentReport(); refreshLessonPicker(traceState.lesson.programId, traceState.lesson.unitId);
 }
+function localSpeech(text,lang='ar-EG'){
+  if(!window.speechSynthesis||!window.SpeechSynthesisUtterance)return false;
+  try{
+    const voices=window.speechSynthesis.getVoices();
+    const prefix=lang.split('-')[0].toLowerCase();
+    const voice=voices.find(v=>v.localService&&v.lang.toLowerCase()===lang.toLowerCase())||voices.find(v=>v.localService&&v.lang.toLowerCase().split('-')[0]===prefix);
+    if(!voice)return false;
+    const utterance=new SpeechSynthesisUtterance(text);utterance.voice=voice;utterance.lang=voice.lang;utterance.rate=.85;
+    window.speechSynthesis.cancel();window.speechSynthesis.speak(utterance);return true;
+  }catch{return false;}
+}
+function audioOnlyWritingTask(){
+  return traceState?.mode==='advanced' && [1,3].includes(traceState.stageIndex) &&
+    programList().find(p=>p.id===traceState.programId)?.subject!=='math';
+}
+function offlineWritingFallback(text,lang){
+  if(audioOnlyWritingTask()){
+    const item=traceState.items[traceState.index];
+    // Only use an installed local voice for the language being assessed.
+    const canSpeak=localSpeech(item.say,item.lang||'en-US');
+    traceState.audioBlocked=!canSpeak;
+    $('#traceFeedback').textContent=canSpeak?'صوت الجهاز المحلي · اسمعي السؤال وجاوبي.':'السؤال ده محتاج صوت إنجليزي. وصّلي النت أو اختاري تدريبًا بصريًا تاني.';
+    return;
+  }
+  const item=traceState?.mode==='advanced'?traceState.items[traceState.index]:null;
+  if(item?.prompt==='اسمعي الحكاية وعدّي الصور.'&&item.say)$('#tracePrompt').textContent=item.say;
+  const spoken=localSpeech(text,lang);
+  $('#traceFeedback').textContent=spoken?'صوت الجهاز المحلي · تقدري تكملي التدريب.':'الصوت مش متاح؛ كمّلي التدريب من التعليمات الظاهرة.';
+}
 function speakTraceFeedback(text, lang = 'ar-EG') {
   const requestId = ++traceSpeechRequestId;
   traceSpeechAudio?.pause();
   traceSpeechAudio = null;
-  fetch('/api/challenge-audio', {
+  if(navigator.onLine===false){network.markOffline();offlineWritingFallback(text,lang);return;}
+  if(audioOnlyWritingTask())traceState.audioBlocked=true;
+  apiFetch('/api/challenge-audio', {
     method: 'POST', headers: {'Content-Type':'application/json'},
     body: JSON.stringify({text, lang}),
   }).then(async response => {
@@ -1015,9 +1057,10 @@ function speakTraceFeedback(text, lang = 'ar-EG') {
     audio.onended = () => { URL.revokeObjectURL(audioUrl); if (traceSpeechAudio === audio) traceSpeechAudio = null; };
     audio.onerror = () => { URL.revokeObjectURL(audioUrl); if (traceSpeechAudio === audio) traceSpeechAudio = null; };
     await audio.play();
-  }).catch(error => {
-    if (requestId !== traceSpeechRequestId) return;
-    $('#traceFeedback').textContent = `${error.message || 'صوت لولو مش متاح.'} اضغطي «اسمعي السؤال تاني» للمحاولة.`;
+    if(requestId===traceSpeechRequestId&&traceState)traceState.audioBlocked=false;
+  }).catch(() => {
+    if(requestId!==traceSpeechRequestId)return;
+    offlineWritingFallback(text,lang);
   });
 }
 
@@ -2360,7 +2403,7 @@ async function providerToken(provider, sessionSignal) {
   const timeout = setTimeout(() => requestController.abort(), 12000);
   let response;
   try {
-    response = await fetch('/api/provider-token', {
+    response = await apiFetch('/api/provider-token', {
       method: 'POST', headers: {'Content-Type': 'application/json'}, signal: requestController.signal,
       body: JSON.stringify({provider, lessonId: currentLesson?.id || 'course-complete', mode: sessionMode, alreadyMastered: sessionMode === 'lesson' && mastered.has(currentLesson?.id), excellenceCount: Number(lessonExcellence[currentLesson?.id]) || 0, teacherSettings: {speechPace: parentSettings.speechPace, hintLevel: parentSettings.hintLevel, repeatWords: parentSettings.repeatWords, learningScope:activePath?.scope || 'lesson'}}),
     });
@@ -2479,6 +2522,7 @@ async function connectOpenAI(sessionId, sessionSignal) {
 
 async function startSession(continuing = false) {
   if (isStarting || isActive || !course || document.visibilityState === 'hidden') return;
+  if(navigator.onLine===false){network.markOffline();renderNetworkNotice('offline');setStatus('الصوت الذكي محتاج نت. التدريب المحلي متاح.');return;}
   if (sessionMode === 'lesson') {
     if (invalidPath || activePath?.status === 'completed') { setStatus('اختاري خطة تعلم جديدة من لوحة ولي الأمر.'); return; }
     if (!activePath && currentLesson) {
@@ -2523,7 +2567,7 @@ async function startSession(continuing = false) {
   cardsFor(currentLesson); updateProgress(); setStatus('جاري توصيل لولو');
   try {
     if (!navigator.mediaDevices?.getUserMedia || !window.AudioWorkletNode || !window.WebSocket) throw new Error('الميكروفون يحتاج متصفحاً حديثاً ورابط HTTPS أو localhost.');
-    const providerStatusPromise = fetch('/api/status', {signal: requestController.signal}).then(response => {
+    const providerStatusPromise = apiFetch('/api/status', {signal: requestController.signal}).then(response => {
       if (!response.ok) throw new Error('تعذر قراءة إعدادات الصوت.');
       return response.json();
     });
@@ -2595,7 +2639,12 @@ async function startSession(continuing = false) {
     else send({clientContent: {turns: [{role: 'user', parts: [{text: opening}]}], turnComplete: true}});
 
   } catch (error) {
-    if (sessionTimers.isCurrent(sessionId)) { closeSession(); showError(error.message || 'مقدرناش نفتح الميكروفون.'); }
+    if (sessionTimers.isCurrent(sessionId)) {
+      closeSession();
+      if(navigator.onLine===false||network.getState()==='offline'||network.getState()==='unreachable'){
+        renderNetworkNotice(network.getState());setStatus('الصوت توقف. تقدمك محفوظ والتدريبات المحلية متاحة.');
+      }else showError(error.message || 'مقدرناش نفتح الميكروفون.');
+    }
   } finally {
     if (sessionTimers.isCurrent(sessionId)) {
       isStarting = false;
@@ -2628,6 +2677,61 @@ window.addEventListener('pagehide', () => {
 $('#rewardSkip').onclick = () => finishRewardGame(false);
 $('#homeStart').onclick = () => startSession();
 $('#homeChoose').onclick = () => openParentSettings('lessons');
+let noticeTimer=null;
+function renderNetworkNotice(state){
+  const banner=$('#networkNotice');if(!banner)return;
+  clearTimeout(noticeTimer);
+  banner.dataset.state=state;
+  banner.hidden=false;
+  const title=$('#networkTitle'),detail=$('#networkDetail'),retry=$('#networkRetry');
+  retry.hidden=state==='online';retry.disabled=state==='checking';
+  if(state==='online'){
+    title.textContent='الاتصال رجع';detail.textContent='تقدري تكملي الصوت لما تكوني جاهزة.';
+    noticeTimer=setTimeout(()=>{if(network.getState()==='online')banner.hidden=true;},3500);
+  }else if(state==='checking'){
+    title.textContent='بنتأكد من الاتصال';detail.textContent='كمّلي التدريبات المحلية في الوقت ده.';
+  }else{
+    title.textContent=state==='offline'?'وضع بدون إنترنت':'خدمة الصوت مش متاحة دلوقتي';
+    detail.textContent='المناهج والتدريبات محفوظة على الجهاز. الصوت الذكي يحتاج اتصال.';
+  }
+}
+$('#networkRetry').onclick=()=>network.probe();
+window.addEventListener('offline',()=>{
+  network.markOffline();renderNetworkNotice('offline');
+  if(isActive||isStarting){stopSession();setStatus('الصوت توقف. تقدمك محفوظ.');}
+});
+window.addEventListener('online',()=>{network.probe();});
+if(network.getState()==='offline')renderNetworkNotice('offline');
+if(!nativeBundle&&!window.Capacitor?.isNativePlatform?.()&&'serviceWorker' in navigator&&window.isSecureContext){
+  navigator.serviceWorker.register('/sw.js').catch(()=>{ /* App still works online; installation is not assumed. */ });
+}
+function openOfflinePractice(){
+  if(!course||invalidPath)return;
+  if(isActive||isStarting)stopSession();
+  const lesson=allLessons().find(l=>l.id===pathEngine.current(activePath))||currentLesson;
+  if(!lesson)return;
+  const dialog=$('#offlinePractice');
+  $('#practiceTitle').textContent=lesson.title||lesson.focus||'نتدرّب سوا';
+  $('#practiceGoal').textContent=lesson.goal||'راجعي محتوى الدرس.';
+  $('#practiceFeedback').textContent='';
+  const words=$('#practiceWords'),cards=$('#practiceCards');words.replaceChildren();cards.replaceChildren();
+  for(const token of lesson.board?.tokens||[]){
+    if(!token.text)continue;
+    const button=document.createElement('button');button.type='button';button.textContent=token.text;
+    button.onclick=()=>{$('#practiceFeedback').textContent=token.text;localSpeech(token.text,/[A-Za-z]/.test(token.text)?'en-US':'ar-EG');};
+    words.append(button);
+  }
+  for(const [emoji,label] of lesson.cards||[]){
+    const button=document.createElement('button');button.type='button';button.textContent=emoji;button.setAttribute('aria-label',label);
+    button.onclick=()=>{$('#practiceFeedback').textContent=label;localSpeech(label,'ar-EG');};cards.append(button);
+  }
+  $('#practiceTrace').hidden=!traceTargets(lesson).length;
+  $('#practiceTrace').onclick=()=>{dialog.close();startTraceTest(lesson.id);};
+  dialog.showModal();
+}
+$('#homePractice').onclick=openOfflinePractice;
+$('#practiceClose').onclick=$('#practiceBack').onclick=()=>$('#offlinePractice').close();
+$('#offlinePractice').addEventListener('close',()=>window.speechSynthesis?.cancel());
 function saveParentSettings() {
   parentSettings = {
     ...parentSettings,
@@ -2821,13 +2925,14 @@ function showParentSettingsUnlocked(tab = 'settings') {
   $('#pathScope').value = activePath?.scope || 'lesson';
   renderPathChoice();
   scheduleParentAutoLock();
-  fetch('/api/status').then(response => response.json()).then(status => {
+  if(navigator.onLine===false){$('#apiState').textContent='وضع بدون إنترنت: المناهج والتدريبات المحلية متاحة.';return;}
+  apiFetch('/api/status').then(response => response.json()).then(status => {
     const labels = {gemini: 'Gemini الأساسي', openai: 'OpenAI', 'gemini-backup': 'Gemini الاحتياطي'};
     const enabled = (status.providers || []).map(provider => labels[provider]);
     $('#apiState').textContent = enabled.length
       ? `المزوّدات الجاهزة بالترتيب: ${enabled.join(' ← ')}. عند تعذّر الاتصال ينتقل التطبيق تلقائياً للتالي.`
       : 'لا توجد مفاتيح API. أضيفيها إلى .env ثم أعيدي تشغيل الخادم.';
-  }).catch(() => $('#apiState').textContent = 'تعذر فحص حالة الخادم.');
+  }).catch(() => $('#apiState').textContent = 'خدمة الصوت غير متاحة الآن. التدريب المحلي متاح.');
 }
 
 function openParentSettings(tab = 'settings') {
@@ -3079,7 +3184,7 @@ if (location.protocol === 'file:') {
     $('#mic').disabled = false;
     if (storage.get('lolo-welcome-tour-v1-complete') === 'true' && !needsCurriculumSetup) $('#app').classList.add('ready');
   }).catch(() => {
-    showError('المنهج مش ظاهر. راجعي ملفات التطبيق.');
+    showError(navigator.onLine===false?'المناهج لم تُحفظ على الجهاز بعد. اتصلي بالإنترنت مرة واحدة أو ثبتي نسخة لولو الجديدة.':'المنهج مش ظاهر. راجعي ملفات التطبيق.');
     $('#mic').disabled = false;
   });
 }

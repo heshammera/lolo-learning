@@ -12,3 +12,6 @@
 
 ## Learning scope verification milestone
 Candidate path engine and UI/session integration added on verification/learning-scope-20261127 from ad961a92d0da892353be285973af6f015b988f6a. Backup branch created. This candidate has not been promoted to main or verified on live AI or Android. See docs/LEARNING_PATH_ARCHITECTURE.md and docs/MASTER_REQUIREMENTS_STATUS.md.
+
+## Offline milestone
+Learning scope changes reached main at 45b5b0c and its GitHub Android workflow 46048242427 succeeded. Offline-first native/web candidate is on verification/offline-20261127; not yet promoted or device-tested. See docs/OFFLINE_ARCHITECTURE.md.

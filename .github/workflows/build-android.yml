@@ -12,6 +12,10 @@ on:
       - 'curriculum-engine.js'
       - 'learning-engine.js'
       - 'learning-path-engine.js'
+      - 'network.js'
+      - 'offline-assets.js'
+      - 'offline.html'
+      - 'sw.js'
       - 'parent-gate.js'
       - 'curriculum.json'
       - 'scripts/**'
@@ -56,13 +60,19 @@ jobs:
           node --test tests/learning-path-engine.test.cjs
           node --check app.js
           node --check learning-path-engine.js
+          node --check network.js
+          node --check sw.js
+          node --test tests/offline.test.cjs
           python3 -m py_compile server.py
           node tests/parent-gate.test.cjs
           node scripts/validate-curriculum.js
           node tests/session-timers.test.cjs
       - name: Build debug APK
         run: |
+          npm run prepare:web
           npx cap sync android
+          test -f android/app/src/main/assets/public/curriculum.json
+          test -f android/app/src/main/assets/public/network.js
           cd android
           chmod +x gradlew
           ./gradlew --no-daemon assembleDebug

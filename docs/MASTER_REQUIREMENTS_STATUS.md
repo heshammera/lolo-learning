@@ -14,3 +14,5 @@ Baseline reviewed: ad961a92d0da892353be285973af6f015b988f6a. This is a milestone
 | 45 brand | Mostly implemented per previous documentation | independently verify assets and actual Android launcher |
 | 46 learning scope | Candidate implementation on verification branch | CI, browser and authorized voice/device checks |
 Do not reimplement completed features without checking code and tests. Never mark untested requirements verified. Keep the backup branches unchanged. The main branch is production-linked and must only receive verified changes.
+
+Offline milestone candidate: public shell service worker, bundled native UI, bounded API transport, local review, and offline notice. Device and provider checks remain open. No cross-device synchronization yet.

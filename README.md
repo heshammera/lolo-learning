@@ -26,7 +26,7 @@ python3 server.py
 
 ## تطبيق أندرويد للتجربة
 
-يوجد غلاف Android باستخدام Capacitor داخل `android-apk/`. يفتح إصدار Vercel الآمن مباشرة، ويطلب الميكروفون من Android وقت الحاجة. لا تضاف مفاتيح API إلى التطبيق. لبناء APK للتجربة، شغّلي GitHub Actions: **Build Lolo Android APK**، ثم نزّلي artifact باسم `lolo-android-debug-apk` وثبّتيه على هاتف Android. رابط Vercel ومفاتيح الخدمات لا تزال مطلوبة كي يعمل الصوت.
+يوجد تطبيق Android باستخدام Capacitor داخل `android-apk/`. يضم البناء الجديد الواجهة والمناهج محليًا، ويحتاج اتصال Vercel فقط للخدمات الصوتية عبر HTTPS. لبناء نسخة تجريبية شغّلي GitHub Actions: **Build Lolo Android APK**، أو `npm run apk:debug` داخل `android-apk` بعد تثبيت الاعتمادات. راجعي `docs/OFFLINE_ARCHITECTURE.md` لمعرفة حدود العمل دون اتصال وتحديثات التطبيق.
 
 ## النشر التجريبي على Vercel
 
