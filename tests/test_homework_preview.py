@@ -66,3 +66,35 @@ class PreviewTests(unittest.TestCase):
                 server.shutdown()
                 server.server_close()
                 worker.join(timeout=3)
+
+    def test_teacher_preview_requires_role_and_grant(self):
+        import uuid
+        from datetime import datetime, timezone
+        store=MagicMock()
+        admin=MagicMock()
+        reviewer=str(uuid.uuid4())
+        sub=uuid.uuid4()
+        admin.inspect.return_value={"id":reviewer,"role":"teacher"}
+        admin.connect.return_value.__enter__.return_value.execute.return_value.fetchone.return_value=("teacher@example.test",)
+        db=store.connect.return_value.__enter__.return_value
+        db.execute.return_value.fetchall.return_value=[]
+        with patch.dict(os.environ,{"LOLO_HOMEWORK_STORAGE_STAGING":"true"}):
+            with self.assertRaises(FamilyError):
+                preview.teacher_dispatch(store,None,{"action":"list"},"token")
+            with self.assertRaises(FamilyError):
+                preview.teacher_dispatch(store,admin,{"action":"login","email":"real@example.com","password":"test","code":"123456"},"")
+            admin.login.assert_not_called()
+            admin.inspect.return_value={"id":reviewer,"role":"support"}
+            with self.assertRaises(FamilyError):
+                preview.teacher_dispatch(store,admin,{"action":"list"},"token")
+            admin.inspect.return_value={"id":reviewer,"role":"teacher"}
+            self.assertEqual(preview.teacher_dispatch(store,admin,{"action":"list"},"token"),{"submissions":[]})
+            with self.assertRaises(FamilyError):
+                preview.teacher_dispatch(store,admin,{"action":"image","submissionId":str(sub)},"token")
+            db.execute.return_value.fetchall.return_value=[(sub,"synthetic-test",datetime.now(timezone.utc),None)]
+            with patch.object(preview,"read_for_review",return_value=b"test") as read:
+                self.assertEqual(preview.teacher_dispatch(store,admin,{"action":"image","submissionId":str(sub)},"token"),{"image":"dGVzdA=="})
+                read.assert_called_once_with(store,admin,"token",str(sub))
+            with patch.object(preview,"review",return_value={"status":"reviewed"}) as review:
+                self.assertEqual(preview.teacher_dispatch(store,admin,{"action":"review","submissionId":str(sub),"outcome":"reviewed","score":90,"feedback":"Good"},"token"),{"status":"reviewed"})
+                review.assert_called_once_with(store,admin,"token",str(sub),"reviewed",90,"Good")
