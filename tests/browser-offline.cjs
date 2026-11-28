@@ -31,6 +31,32 @@ async function seed(context){
   });
   await context.route('https://**/*',route=>route.abort());
 }
+
+async function verifyHub(page){
+  const path=await page.evaluate(()=>window.LoloStorage.get('lolo-learning-path-v1'));
+  const mastery=await page.evaluate(()=>window.LoloStorage.get('lolo-mastered'));
+  await page.locator('#homeActivityHub').click();
+  await page.locator('#activityHub[open]').waitFor();
+  assert.equal(await page.locator('#hubCatalog [data-activity-id]').count(),27);
+  await page.locator('#hubFilter').selectOption('games');
+  assert.equal(await page.locator('#hubCatalog [data-activity-id]').count(),3);
+  await page.locator('#hubCatalog [data-activity-id="game-maze"]').click();
+  await page.locator('#hubBody .activity-maze-grid').waitFor();
+  await page.locator('#hubBack').click();
+  await page.locator('#hubFilter').selectOption('questions');
+  await page.locator('#hubCatalog [data-activity-id="science-choice"]').click();
+  await page.locator('#hubBody input[value="i1"]').check();
+  await page.locator('#hubBody button[type="submit"]').click();
+  assert.match(await page.locator('#hubBody [role="status"]').textContent(),/أحسنت/);
+  await page.locator('#hubAgain').click();
+  assert.equal(await page.locator('#hubBody input[value="i1"]').isChecked(),false);
+  await page.locator('#hubClose').click();
+  assert.equal(await page.locator('#activityHub').isVisible(),false);
+  assert.equal(await page.locator('#hubBody').evaluate(el=>el.childElementCount),0);
+  assert.equal(await page.evaluate(()=>window.LoloStorage.get('lolo-learning-path-v1')),path);
+  assert.equal(await page.evaluate(()=>window.LoloStorage.get('lolo-mastered')),mastery);
+}
+
 async function verifyPractice(page){
   await page.locator('#homePractice').click();
   await page.locator('#offlinePractice[open]').waitFor();
@@ -100,6 +126,7 @@ async function verifyPractice(page){
       for(const b of layout.buttons){assert.ok(b.w>=44&&b.h>=44);assert.ok(b.left>=-1&&b.right<=layout.width+1);}
     }
     await page.setViewportSize({width:390,height:800});
+    await verifyHub(page);
     await page.locator('#homeStart').click();
     await verifyPractice(page);
     await page.locator('#homeChoose').click();
@@ -332,6 +359,7 @@ async function verifyPractice(page){
     await np.locator('#networkNotice[data-state="offline"]').waitFor();
     await np.waitForFunction(()=>document.querySelector('#mic')&&!document.querySelector('#mic').disabled);
     assert.equal(await np.evaluate(()=>window.LoloNativeBundled),true);
+    await verifyHub(np);
     await verifyPractice(np);
     assert.deepEqual(nativeErrors,[]);
     await native.close();

@@ -53,7 +53,7 @@ test('native package starts from bundled HTML and keeps the previous HTTPS origi
   execFileSync(process.execPath,[path.join(root,'scripts/prepare_android_web.js')]);
   const bundle=path.join(root,'android-apk',config.webDir);
   const html=fs.readFileSync(path.join(bundle,'index.html'),'utf8');
-  assert.match(html,/LoloNativeBundled=true/);assert.match(html,/id="offlinePractice"/);
+  assert.match(html,/LoloNativeBundled=true/);assert.match(html,/LoloBuildCommit/);assert.match(html,/id="homeActivityHub"/);assert.match(html,/id="offlinePractice"/);
   assert.ok(fs.existsSync(path.join(bundle,'curriculum.json')));
   assert.ok(!fs.existsSync(path.join(bundle,'.env'))&&!fs.existsSync(path.join(bundle,'server.py'))&&!fs.existsSync(path.join(bundle,'api')));
 });
