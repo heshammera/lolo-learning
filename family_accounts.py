@@ -79,10 +79,11 @@ def child_fields(nickname, age_band):
 
 
 class FamilyStore:
-    def __init__(self, dsn):
+    def __init__(self, dsn, *, synthetic_only=False):
         if not dsn:
             raise FamilyError(503, "خدمة الحسابات غير متاحة.")
         self.dsn = dsn
+        self.synthetic_only = synthetic_only
 
     def connect(self):
         import psycopg
@@ -97,7 +98,10 @@ class FamilyStore:
         """Operator only. No public registration route; no verified-parent claim."""
         from psycopg.errors import UniqueViolation
         parent_id = uuid.uuid4()
-        email, encoded = email_value(email), password_hash(password)
+        email = email_value(email)
+        if self.synthetic_only and not email.endswith('@example.test'):
+            raise FamilyError(400, 'Synthetic account required.')
+        encoded = password_hash(password)
         try:
             with self.connect() as db:
                 db.execute("INSERT INTO lolo_parents(id,email,password_hash) VALUES (%s,%s,%s)", (parent_id,email,encoded))
@@ -112,7 +116,7 @@ class FamilyStore:
         except FamilyError:
             raise FamilyError(401, "بيانات الدخول غير صحيحة.") from None
         with self.connect() as db:
-            row = db.execute("SELECT id,password_hash,disabled_at FROM lolo_parents WHERE email=%s", (email,)).fetchone()
+            row = db.execute("SELECT id,password_hash,disabled_at FROM lolo_parents WHERE email=%s", (email,)).fetchone() if not self.synthetic_only or email.endswith('@example.test') else None
             # Equalize the expensive hash work for unknown valid-format email addresses.
             dummy = "scrypt-v1:" + "00"*16 + ":" + "00"*32
             valid = verify_password(password, row[1] if row else dummy)
@@ -125,10 +129,10 @@ class FamilyStore:
             return {"token":token,"expiresAt":expiry.isoformat(),"parentId":str(row[0])}
 
     def authenticated_parent(self, db, token):
-        row = db.execute("""SELECT p.id FROM lolo_parent_sessions s JOIN lolo_parents p ON p.id=s.parent_id
+        row = db.execute("""SELECT p.id,p.email FROM lolo_parent_sessions s JOIN lolo_parents p ON p.id=s.parent_id
             WHERE s.token_hash=%s AND s.revoked_at IS NULL AND s.expires_at>CURRENT_TIMESTAMP AND p.disabled_at IS NULL""",
             (digest_token(token),)).fetchone()
-        if not row:
+        if not row or self.synthetic_only and not row[1].endswith('@example.test'):
             raise FamilyError(401, "انتهت الجلسة. سجّل الدخول من جديد.")
         return row[0]
 
@@ -140,6 +144,8 @@ class FamilyStore:
 
     def create_child(self, token, nickname, age_band):
         nickname, age_band = child_fields(nickname, age_band)
+        if self.synthetic_only and not re.fullmatch(r'Synthetic [0-9]{1,6}',nickname):
+            raise FamilyError(400,'Use a synthetic profile label (Synthetic 1).')
         child_id = uuid.uuid4()
         with self.connect() as db:
             parent_id = self.authenticated_parent(db, token)
@@ -210,4 +216,6 @@ class FamilyStore:
 
     def logout(self, token):
         with self.connect() as db:
+            if self.synthetic_only:
+                self.authenticated_parent(db, token)
             db.execute("UPDATE lolo_parent_sessions SET revoked_at=CURRENT_TIMESTAMP WHERE token_hash=%s AND revoked_at IS NULL", (digest_token(token),))

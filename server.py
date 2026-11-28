@@ -89,6 +89,30 @@ CONTENT_DELIVERY_LIMITER = SlidingWindowRateLimiter()
 CONTENT_DELIVERY_GLOBAL = SlidingWindowRateLimiter(max_keys=8)
 FAMILY_RATE_LIMITER = SlidingWindowRateLimiter()
 FAMILY_GLOBAL_LIMITER = SlidingWindowRateLimiter(max_keys=8)
+
+def family_pilot_dsn(env=None):
+    """A deployment pilot must be explicitly enabled, isolated, and rate limited."""
+    env=os.environ if env is None else env
+    pilot=env.get("LOLO_FAMILY_PILOT_DATABASE_URL")
+    primary=database_dsn("family",env)
+    budget=env.get("LOLO_BUDGET_DATABASE_URL")
+    if (env.get("LOLO_FAMILY_PILOT_MODE")!="synthetic"
+            or env.get("LOLO_SHARED_REQUEST_BUDGET")!="required"
+            or not pilot or not budget or not primary
+            or pilot==primary or budget==primary):
+        return None
+    return pilot
+
+
+def family_route_enabled(env=None):
+    env=os.environ if env is None else env
+    if not FAMILY_ENABLED:
+        return False
+    # Real family accounts must not be inadvertently activated on a hosted deployment.
+    return not env.get("VERCEL") and not env.get("VERCEL_ENV") or bool(family_pilot_dsn(env))
+
+
+
 TTS_ENABLED = service_enabled("LOLO_TTS_ENABLED")
 GEMINI_ENABLED = service_enabled("GEMINI_ENABLED")
 GEMINI_BACKUP_ENABLED = service_enabled("GEMINI_BACKUP_ENABLED")
@@ -392,7 +416,7 @@ class Handler(BaseHTTPRequestHandler):
         return self.send_json(200,{"envelope":item[1]})
 
     def family_request(self):
-        if not FAMILY_ENABLED:
+        if not family_route_enabled():
             return self.send_json(503, {"error": "خدمة الحسابات غير متاحة حاليًا."})
         if self.headers.get("Sec-Fetch-Site", "").lower() == "cross-site":
             return self.send_json(403, {"error": "الطلب غير مسموح."})
@@ -419,7 +443,8 @@ class Handler(BaseHTTPRequestHandler):
         auth = self.headers.get("Authorization","")
         token = auth[7:] if auth.startswith("Bearer ") else ""
         try:
-            store = FamilyStore(database_dsn("family"))
+            pilot=family_pilot_dsn() if os.environ.get("VERCEL") or os.environ.get("VERCEL_ENV") else None
+            store = FamilyStore(pilot,synthetic_only=True) if pilot else FamilyStore(database_dsn("family"))
             if action == "login":
                 return self.send_json(200,store.login(body.get("email"),body.get("password")))
             if action == "children":
@@ -722,7 +747,7 @@ class Handler(BaseHTTPRequestHandler):
     def do_GET(self):
         path = self.path.split("?", 1)[0]
         if path == "/api/status":
-            return self.send_json(200, {"providers": [name for name, configured in (("gemini", GEMINI_API_KEY and GEMINI_ENABLED), ("openai", OPENAI_API_KEY and OPENAI_ENABLED), ("gemini-backup", GEMINI_BACKUP_API_KEY and GEMINI_BACKUP_ENABLED)) if VOICE_ENABLED and configured], "ttsEnabled": bool(TTS_ENABLED and GEMINI_API_KEY), "familyUiEnabled": bool(FAMILY_ENABLED and PARENT_CLOUD_UI_ENABLED), "progressSyncEnabled": bool(FAMILY_ENABLED and PARENT_CLOUD_UI_ENABLED and PROGRESS_SYNC_ENABLED)})
+            return self.send_json(200, {"providers": [name for name, configured in (("gemini", GEMINI_API_KEY and GEMINI_ENABLED), ("openai", OPENAI_API_KEY and OPENAI_ENABLED), ("gemini-backup", GEMINI_BACKUP_API_KEY and GEMINI_BACKUP_ENABLED)) if VOICE_ENABLED and configured], "ttsEnabled": bool(TTS_ENABLED and GEMINI_API_KEY), "familyUiEnabled": bool(family_route_enabled() and PARENT_CLOUD_UI_ENABLED), "progressSyncEnabled": bool(family_route_enabled() and PARENT_CLOUD_UI_ENABLED and PROGRESS_SYNC_ENABLED)})
         relative = "index.html" if path == "/" else path.lstrip("/")
         allowed_files = {"index.html", "curriculum.json", "pcm-processor.js", "app.js", "storage.js", "assessment-engine.js", "subject-catalog.js", "visual-question-bank.js", "visual-assessment-engine.js", "curriculum-engine.js", "learning-engine.js", "learning-analytics.js", "learning-reminders.js", "learning-path-engine.js", "network.js", "family-client.js", "activity-engine.js", "activity-pilot.js", "content-schema.js", "content-package.js", "content-install.js", "content-trust.js", "content-runtime.js", "content-progress.js", "content-client.js", "offline-assets.js", "sw.js", "offline.html", "parent-gate.js", "session-timers.js", "brand.js", "favicon.ico", "favicon-16x16.png", "favicon-32x32.png", "favicon-48x48.png", "apple-touch-icon.png", "site.webmanifest"}
         is_brand_asset = relative.startswith("assets/branding/") and Path(relative).suffix.lower() in {".png", ".webp", ".json"}
