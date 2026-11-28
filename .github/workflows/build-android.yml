@@ -83,6 +83,8 @@ jobs:
         with:
           distribution: temurin
           java-version: 21
+      - name: Reuse Gradle dependency cache
+        uses: gradle/actions/setup-gradle@v4
       - name: Enforce release branch
         if: inputs.signed_release && github.ref != 'refs/heads/main'
         run: exit 1
