@@ -46,7 +46,7 @@ let parentGatePurpose = {type: 'open', tab: 'settings'};
 let parentGateAutoLockTimer = null;
 let parentGateRecoveryPurpose = 'open';
 let parentGateReturnFocus = null;
-const DEFAULT_PARENT_SETTINGS = {sessionMinutes: 10, speechPace: 'slow', hintLevel: 'gentle', repeatWords: true, rewardEnabled: true, rewardSeconds: 9, learningPath: 'selected'};
+const DEFAULT_PARENT_SETTINGS = {sessionMinutes: 10, speechPace: 'slow', hintLevel: 'gentle', repeatWords: true, rewardEnabled: true, rewardSeconds: 9, learningPath: 'selected', remindersEnabled:false, dailyReminder:false, reminderHour:17};
 let parentSettings = {...DEFAULT_PARENT_SETTINGS, ...storage.getJSON('lolo-parent-settings', {})};
 let sessionMode = 'lesson';
 let activeAnswerEvents = [];
@@ -2829,6 +2829,9 @@ function saveParentSettings() {
     rewardEnabled: $('#rewardEnabled').checked,
     rewardSeconds: Math.max(4, Math.min(15, Number($('#rewardSeconds').value) || 9)),
     learningPath: $('#learningPath').value === 'foundation-first' ? 'foundation-first' : 'selected',
+    remindersEnabled: $('#remindersEnabled').checked,
+    dailyReminder: $('#dailyReminder').checked,
+    reminderHour: Math.max(0,Math.min(23,Number($('#reminderHour').value)||0)),
   };
   storage.set('lolo-parent-settings', JSON.stringify(parentSettings));
   $('#settingsSaved').textContent = 'اتحفظت الإعدادات على الجهاز ✅';
@@ -2846,7 +2849,31 @@ function saveParentSettings() {
   renderParentReport();
 }
 
+function renderLearningReminders(){
+  const target=$('#learningReminders');if(!target)return;target.replaceChildren();
+  if(!parentGate.isUnlocked()||!$('#parentSheet').classList.contains('open')||document.visibilityState==='hidden'||!window.LoloLearningReminders)return;
+  const programId=$('#trackSelect')?.value||currentLesson?.programId||storage.get('lolo-selected-program');
+  const lessons=allLessons().filter(l=>!programId||l.programId===programId);
+  const due=[],times=[];
+  for(const l of lessons){
+    const records=(l.skillIds||[]).map(id=>learningEngine.getRecord(skillProgress,id)).filter(r=>r.curriculumVersion===course?.curriculumVersion&&r.lessonVersion===l.version);
+    const dates=records.map(r=>Date.parse(r.nextReviewAt)).filter(Number.isFinite);
+    if(dates.length)due.push({lessonId:l.id,title:l.title||l.focus||l.id,dueAt:Math.min(...dates)});
+    for(const r of records)times.push(Date.parse(r.lastPracticedAt),Date.parse(r.lastAssessmentAt));
+    times.push(Date.parse(testResults[l.id]?.completedAt),Date.parse(traceResults[l.id]?.completedAt));
+    if(Array.isArray(visualHistory[l.id]))for(const r of visualHistory[l.id])if(r?.bankVersion===visualBank.version)times.push(Date.parse(r.completedAt));
+  }
+  const notices=window.LoloLearningReminders.derive({enabled:parentSettings.remindersEnabled===true,daily:parentSettings.dailyReminder===true,hour:parentSettings.reminderHour,now:Date.now(),due,practiceTimes:times,dismissedDay:storage.get('lolo-learning-reminder-dismissed-day-v1')});
+  if(!notices.length){const p=document.createElement('p');p.textContent=parentSettings.remindersEnabled===true?'لا توجد تذكيرات مستحقة في المنهج المختار.':'التذكيرات متوقفة. فعّليها واحفظي الإعدادات لعرضها هنا.';target.append(p);return;}
+  for(const n of notices){
+    const row=document.createElement('div');row.className='parent-report-card';
+    const text=document.createElement('p');text.textContent=n.kind==='review'?'حان موعد مراجعة: '+n.title:'تذكير لطيف: يمكنك تخصيص وقت قصير للتدريب اليوم إذا كان مناسبًا.';row.append(text);
+    const b=document.createElement('button');b.type='button';b.className='small-btn';b.textContent=n.kind==='review'?'فتح التدريب المحلي':'إخفاء تذكير اليوم';
+    b.onclick=()=>{if(!parentGate.isUnlocked()||!$('#parentSheet').classList.contains('open'))return;if(n.kind==='review'){openOfflinePractice(n.lessonId);}else if(storage.set('lolo-learning-reminder-dismissed-day-v1',n.day)){renderLearningReminders();}};row.append(b);target.append(row);
+  }
+}
 function renderParentReport() {
+  renderLearningReminders();
   const report = $('#parentReport');
   if (!report) return;
   report.replaceChildren();
@@ -2966,6 +2993,9 @@ function syncParentSettingsUI() {
   $('#rewardEnabled').checked = parentSettings.rewardEnabled;
   $('#rewardSeconds').value = String(parentSettings.rewardSeconds);
   $('#learningPath').value = parentSettings.learningPath;
+  $('#remindersEnabled').checked=parentSettings.remindersEnabled===true;
+  $('#dailyReminder').checked=parentSettings.dailyReminder===true;
+  $('#reminderHour').value=String(Number.isInteger(parentSettings.reminderHour)&&parentSettings.reminderHour>=0&&parentSettings.reminderHour<=23?parentSettings.reminderHour:17);
 }
 
 function showParentTab(tab) {
@@ -3004,6 +3034,7 @@ function closeParentGateModal(restoreFocus = true) {
 }
 
 function closeParentSettings() {
+  $('#learningReminders')?.replaceChildren();
   clearLocalBackup();
   clearExtraParent();
   resetCloudFamily();

@@ -68,6 +68,7 @@ async function verifyPractice(page){
     page.on('request',request=>{if(request.method()==='POST'&&request.url().includes('/api/'))paid++;});
     await page.goto(root,{waitUntil:'domcontentloaded'});
     assert.equal((await context.request.get(root+'/learning-analytics.js')).status(),200);
+    assert.equal((await context.request.get(root+'/learning-reminders.js')).status(),200);
     await page.waitForFunction(()=>!!navigator.serviceWorker.controller,{},{timeout:30000});
     await page.waitForFunction(()=>document.querySelector('#mic')&&!document.querySelector('#mic').disabled);
     const saved=await page.evaluate(()=>localStorage.getItem('lolo-learning-path-v1'));
@@ -89,6 +90,9 @@ async function verifyPractice(page){
     await page.locator('#parentSettingsTab').click();
     assert.equal(await page.evaluate(()=>typeof window.LoloLearningAnalytics?.recommend),'function');
     await page.locator('#adaptiveRecommendations').waitFor({state:'visible'});
+    assert.equal(await page.evaluate(()=>typeof window.LoloLearningReminders?.derive),'function');
+    await page.locator('#learningReminders').waitFor({state:'visible'});
+    assert.match(await page.locator('#learningReminders').textContent(),/متوقفة/);
     assert.equal(await page.locator('#extraImport').isDisabled(),true);
     assert.equal(await page.locator('#extraStart').isDisabled(),true);
     const activity=page.locator('#activityPreviewContent');
