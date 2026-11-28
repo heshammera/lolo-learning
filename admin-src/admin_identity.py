@@ -10,7 +10,7 @@ sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
 from family_accounts import FamilyError, email_value, password_value, password_hash, verify_password, digest_token
 
 ROLES = MappingProxyType({
-    "owner": frozenset({"library:read","curriculum:read","curriculum:edit","curriculum:review","curriculum:publish","admin:manage","audit:read","support:read","billing:manage","settings:manage"}),
+    "owner": frozenset({"library:read","curriculum:read","curriculum:edit","curriculum:review","curriculum:publish","admin:manage","audit:read","support:read","billing:manage","settings:manage","family:manage"}),
     "admin": frozenset({"library:read","curriculum:read","curriculum:edit","curriculum:review","curriculum:publish","audit:read","support:read"}),
     "content-manager": frozenset({"library:read","curriculum:read","curriculum:edit"}),
     "teacher": frozenset({"library:read","curriculum:read","curriculum:review"}),

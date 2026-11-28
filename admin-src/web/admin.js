@@ -9,7 +9,7 @@ async function api(path,body){
   return response.json();
 }
 function clear(message=''){
-  generation++;identity=null;entries=[];clearDrafts();clearBilling();
+  generation++;identity=null;entries=[];clearDrafts();clearBilling();clearFamilyPilot();
   $('login').hidden=false;$('workspace').hidden=true;$('logout').hidden=true;$('library').hidden=true;$('libraryNav').hidden=true;
   $('cards').replaceChildren();$('sample').replaceChildren();$('preview').hidden=true;
   $('password').value='';$('code').value='';$('message').textContent=message;
@@ -220,6 +220,23 @@ async function loadBilling(){
   finally{billingBusy=false;$('billingRefresh').disabled=false;}
 }
 $('billingRefresh').onclick=loadBilling;$('billingNav').onclick=()=>$('billingPanel').scrollIntoView({block:'start'});
+let familyPreview=null,familyBusy=false;
+function clearFamilyPilot(){
+  familyPreview=null;$('familyPilotPanel').hidden=true;$('familyPilotNav').hidden=true;$('familyPilotEmail').value='';$('familyPilotResult').textContent='';$('familyPilotStatus').textContent='';$('familyPilotChange').disabled=true;
+}
+function showFamilyPilot(email,r){
+  familyPreview={email,disabled:r.disabled};$('familyPilotResult').textContent=(r.disabled?'الحساب متوقف':'الحساب نشط')+' · ملفات التعلم: '+r.childCount+' · الجلسات النشطة: '+r.activeSessions;
+  $('familyPilotChange').textContent=r.disabled?'إعادة تفعيل الحساب':'إيقاف الحساب وإلغاء جلساته';$('familyPilotChange').disabled=false;
+}
+async function familyTask(fn){
+  if(familyBusy||!identity?.permissions.includes('family:manage'))return;
+  const g=generation;familyBusy=true;$('familyPilotChange').disabled=true;$('familyPilotLookup').disabled=true;
+  try{await fn(g);}catch(e){if(g===generation){familyPreview=null;$('familyPilotResult').textContent='';$('familyPilotStatus').textContent=e.status===503?'إدارة الحسابات التجريبية غير مفعّلة.':e.status===409?'تغيرت حالة الحساب، أعد البحث.':'تعذر تنفيذ الطلب.';}}finally{familyBusy=false;if(g===generation){$('familyPilotLookup').disabled=false;$('familyPilotChange').disabled=!familyPreview;}}
+}
+$('familyPilotNav').onclick=()=>$('familyPilotPanel').scrollIntoView({block:'start'});
+$('familyPilotEmail').oninput=()=>{familyPreview=null;$('familyPilotResult').textContent='';$('familyPilotChange').disabled=true;};
+$('familyPilotLookup').onclick=()=>familyTask(async g=>{const email=$('familyPilotEmail').value.trim();familyPreview=null;$('familyPilotResult').textContent='';const r=await api('/api/family-pilot/lookup',{email});if(g===generation&&email===$('familyPilotEmail').value.trim()){showFamilyPilot(email,r);$('familyPilotStatus').textContent='تم تحميل الحالة التجريبية.';}});
+$('familyPilotChange').onclick=()=>familyTask(async g=>{const p=familyPreview;if(!p||p.email!==$('familyPilotEmail').value.trim()||!confirm('تأكيد تغيير حالة الحساب التجريبي؟'))return;const r=await api('/api/family-pilot/state',{email:p.email,expectedDisabled:p.disabled,disabled:!p.disabled});if(g===generation&&p.email===$('familyPilotEmail').value.trim()){showFamilyPilot(p.email,r);$('familyPilotStatus').textContent='تم حفظ الحالة.';}});
 async function refresh(){
   const g=++generation;
   try{
@@ -227,6 +244,7 @@ async function refresh(){
     $('preview').hidden=true;$('sample').replaceChildren();
     identity=current;$('login').hidden=true;$('workspace').hidden=false;$('logout').hidden=false;$('message').textContent='';
     $('role').textContent='ROLE / '+current.role;
+    clearFamilyPilot();$('familyPilotPanel').hidden=!current.permissions.includes('family:manage');$('familyPilotNav').hidden=$('familyPilotPanel').hidden;
     clearBilling();$('billingPanel').hidden=!current.permissions.includes('billing:manage');$('billingNav').hidden=$('billingPanel').hidden;
   $('remoteConfigPanel').hidden=!identity?.permissions.includes('settings:manage');
     const canRead=current.permissions.includes('curriculum:read'),canEdit=current.permissions.includes('curriculum:edit');

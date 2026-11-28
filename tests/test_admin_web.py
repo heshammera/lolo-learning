@@ -53,6 +53,7 @@ class AdminWebTests(unittest.TestCase):
         import pyotp
         self.assertEqual(self.request("/api/library")[0],401)
         self.assertEqual(self.request("/api/billing/analytics")[0],401)
+        self.assertEqual(self.request("/api/family-pilot/lookup",{"email":"test@example.test"})[0],401)
         self.assertEqual(self.request("/activity-engine.js")[0],401)
         self.assertEqual(self.request("/api/library",cookie="lolo_admin_session="+"a"*43)[0],401)
         self.assertEqual(self.request("/",host="example.test")[0],403)
@@ -66,6 +67,7 @@ class AdminWebTests(unittest.TestCase):
         cookie=cookie.split(";",1)[0]
         self.assertEqual(self.request("/api/session",cookie=cookie)[0],200)
         self.assertEqual(self.request("/api/billing/analytics",cookie=cookie)[0],403)
+        self.assertEqual(self.request("/api/family-pilot/lookup",{"email":"test@example.test"},cookie=cookie)[0],403)
         status,_,body=self.request("/api/library",cookie=cookie)
         self.assertEqual(status,200)
         self.assertEqual(len(json.loads(body)["activities"]),29)
@@ -77,6 +79,49 @@ class AdminWebTests(unittest.TestCase):
         self.assertEqual(self.request("/activity-engine.js",cookie=cookie)[0],403)
         self.assertEqual(self.request("/api/logout",{},cookie=cookie)[0],200)
         self.assertEqual(self.request("/api/session",cookie=cookie)[0],401)
+
+    def test_owner_family_pilot_suspension_and_audit(self):
+        import pyotp
+        from family_accounts import FamilyStore,FamilyError
+        dsn=os.environ.get("LOLO_TEST_ADMIN_PILOT_DATABASE_URL")
+        if not dsn:self.skipTest("Dedicated pilot database missing")
+        self.assertEqual(dsn,"postgresql://pilot_test:disposable-pilot-only@127.0.0.1:5433/pilot_test")
+        self.assertNotIn(dsn,(self.store.dsn,os.environ.get("LOLO_DATABASE_URL"),os.environ.get("LOLO_FAMILY_PILOT_DATABASE_URL")))
+        pilot=FamilyStore(dsn,synthetic_only=True)
+        pilot.migrate()
+        with pilot.connect() as db:db.execute((Path(__file__).resolve().parents[1]/"admin-src/deploy/pilot-family-audit.sql").read_text())
+        email=f"{uuid.uuid4()}@example.test"
+        parent_id=pilot.provision(email,self.password)
+        def cleanup():
+            with pilot.connect() as db:
+                db.execute("DELETE FROM lolo_pilot_family_audit WHERE parent_id=%s",(parent_id,))
+                db.execute("DELETE FROM lolo_parents WHERE id=%s",(parent_id,))
+        self.addCleanup(cleanup)
+        token=pilot.login(email,self.password)["token"]
+        child=pilot.create_child(token,"Synthetic 1","4-6")
+        with self.store.connect() as db:db.execute("UPDATE lolo_admin_users SET role='owner' WHERE id=%s",(self.user,))
+        login={"email":self.email,"password":self.password,"code":pyotp.TOTP(self.secret).at(self.now)}
+        status,headers,_=self.request("/api/login",login);self.assertEqual(status,200)
+        cookie=headers["Set-Cookie"].split(";",1)[0]
+        self.assertEqual(self.request("/api/family-pilot/lookup",{"email":email},cookie=cookie)[0],503)
+        self.server.family_pilot_store=pilot
+        status,_,body=self.request("/api/family-pilot/lookup",{"email":email},cookie=cookie)
+        self.assertEqual(status,200)
+        self.assertEqual(json.loads(body),{"disabled":False,"childCount":1,"activeSessions":1})
+        change={"email":email,"expectedDisabled":False,"disabled":True}
+        self.assertEqual(self.request("/api/family-pilot/state",change,cookie=cookie,origin="https://evil.example")[0],403)
+        status,_,body=self.request("/api/family-pilot/state",change,cookie=cookie)
+        self.assertEqual(status,200);self.assertEqual(json.loads(body),{"disabled":True,"childCount":1,"activeSessions":0})
+        with self.assertRaises(FamilyError):pilot.children(token)
+        with self.assertRaises(FamilyError):pilot.login(email,self.password)
+        self.assertEqual(self.request("/api/family-pilot/state",change,cookie=cookie)[0],409)
+        self.assertEqual(self.request("/api/family-pilot/state",{"email":email,"expectedDisabled":True,"disabled":False},cookie=cookie)[0],200)
+        self.assertEqual(pilot.children(pilot.login(email,self.password)["token"]),[child])
+        with self.assertRaises(FamilyError):pilot.children(token)
+        with pilot.connect() as db:
+            rows=db.execute("SELECT actor_id,disabled FROM lolo_pilot_family_audit WHERE parent_id=%s ORDER BY id",(parent_id,)).fetchall()
+            self.assertEqual([(str(a),b) for a,b in rows],[(str(self.user),True),(str(self.user),False)])
+        self.assertEqual(self.request("/api/family-pilot/lookup",{"email":"real@example.invalid"},cookie=cookie)[0],400)
 
     def test_local_shell_headers_and_login_limit(self):
         status,headers,body=self.request("/")
