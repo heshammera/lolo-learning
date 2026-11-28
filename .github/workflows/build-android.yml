@@ -19,6 +19,7 @@ on:
       - 'visual-assessment-engine.js'
       - 'curriculum-engine.js'
       - 'learning-engine.js'
+      - 'learning-analytics.js'
       - 'learning-path-engine.js'
       - 'network.js'
       - 'family-client.js'
@@ -96,6 +97,7 @@ jobs:
           node --test tests/visual-assessment.test.cjs tests/subject-catalog.test.cjs
           node tests/curriculum-engine.test.cjs
           node tests/learning-engine.test.cjs
+          node --test tests/learning-analytics.test.cjs
           node --test tests/learning-path-engine.test.cjs
           node --test tests/offline-license-vault.test.cjs
           node --check app.js
