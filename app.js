@@ -1597,7 +1597,8 @@ function recordLessonAnswer(lessonId, answer, isCorrect, questionNumber, questio
   events.history = events.history.slice(-100);
   lessonStats[lessonId] = events;
   activeAnswerEvents.push({answer: answer.trim(), is_correct: isCorrect, question_number: question});
-  storage.set('lolo-lesson-stats', JSON.stringify(lessonStats));
+  const didSave=storage.set('lolo-lesson-stats', JSON.stringify(lessonStats));
+  if(didSave&&isActive){const feedback=$('#sessionFeedback');feedback.dataset.result=isCorrect?'correct':'practice';feedback.textContent=isCorrect?'محاولة جميلة! ⭐':'نجرّب تاني براحتنا 🌱';feedback.hidden=false;}
   updateProgress();
   renderParentReport();
   if (currentLesson && !$('#parentSheet').classList.contains('open')) refreshLessonPicker(currentLesson.programId, currentLesson.unitId);
@@ -1968,7 +1969,18 @@ function parentProgressSummary() {
   return `في المنهج ده: ${completed} من ${lessons.length} درس تمّوا · ${testCount} اختبار ${testCount === 1 ? 'محفوظ' : 'محفوظين'} · ${advanced} مراحل كتابة وماث متقدمة متقنة${honors ? ` · 🏅 ${honors} شارات تفوق` : ''}.`;
 }
 
+function renderSessionVisual(){
+  const panel=$('#lessonSessionPanel');if(!panel)return;
+  const phase=isStarting?'connecting':!isActive?'idle':modelSpeaking?'speaking':'active';
+  panel.dataset.phase=phase;
+  $('#sessionLessonTitle').textContent=currentLesson?.title||currentLesson?.focus||'الدرس الحالي';
+  const labels={connecting:['لولو بتجهز الدرس','بنوصل جلسة الصوت. تقدري توقفيها في أي وقت.'],idle:['جاهزة للتعلم','اختاري وقتًا مناسبًا للتدريب.'],speaking:['لولو بتتكلم','اسمعي لولو براحتك.'],active:['جلسة الصوت شغالة','جاوبي لما لولو تطلب منك.']};
+  $('#sessionPhase').textContent=labels[phase][0];$('#sessionHint').textContent=labels[phase][1];
+  $('#sessionControlLabel').textContent=phase==='idle'?'بدء الدرس الصوتي':'إيقاف جلسة الصوت';
+  if(phase==='idle'||phase==='connecting')$('#sessionFeedback').hidden=true;
+}
 function setStatus(message) {
+  renderSessionVisual();
   $('#liveStatus').textContent = message;
   const startup = $('#startupStatus');
   if (startup) {
@@ -1993,6 +2005,7 @@ function setListening(on) {
   $('#mic').setAttribute('aria-label', on ? 'أوقفي الدرس الصوتي' : 'ابدئي الدرس الصوتي');
   $('#buddy').classList.toggle('active', on);
   $('#soundWave').classList.toggle('on', on && !modelSpeaking);
+  renderSessionVisual();
 }
 
 function send(message) {
@@ -2300,7 +2313,7 @@ function handleOpenAIMessage(event) {
     }
     setStatus('سامعة صوتك');
   } else if (message.type === 'response.created') {
-    modelSpeaking = true; $('#buddy').classList.add('talking'); $('#soundWave').classList.add('on');
+    modelSpeaking = true; $('#buddy').classList.add('talking'); $('#soundWave').classList.add('on'); renderSessionVisual();
   } else if (message.type === 'response.done') {
     recordFromSpokenFeedback();
     settleUnscoredAnswer();
@@ -2355,6 +2368,7 @@ async function handleGeminiMessage(event, sessionId, sessionSocket) {
       if (part.inlineData?.data) {
         noteTutorOutput();
         modelSpeaking = true;
+        renderSessionVisual();
         $('#buddy').classList.add('talking');
         $('#soundWave').classList.add('on');
         playPcm24k(part.inlineData.data);
@@ -2703,6 +2717,7 @@ function stopSession() {
 }
 
 $('#mic').onclick = () => isActive || isStarting ? stopSession() : startSession();
+$('#sessionBack').onclick=()=>{if(isActive||isStarting)stopSession();else{$('#app').classList.remove('in-lesson');renderSessionVisual();}$('#homeStart').focus();};
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'hidden' && (isActive || isStarting)) stopSession();
 });
