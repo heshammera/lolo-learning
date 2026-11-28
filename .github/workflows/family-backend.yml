@@ -59,6 +59,7 @@ on:
       - 'tests/test_security_basics.py'
       - 'requirements.txt'
       - 'tests/test_family_accounts.py'
+      - 'tests/test_hosted_family_pilot.py'
       - 'tests/test_progress_sync.py'
       - 'scripts/family_admin.py'
       - '.github/workflows/family-backend.yml'
@@ -81,7 +82,21 @@ jobs:
           --health-interval 5s
           --health-timeout 5s
           --health-retries 10
+      pilot:
+        image: postgres:16
+        env:
+          POSTGRES_USER: lolo_pilot
+          POSTGRES_PASSWORD: disposable-pilot-only
+          POSTGRES_DB: lolo_pilot
+        ports:
+          - 5433:5432
+        options: >-
+          --health-cmd "pg_isready -U lolo_pilot -d lolo_pilot"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
     env:
+      LOLO_TEST_PILOT_DATABASE_URL: postgresql://lolo_pilot:disposable-pilot-only@127.0.0.1:5433/lolo_pilot
       LOLO_TEST_DATABASE_URL: postgresql://lolo_test:disposable-ci-only@127.0.0.1:5432/lolo_test
       LOLO_FAMILY_ENABLED: 'false'
     steps:
@@ -94,6 +109,7 @@ jobs:
       - name: Test isolated family database
         run: |
           .venv/bin/python -m unittest discover -s tests -p 'test_family_accounts.py' -v
+          .venv/bin/python -m unittest discover -s tests -p 'test_hosted_family_pilot.py' -v
           .venv/bin/python -m unittest discover -s tests -p 'test_progress_sync.py' -v
           .venv/bin/python -m unittest discover -s tests -p 'test_pronunciation_contract.py' -v
           .venv/bin/python -m unittest discover -s tests -p 'test_homework_storage.py' -v
