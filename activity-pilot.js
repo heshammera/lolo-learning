@@ -31,6 +31,7 @@
     {id:'language-dictation',type:'dictation',version:1,prompt:'استمعي ثم اكتبي الكلمة.',config:{language:'en',spokenText:'water',answers:['water']}},
     {id:'language-repeat',type:'speech-repeat',version:1,prompt:'استمعي ثم كرري العبارة بصوتك.',config:{language:'ar',spokenText:'أنا أحب القراءة'}},
     {id:'language-reading',type:'reading-aloud',version:1,prompt:'اقرئي النص بصوتك جزءًا بعد جزء.',config:{language:'ar',segments:['ذهبت لولو إلى الحديقة.','شاهدت زهرة جميلة.','سقت الزهرة بالماء.']}},
+    {id:'language-dialogue',type:'conversation',version:1,prompt:'اختاري الرد المناسب في حوار التحية.',config:{language:'en',turns:[{line:'Good morning!',options:items('Good morning!','Good night!'),answer:'i1'},{line:'How are you?',options:items('I am fine, thank you.','It is a book.'),answer:'i1'}]}},
   ];
   const api={status:'draft',lessons:[{id:'science-draft-plants',activities:activities.slice(0,4)},{id:'science-draft-animals',activities:activities.slice(4)}]};
   if(typeof window!=='undefined')window.LoloActivityPilot=api;

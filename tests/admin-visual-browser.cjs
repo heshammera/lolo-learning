@@ -26,10 +26,10 @@ const validator=require('../admin-src/cms-validate.cjs');
   await editor.getByLabel('اسم المنهج',{exact:true}).fill('منهج العلوم التجريبي');
   const picker=editor.getByLabel('إضافة نشاط من المكتبة',{exact:true}).first();
   await page.waitForFunction(()=>document.querySelector('#visualEditor select[disabled]')===null&&Array.from(document.querySelectorAll('#visualEditor select')).some(s=>Array.from(s.options).some(o=>o.value==='choice')));
-  for(const type of ['choice','multi-choice','sequence','match','numeric','classify','fill-blank','free-text','number-line','fractions','drag-drop','geometry','equations','memory-game','puzzle','maze','image-hotspot','science-simulation','interactive-story','trace','free-drawing','coloring','dictation','speech-repeat','reading-aloud']){
+  for(const type of ['choice','multi-choice','sequence','match','numeric','classify','fill-blank','free-text','number-line','fractions','drag-drop','geometry','equations','memory-game','puzzle','maze','image-hotspot','science-simulation','interactive-story','trace','free-drawing','coloring','dictation','speech-repeat','reading-aloud','conversation']){
    await picker.selectOption(type);await editor.getByRole('button',{name:'إضافة النشاط',exact:true}).first().click();
   }
-  assert.equal(await editor.locator('.cms-activity').count(),26);
+  assert.equal(await editor.locator('.cms-activity').count(),27);
   const choice=editor.locator('[data-activity-type="choice"]');
   await choice.getByLabel('السؤال أو التعليمات').fill('اختاري الماء');
   await choice.getByRole('button',{name:'معاينة النشاط'}).click();
@@ -159,16 +159,24 @@ const validator=require('../admin-src/cms-validate.cjs');
   await readNext.click();await readNext.click();await readNext.click();assert.equal(await readNext.isDisabled(),true);
   await readDone.click();assert.match(await sample.locator('form > p[role="status"]').textContent(),/دون تقييم الدقة أو السرعة/);
   await page.locator('#closeDraftPreview').click();
+  const dialogue=editor.locator('[data-activity-type="conversation"]');await dialogue.getByRole('button',{name:'معاينة النشاط'}).click();
+  await sample.getByRole('button',{name:'Good morning!',exact:true}).click();
+  await sample.locator('button[type="submit"]').click();assert.equal(await sample.locator('button[type="submit"]').isEnabled(),true);
+  await sample.getByRole('button',{name:'ابدئي الحوار من جديد'}).click();
+  await sample.getByRole('button',{name:'Good morning!',exact:true}).click();
+  await sample.getByRole('button',{name:'I am fine, thank you.',exact:true}).click();
+  await sample.locator('button[type="submit"]').click();assert.match(await sample.locator('form > p[role="status"]').textContent(),/أحسنت/);
+  await page.locator('#closeDraftPreview').click();
   await page.locator('#checkDraft').click();await page.waitForFunction(()=>document.querySelector('#draftStatus').textContent.includes('متوافق'));
   await page.locator('#saveDraft').click();await page.waitForFunction(()=>document.querySelector('#draftStatus').textContent.includes('تم حفظ'));
-  assert.equal(saved.title,'منهج العلوم التجريبي');assert.equal(saved.units[0].lessons[0].activities.length,26);
+  assert.equal(saved.title,'منهج العلوم التجريبي');assert.equal(saved.units[0].lessons[0].activities.length,27);
   await editor.getByRole('button',{name:'إضافة وحدة',exact:true}).click();
   assert.equal(await editor.locator('.cms-unit').count(),2);
   await editor.locator('.cms-unit').last().getByRole('button',{name:'إضافة درس',exact:true}).click();
   assert.equal(await editor.locator('.cms-lesson').count(),2);
   await page.locator('#draftList button').first().click();
   await page.waitForFunction(()=>document.querySelectorAll('#visualEditor .cms-unit').length===1);
-  assert.equal(await editor.locator('.cms-activity').count(),26);
+  assert.equal(await editor.locator('.cms-activity').count(),27);
   assert.deepEqual(errors,[]);
  }finally{await browser.close();}
 })().catch(e=>{console.error(e);process.exitCode=1;});
