@@ -1,0 +1,11 @@
+const assert=require('node:assert/strict'),fs=require('node:fs');
+const {webcrypto}=require('node:crypto'),{verify}=require('../offline-license.js');
+(async()=>{const {envelope,key,context,now}=JSON.parse(fs.readFileSync(0,'utf8'));const keys={'test-ci':key};const check=(e=envelope,c=context,t=now,k=keys)=>verify(e,k,c,{subtle:webcrypto.subtle,now:t});
+const ok=await check();assert.equal(ok.valid,true);assert.equal(ok.testOnly,true);assert.equal(ok.planId,'plus');assert(!ok.features.includes('voice'));
+assert.equal((await check(envelope,{...context,deviceId:'11111111-1111-4111-8111-111111111111'})).code,'WRONG_SCOPE');
+assert.equal((await check(envelope,{...context,minSequence:ok.checkpoint.minSequence+1})).code,'STALE_LICENSE');
+assert.equal((await check(envelope,{...context,lastSeenAt:now+61})).code,'CLOCK_ROLLBACK');
+assert.equal((await check(envelope,context,ok.expiresAt)).code,'EXPIRED');
+assert.equal((await check(envelope,context,now,{})).code,'UNKNOWN_KEY');
+const sig=envelope.signature;assert.equal((await check({...envelope,signature:(sig[0]==='A'?'B':'A')+sig.slice(1)})).valid,false);
+})().catch(e=>{console.error(e);process.exitCode=1;});
