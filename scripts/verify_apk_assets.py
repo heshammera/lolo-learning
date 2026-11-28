@@ -14,6 +14,7 @@ assert "assets/branding/lolo-splash.webp" in expected
 from hashlib import sha256
 assert sha256(expected["assets/branding/lolo-splash.webp"]).hexdigest()=="91b6d046bec9bcb6fb277ba9d59784213e4982123ede1e8e3855e824df69de3e", "Approved splash art differs"
 with ZipFile(apk) as z:
+    assert any(n.endswith("/lolo_startup_transparent.xml") for n in z.namelist()), "Native transparent starting drawable missing"
     prefix="assets/public/"
     names=[n for n in z.namelist() if n.startswith(prefix) and not n.endswith("/")]
     assert len(names)==len(set(names)), "Duplicate APK asset"

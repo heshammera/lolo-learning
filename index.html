@@ -411,7 +411,11 @@ html.lolo-background *::before,html.lolo-background *::after{animation-play-stat
  function markPainted(){
    if(painted||failed)return;
    requestAnimationFrame(()=>requestAnimationFrame(()=>{
-     if(painted||failed)return;painted=true;shownAt=performance.now();root.dataset.painted='true';drain();
+     if(painted||failed)return;painted=true;root.dataset.painted='true';
+     const reveal=()=>{if(shownAt||failed)return;shownAt=performance.now();drain();};
+     const bridge=native&&window.Capacitor?.Plugins?.StartupSplash;
+     if(bridge?.painted){const timeout=setTimeout(reveal,1200);Promise.resolve().then(()=>bridge.painted()).then(()=>{clearTimeout(timeout);reveal();},()=>{clearTimeout(timeout);reveal();});}
+     else reveal();
    }));
  }
  art.addEventListener('load',markPainted,{once:true});
@@ -423,11 +427,12 @@ html.lolo-background *::before,html.lolo-background *::after{animation-play-stat
  function fail(){
    if(finished||failed)return;
    failed=true;clearTimeout(watchdog);clearTimeout(artTimeout);root.dataset.phase='error';
+   if(native)Promise.resolve().then(()=>window.Capacitor?.Plugins?.StartupSplash?.painted()).catch(()=>{});
    message.textContent='تعذر تجهيز المنهج. جرّبي إعادة المحاولة؛ تقدمك محفوظ.';retry.hidden=false;
  }
  const watchdog=setTimeout(fail,25000);
  function drain(){
-   if(!painted||draining||failed||!milestones.length)return;
+   if(!painted||!shownAt||draining||failed||!milestones.length)return;
    draining=true;
    setTimeout(()=>{
      draining=false;if(failed)return;
