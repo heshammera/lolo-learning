@@ -79,6 +79,18 @@ async function verifyPractice(page){
     await page.locator('#networkNotice[data-state="offline"]').waitFor();
     await page.waitForFunction(()=>document.querySelector('#mic')&&!document.querySelector('#mic').disabled);
     assert.equal(await page.evaluate(()=>localStorage.getItem('lolo-learning-path-v1')),saved);
+    for(const width of [320,390,768]){
+      await page.setViewportSize({width,height:800});
+      await page.locator('#childDashboard').waitFor({state:'visible'});
+      const layout=await page.evaluate(()=>{
+        const ids=['homeStart','homePractice','homeChoose'];
+        const buttons=ids.map(id=>{const r=document.getElementById(id).getBoundingClientRect();return {w:r.width,h:r.height,left:r.left,right:r.right};});
+        return {buttons,width:document.documentElement.clientWidth,scroll:document.documentElement.scrollWidth};
+      });
+      assert.ok(layout.scroll<=layout.width+1,'no horizontal document overflow at '+width);
+      for(const b of layout.buttons){assert.ok(b.w>=44&&b.h>=44);assert.ok(b.left>=-1&&b.right<=layout.width+1);}
+    }
+    await page.setViewportSize({width:390,height:800});
     await page.locator('#homeStart').click();
     await verifyPractice(page);
     await page.locator('#homeChoose').click();
