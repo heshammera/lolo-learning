@@ -43,6 +43,9 @@ on:
       - 'database/**'
       - 'api/family.py'
       - 'server.py'
+      - 'request_budget.py'
+      - 'tests/test_request_budget.py'
+      - 'tests/test_security_basics.py'
       - 'requirements.txt'
       - 'tests/test_family_accounts.py'
       - 'tests/test_progress_sync.py'
@@ -96,3 +99,5 @@ jobs:
           .venv/bin/python -m unittest discover -s tests -p 'test_offline_license_lifecycle.py' -v
           .venv/bin/python -m unittest discover -s tests -p 'test_remote_config.py' -v
           .venv/bin/python -m unittest discover -s tests -p 'test_pronunciation_preview.py' -v
+          .venv/bin/python -m unittest discover -s tests -p 'test_request_budget.py' -v
+          .venv/bin/python -m unittest discover -s tests -p 'test_security_basics.py' -v

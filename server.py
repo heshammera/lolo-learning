@@ -12,6 +12,8 @@ from time import monotonic
 import json
 import os
 import secrets
+import math
+from request_budget import admit as admit_shared_budget, BudgetUnavailable
 from family_accounts import FamilyStore, FamilyError
 
 ROOT = Path(__file__).resolve().parent
@@ -305,6 +307,20 @@ class Handler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(data)
 
+    def shared_admission(self, kind):
+        mode=os.environ.get("LOLO_SHARED_REQUEST_BUDGET","off").strip().lower()
+        if mode=="off":return True
+        if mode!="required":
+            self.send_json(503,{"error":"إعداد حماية الطلبات غير صالح."});return False
+        try:
+            ok,retry=admit_shared_budget(os.environ.get("LOLO_BUDGET_DATABASE_URL"),kind,
+                bounded_env_int("LOLO_SHARED_PAID_PER_MINUTE",120,1,1000000) if kind=="paid" else bounded_env_int("LOLO_SHARED_LOGIN_PER_MINUTE",30,1,1000000),
+                bounded_env_int("LOLO_SHARED_PAID_PER_DAY",3000,1,1000000) if kind=="paid" else None)
+        except (BudgetUnavailable,ValueError):
+            self.send_json(503,{"error":"الخدمة المتصلة غير متاحة مؤقتًا."});return False
+        if not ok:self.send_rate_limit(retry);return False
+        return True
+
     def do_POST(self):
         route = self.path.split("?", 1)[0]
         if self.path == "/api/family":
@@ -337,6 +353,7 @@ class Handler(BaseHTTPRequestHandler):
         allowed, retry_after = GLOBAL_RATE_LIMITER.check("all-paid-requests", GLOBAL_PAID_LIMIT)
         if not allowed:
             return self.send_rate_limit(retry_after)
+        if not self.shared_admission("paid"):return
         if route == "/api/provider-token":
             return self.create_provider_token()
         if route == "/api/onboarding-audio":
@@ -397,6 +414,7 @@ class Handler(BaseHTTPRequestHandler):
             allowed,retry = FAMILY_GLOBAL_LIMITER.check("login",30,60)
             if not allowed:
                 return self.send_rate_limit(retry)
+        if action=="login" and not self.shared_admission("login"):return
         auth = self.headers.get("Authorization","")
         token = auth[7:] if auth.startswith("Bearer ") else ""
         try:
@@ -424,7 +442,11 @@ class Handler(BaseHTTPRequestHandler):
             return self.send_json(503,{"error":"خدمة الحسابات غير متاحة حاليًا."})
 
     def read_json_object(self, maximum_bytes):
-        raw_length = self.headers.get("Content-Length", "0")
+        lengths=self.headers.get_all("Content-Length") or []
+        if len(lengths)!=1 or self.headers.get("Transfer-Encoding"):
+            return None,"الطلب غير صالح."
+        raw_length=lengths[0]
+        if not raw_length.isascii() or not raw_length.isdecimal():return None,"الطلب غير صالح."
         try:
             length = int(raw_length)
         except (TypeError, ValueError):
@@ -437,7 +459,17 @@ class Handler(BaseHTTPRequestHandler):
                 return None, "الطلب غير مكتمل."
             def reject_constant(value):
                 raise ValueError("Non-finite JSON constant")
-            body = json.loads(raw, parse_constant=reject_constant)
+            def reject_duplicate(pairs):
+                value={}
+                for key,item in pairs:
+                    if key in value:raise ValueError("Duplicate JSON key")
+                    value[key]=item
+                return value
+            def finite_float(value):
+                number=float(value)
+                if not math.isfinite(number):raise ValueError("Non-finite float")
+                return number
+            body = json.loads(raw.decode("utf-8"), parse_constant=reject_constant,parse_float=finite_float,object_pairs_hook=reject_duplicate)
         except (ValueError, RecursionError):
             return None, "الطلب غير صالح."
         if not isinstance(body, dict):
@@ -696,7 +728,7 @@ class Handler(BaseHTTPRequestHandler):
         if relative not in allowed_files and not is_brand_asset:
             return self.send_json(404, {"error": "Not found"})
         file = (ROOT / relative).resolve()
-        if ROOT not in file.parents or not file.is_file():
+        if (is_brand_asset and (ROOT/"assets"/"branding").resolve() not in file.parents) or ROOT not in file.parents or not file.is_file():
             return self.send_json(404, {"error": "Not found"})
         content = file.read_bytes()
         mime = {".html": "text/html; charset=utf-8", ".json": "application/json; charset=utf-8",
