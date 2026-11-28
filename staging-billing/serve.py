@@ -14,6 +14,8 @@ import billing
 import billing_grants
 import billing_discounts
 import offline_license
+import offline_device_proof
+import offline_license_lifecycle
 import billing_entitlements as entitlements
 
 SHAPES={
@@ -28,10 +30,13 @@ SHAPES={
  "remove":{"action","childId"},
  "logout":{"action"},
  "devices":{"action"},
+ "licenseStatus":{"action","deviceId","deviceKeySha256"},
+ "licenseBegin":{"action","deviceId","publicSpki"},
+ "licenseComplete":{"action","challengeId","signature"},
  "revokeDevice":{"action","deviceId"},
 }
 
-def dispatch(store,body,token):
+def dispatch(store,body,token,signing=None):
     billing.require_staging()
     action=body.get("action") if type(body) is dict else None
     if not isinstance(action,str) or action not in SHAPES or set(body)!=SHAPES[action]:
@@ -42,6 +47,12 @@ def dispatch(store,body,token):
             raise FamilyError(403,"Synthetic account required.")
         return store.login(email,body["password"])
     with store.connect() as db:billing.parent_for_test(store,db,token)
+    if action in ("licenseStatus","licenseBegin","licenseComplete"):
+        if signing is None:raise FamilyError(503,"License test signing disabled.")
+        key_id,key=signing
+        if action=="licenseStatus":return offline_license_lifecycle.status(store,token,body["deviceId"],body["deviceKeySha256"],key_id,key)
+        if action=="licenseBegin":return offline_device_proof.begin(store,token,body["deviceId"],body["publicSpki"])
+        return offline_device_proof.complete(store,token,body["challengeId"],body["signature"],key_id,key)
     if action=="dashboard":
         return {"plans":billing.catalog(store),"subscription":billing.test_subscription(store,token),
           "usage":entitlements.usage_status(store,token),"orders":billing.list_orders(store,token),
@@ -61,10 +72,11 @@ def dispatch(store,body,token):
     return {"ok":True}
 
 class Server(HTTPServer):
-    def __init__(self,port,store):
+    def __init__(self,port,store,signing=None):
         billing.require_staging()
         super().__init__(("127.0.0.1",port),Handler)
         self.store=store
+        self.signing=signing
         self.host="127.0.0.1:"+str(self.server_port)
         self.origin="http://"+self.host
         self.requests=deque()
@@ -111,7 +123,7 @@ class Handler(BaseHTTPRequestHandler):
             if isinstance(body,dict) and body.get("action")=="login" and not self.server.admit(self.server.logins,5):raise FamilyError(429,"Rate limited.")
             auth=self.headers.get_all("Authorization") or []
             token=auth[0][7:] if len(auth)==1 and auth[0].startswith("Bearer ") else ""
-            return self.reply(200,dispatch(self.server.store,body,token))
+            return self.reply(200,dispatch(self.server.store,body,token,self.server.signing))
         except FamilyError as exc:return self.reply(exc.status,{"error":"Request rejected."})
         except (ValueError,RecursionError,TimeoutError):return self.reply(400,{"error":"Invalid request."})
         except Exception:return self.reply(503,{"error":"Staging unavailable."})
@@ -120,6 +132,16 @@ if __name__=="__main__":
     dsn=os.environ.get("LOLO_BILLING_STAGING_DATABASE_URL")
     if not dsn or dsn in (os.environ.get("LOLO_DATABASE_URL"),os.environ.get("LOLO_ADMIN_DATABASE_URL"),os.environ.get("LOLO_HOMEWORK_STAGING_DATABASE_URL")):
         raise SystemExit("Dedicated disposable billing database required.")
-    with Server(4186,FamilyStore(dsn)) as server:
+    signing=None
+    if os.environ.get("LOLO_OFFLINE_TEST_SIGNING")=="true":
+        from cryptography.hazmat.primitives import serialization
+        from cryptography.hazmat.primitives.asymmetric import ec
+        path=Path(os.environ["LOLO_OFFLINE_TEST_KEY_FILE"]).resolve()
+        if path.is_relative_to(ROOT.parent):raise SystemExit("Test key must be outside repository.")
+        key=serialization.load_pem_private_key(path.read_bytes(),password=None)
+        key_id=os.environ.get("LOLO_OFFLINE_TEST_KEY_ID","")
+        if not isinstance(key,ec.EllipticCurvePrivateKey) or not isinstance(key.curve,ec.SECP256R1) or not re.fullmatch(r"test-[A-Za-z0-9_-]{1,55}",key_id):raise SystemExit("Test signing key required.")
+        signing=(key_id,key)
+    with Server(4186,FamilyStore(dsn),signing) as server:
         print("Synthetic billing: "+server.origin,flush=True)
         server.serve_forever()

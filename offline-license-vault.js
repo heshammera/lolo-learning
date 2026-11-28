@@ -9,7 +9,7 @@
  const sameEnvelope=(a,b)=>a?.keyId===b?.keyId&&a?.payload===b?.payload&&a?.signature===b?.signature;
  function create({vault,device,keys=Object.freeze({}),subtle=globalThis.crypto?.subtle}={}){
   let busy=false;
-  async function run(scope,envelope,install){
+  async function run(scope,envelope,install,deny=false){
    if(busy)return fail('BUSY');
    busy=true;
    try{
@@ -21,9 +21,19 @@
     const old=read.state;
     if(old===null&&read.revision!==0||old!==null&&read.revision===0)return fail('VAULT_CORRUPT');
     if(old!==null){
-     if(!exact(old,['parentId','deviceId','deviceKeySha256','envelope','minSequence','lastSeenAt'])||!nonnegative(old.minSequence)||old.minSequence<1||!nonnegative(old.lastSeenAt)||old.lastSeenAt<1||!exact(old.envelope,['keyId','payload','signature']))return fail('VAULT_CORRUPT');
+     if(!(exact(old,['parentId','deviceId','deviceKeySha256','envelope','minSequence','lastSeenAt'])||exact(old,['parentId','deviceId','deviceKeySha256','envelope','minSequence','lastSeenAt','blockedThrough'])&&nonnegative(old.blockedThrough))||!nonnegative(old.minSequence)||old.minSequence<1||!nonnegative(old.lastSeenAt)||old.lastSeenAt<1||!exact(old.envelope,['keyId','payload','signature']))return fail('VAULT_CORRUPT');
      if(old.parentId!==scope.parentId||old.deviceId!==scope.deviceId||old.deviceKeySha256!==identity.deviceKeySha256)return fail('WRONG_VAULT_SCOPE');
     }
+    if(deny){
+     const checked=await verifier.verifyStatus(envelope,keys,{...scope,deviceKeySha256:identity.deviceKeySha256},{subtle});
+     if(!checked.valid||checked.status!=='denied')return fail('INVALID_DENIAL');
+     if(!old)return fail('NO_LICENSE');
+     if(checked.sequence<old.minSequence)return fail('STALE_STATUS');
+     const next={...old,blockedThrough:Math.max(old.blockedThrough||0,checked.sequence),lastSeenAt:Math.max(old.lastSeenAt,checked.issuedAt)};
+     const saved=await vault.compareAndSet({expectedRevision:read.revision,state:next});
+     return saved?.testOnly===true&&saved.revision===read.revision+1?fail('REVOKED'):fail('VAULT_UNAVAILABLE');
+    }
+    if(!install&&old?.blockedThrough>=old?.minSequence)return fail('REVOKED');
     const candidate=install?envelope:old?.envelope;
     if(!candidate)return fail('NO_LICENSE');
     const ctx={...scope,deviceKeySha256:identity.deviceKeySha256,minSequence:old?.minSequence||0,lastSeenAt:old?.lastSeenAt||0};
@@ -40,6 +50,7 @@
      }
      return {...checked,testOnly:true};
     }
+    if(old?.blockedThrough>=checked.checkpoint.minSequence)return fail('REVOKED');
     if(old&&checked.checkpoint.minSequence===old.minSequence&&!sameEnvelope(candidate,old.envelope))return fail('SEQUENCE_CONFLICT');
     const next={parentId:scope.parentId,deviceId:scope.deviceId,deviceKeySha256:identity.deviceKeySha256,
       envelope:candidate,minSequence:checked.checkpoint.minSequence,lastSeenAt:checked.checkpoint.lastSeenAt};
@@ -50,7 +61,7 @@
     return {...checked,testOnly:true};
    }catch{return fail('VAULT_UNAVAILABLE');}finally{busy=false;}
   }
-  return Object.freeze({install:(scope,envelope)=>run(scope,envelope,true),check:scope=>run(scope,null,false)});
+  return Object.freeze({install:(scope,envelope)=>run(scope,envelope,true),check:scope=>run(scope,null,false),deny:(scope,status)=>run(scope,status,false,true)});
  }
  const api=Object.freeze({create});
  if(typeof module!=='undefined'&&module.exports)module.exports=api;

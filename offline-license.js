@@ -26,7 +26,20 @@
    if(Math.max(now,context.lastSeenAt,p.issuedAt)>=p.expiresAt)return fail('EXPIRED');
    return {valid:true,testOnly:true,planId:p.planId,features:[...p.features],expiresAt:p.expiresAt,checkpoint:{minSequence:p.sequence,lastSeenAt:Math.max(now,context.lastSeenAt,p.issuedAt)}};
  }
- const api=Object.freeze({verify});
+ async function verifyStatus(envelope,keys,scope,{subtle=globalThis.crypto?.subtle}={}){
+   if(!subtle||!exact(envelope,['keyId','payload','signature'])||typeof envelope.keyId!=='string'||!/^test-[A-Za-z0-9_-]{1,55}$/.test(envelope.keyId)||!keys||!Object.prototype.hasOwnProperty.call(keys,envelope.keyId))return fail('UNKNOWN_KEY');
+   try{
+    const raw=decode(envelope.payload,2048),sig=decode(envelope.signature,64),jwk=keys[envelope.keyId];
+    if(sig.length!==64||jwk?.kty!=='EC'||jwk.crv!=='P-256'||Object.prototype.hasOwnProperty.call(jwk,'d'))return fail('INVALID_SIGNATURE');
+    const key=await subtle.importKey('jwk',jwk,{name:'ECDSA',namedCurve:'P-256'},false,['verify']);
+    if(!await subtle.verify({name:'ECDSA',hash:'SHA-256'},key,sig,raw))return fail('INVALID_SIGNATURE');
+    const p=JSON.parse(new TextDecoder('utf-8',{fatal:true}).decode(raw));
+    if(!exact(p,['format','audience','testOnly','parentId','deviceId','deviceKeySha256','sequence','issuedAt','status'])||p.format!==1||p.audience!=='lolo-offline-status-test'||p.testOnly!==true||!isId(p.parentId)||!isId(p.deviceId)||typeof p.deviceKeySha256!=='string'||!digestPattern.test(p.deviceKeySha256)||!int(p.sequence)||!int(p.issuedAt)||!['renew','denied'].includes(p.status))return fail('INVALID_STATUS');
+    if(p.parentId!==scope.parentId||p.deviceId!==scope.deviceId||p.deviceKeySha256!==scope.deviceKeySha256)return fail('WRONG_SCOPE');
+    return {valid:true,testOnly:true,status:p.status,sequence:p.sequence,issuedAt:p.issuedAt};
+   }catch{return fail('INVALID_STATUS');}
+ }
+ const api=Object.freeze({verify,verifyStatus});
  if(typeof module!=='undefined'&&module.exports)module.exports=api;
  if(typeof window!=='undefined')window.LoloOfflineLicense=api;
 })();

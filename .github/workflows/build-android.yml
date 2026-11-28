@@ -32,6 +32,7 @@ on:
       - 'content-progress.js'
       - 'offline-license.js'
       - 'offline-license-vault.js'
+      - 'offline-license-lifecycle.js'
       - 'content-client.js'
       - 'content_delivery.py'
       - 'api/content.py'
