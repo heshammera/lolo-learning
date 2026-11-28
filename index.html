@@ -111,6 +111,20 @@
 @media(max-height:640px){.app.in-lesson .scene{height:128px}.app.in-lesson .cards .card{min-height:58px}.app.in-lesson .lesson-session-panel .mic{width:56px;height:56px}}
 @media(prefers-reduced-motion:reduce){.app.in-lesson .scene *,.app.in-lesson .lesson-session-panel *,.app.in-lesson .cards *{animation:none!important;transition:none!important}}
 </style>
+<style>
+.reward-card{max-height:calc(100dvh - 36px);min-height:0;overflow-y:auto;overscroll-behavior:contain;border-radius:28px;padding:clamp(14px,4vw,22px);background:linear-gradient(150deg,#fff 12%,#f1eaff 62%,#fff3d1);border:2px solid #fff}
+.reward-card:before,.reward-card:after{animation:none;pointer-events:none}
+.reward-card[data-result="won"]{background:linear-gradient(145deg,#fff8d8,#e4fae9);border-color:#d9eccc}
+.reward-card[data-result="won"] .reward-kicker{background:#fff;color:#28664a}
+.reward-card[data-result="won"] .reward-demo{animation:reward-pop .5s ease-out;background:#ffffffbd}
+.reward-card[data-result="won"] .reward-timer{visibility:hidden}
+.reward-demo{font-size:clamp(25px,8vw,38px);min-height:64px;overflow-wrap:anywhere}
+.reward-option{width:clamp(56px,19vw,76px);height:clamp(56px,19vw,76px);font-size:clamp(26px,8vw,39px);border-radius:18px}
+.reward-option.wrong{background:#fff3dc;border-color:#e4cc9c;animation:none}
+.reward-skip{min-height:44px;color:#59477e;background:#fff;border:1px solid #e3d8f4}
+.reward-overlay button:focus-visible{outline:3px solid #6745b8;outline-offset:3px}
+@media(prefers-reduced-motion:reduce){.reward-overlay,.reward-overlay *{animation:none!important;transition:none!important}.reward-timer{visibility:hidden}}
+</style>
 </head>
 <body>
 <main class="app" id="app" aria-label="لولو معلمة تعليمية">
@@ -215,7 +229,7 @@
   <div class="sr-only" id="liveStatus" aria-live="polite"></div><div id="livePathStatus" aria-live="polite" class="lesson-note"></div>
 
   <section class="reward-overlay" id="rewardOverlay" hidden role="dialog" aria-modal="true" aria-labelledby="rewardTitle">
-    <div class="reward-card" id="rewardCard"><span class="reward-kicker">🎁 مكافأة الدرس</span><h2 id="rewardTitle">لعبة سريعة!</h2><p class="reward-instruction" id="rewardInstruction"></p><div class="reward-demo" id="rewardDemo"></div><div class="reward-options" id="rewardOptions"></div><div class="reward-timer"><span></span></div><button class="reward-skip" id="rewardSkip" type="button">تخطي اللعبة</button></div>
+    <div class="reward-card" id="rewardCard"><span class="reward-kicker">🎁 مكافأة الدرس</span><h2 id="rewardTitle">لعبة سريعة!</h2><p class="reward-instruction" id="rewardInstruction" role="status" aria-live="polite"></p><div class="reward-demo" id="rewardDemo"></div><div class="reward-options" id="rewardOptions"></div><div class="reward-timer"><span></span></div><button class="reward-skip" id="rewardSkip" type="button">تخطي اللعبة</button></div>
   </section>
 
   <section class="parent-gate" id="parentGate" hidden aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="parentGateTitle">
