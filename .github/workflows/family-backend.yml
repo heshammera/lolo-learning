@@ -6,6 +6,8 @@ on:
       - 'family_accounts.py'
       - 'billing.py'
       - 'billing_entitlements.py'
+      - 'billing_owner.py'
+      - 'tests/test_billing_owner.py'
       - 'tests/test_billing_entitlements.py'
       - 'tests/test_billing.py'
       - 'homework_storage.py'
@@ -61,3 +63,4 @@ jobs:
           .venv/bin/python -m unittest discover -s tests -p 'test_homework_preview.py' -v
           .venv/bin/python -m unittest discover -s tests -p 'test_billing.py' -v
           .venv/bin/python -m unittest discover -s tests -p 'test_billing_entitlements.py' -v
+          .venv/bin/python -m unittest discover -s tests -p 'test_billing_owner.py' -v
