@@ -24,3 +24,29 @@ test('checkpoint resumes only the exact release and scope; failed save retains p
  selected='other';assert.equal(tracker.save(p,'lesson','u','l',[]),false);
  selected='default';raw='{broken';assert.equal(tracker.load(p,'lesson','u','l').valid,false);assert.equal(tracker.save(p,'lesson','u','l',[]),false);
 });
+
+test('spaced review grows only after due successful attempts and resets after errors',()=>{
+ let raw=null,selected='default',time=Date.UTC(2026,10,28),fail=false;
+ const day=86400000;
+ const tracker=progress.create({profiles:{activeId:'default',selectedId:()=>selected},get:()=>raw,set:(_,v)=>{if(fail)return false;raw=v;return true;}},{now:()=>time});
+ const scope=['lesson','u','l'],correct=[{activityId:'a',status:'correct'},{activityId:'b',status:'correct'}];
+ const read=()=>tracker.load(p,...scope).reviewSchedule;
+ const save=results=>tracker.save(p,...scope,results);
+ assert.equal(save(correct),true);assert.equal(read().intervalDays,1);const first=read();
+ time+=day*2;assert.equal(save(correct),true);assert.deepEqual(read(),first);
+ time=first.completedAt+day/2;assert.equal(save([]),true);assert.equal(save(correct),true);assert.deepEqual(read(),first);
+ time=first.dueAt;assert.equal(save([]),true);assert.deepEqual(read(),first);assert.equal(save(correct),true);assert.equal(read().intervalDays,3);
+ for(const interval of [7,14,30,30]){time=read().dueAt;save([]);save(correct);assert.equal(read().intervalDays,interval);}
+ time+=day;save([]);save([correct[0],{activityId:'b',status:'incorrect'}]);assert.equal(read().intervalDays,1);
+ assert.equal(tracker.load({...p,sequence:2},...scope).reviewSchedule,undefined);
+ const latest=read();fail=true;assert.equal(save([]),false);assert.deepEqual(read(),latest);
+ selected='other';assert.equal(tracker.load(p,...scope).valid,false);
+});
+test('ungraded-only completion and legacy checkpoint do not manufacture review dates',()=>{
+ let raw=null;const tracker=progress.create({profiles:{activeId:'default',selectedId:()=> 'default'},get:()=>raw,set:(_,v)=>{raw=v;return true;}},{now:()=>Date.UTC(2026,10,28)});
+ const q=JSON.parse(JSON.stringify(p));q.content.units[0].lessons[0].activities=[{id:'draw',type:'free-drawing',version:1,prompt:'Draw',config:{}}];
+ assert.equal(tracker.save(q,'lesson','u','l',[{activityId:'draw',status:'completed'}]),true);
+ assert.equal(tracker.load(q,'lesson','u','l').reviewSchedule,undefined);
+ const data=JSON.parse(raw);data.entries[0].reviewSchedule={completedAt:1,dueAt:2,intervalDays:30};raw=JSON.stringify(data);
+ assert.equal(tracker.load(q,'lesson','u','l').valid,false);
+});
