@@ -5,6 +5,8 @@ on:
     paths:
       - 'family_accounts.py'
       - 'billing.py'
+      - 'billing_entitlements.py'
+      - 'tests/test_billing_entitlements.py'
       - 'tests/test_billing.py'
       - 'homework_storage.py'
       - 'homework_review.py'
@@ -58,3 +60,4 @@ jobs:
           .venv/bin/python -m unittest discover -s tests -p 'test_homework_storage.py' -v
           .venv/bin/python -m unittest discover -s tests -p 'test_homework_preview.py' -v
           .venv/bin/python -m unittest discover -s tests -p 'test_billing.py' -v
+          .venv/bin/python -m unittest discover -s tests -p 'test_billing_entitlements.py' -v
