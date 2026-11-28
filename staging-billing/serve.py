@@ -11,6 +11,7 @@ ROOT=Path(__file__).resolve().parent
 sys.path.insert(0,str(ROOT.parent))
 from family_accounts import FamilyStore, FamilyError
 import billing
+import billing_grants
 import billing_entitlements as entitlements
 
 SHAPES={
@@ -18,6 +19,7 @@ SHAPES={
  "dashboard":{"action"},
  "create":{"action","planId","period","operationId","expectedAmountMinor"},
  "cancel":{"action","orderId"},
+ "redeem":{"action","code"},
  "assign":{"action","childId"},
  "remove":{"action","childId"},
  "logout":{"action"},
@@ -42,6 +44,7 @@ def dispatch(store,body,token):
         if type(body["expectedAmountMinor"]) is not int or body["expectedAmountMinor"]<=0:
             raise FamilyError(400,"Quote required.")
         return billing.create_order(store,token,body["planId"],body["period"],body["operationId"],body["expectedAmountMinor"])
+    if action=="redeem":return billing_grants.redeem_trial(store,token,body["code"])
     if action=="cancel":return billing.cancel_order(store,token,body["orderId"])
     if action=="assign":return {"ok":entitlements.assign_slot(store,token,body["childId"])}
     if action=="remove":return {"ok":entitlements.remove_slot(store,token,body["childId"])}

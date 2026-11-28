@@ -17,6 +17,7 @@ from cms_drafts import Drafts
 from content_packages import export_active
 from family_accounts import FamilyStore
 import billing_owner
+import billing_grants
 ROOT = Path(__file__).resolve().parent
 COOKIE = "lolo_admin_session"
 SECURE_COOKIE = "__Host-lolo_admin_session"
@@ -153,6 +154,10 @@ class Handler(BaseHTTPRequestHandler):
             if self.path=="/activity-engine.js":
                 self.server.store.inspect(self.token(),"library:read")
                 return self.reply(200,(ROOT.parent/"activity-engine.js").read_bytes(),"text/javascript; charset=utf-8")
+            if self.path=="/api/billing/coupons":
+                self.server.store.inspect(self.token(),"billing:manage")
+                if self.server.billing_store is None:raise FamilyError(503,"Billing disabled.")
+                return self.reply(200,billing_grants.list_trials(self.server.billing_store,self.server.store,self.token()))
             if self.path in ("/api/billing/plans","/api/billing/history"):
                 self.server.store.inspect(self.token(),"billing:manage")
                 if self.server.billing_store is None:raise FamilyError(503,"Billing disabled.")
@@ -172,6 +177,20 @@ class Handler(BaseHTTPRequestHandler):
         if not self.valid_host() or not self.valid_origin():
             return self.reply(403,{"error":"Invalid origin."})
         try:
+            if self.path in ("/api/billing/grant/read","/api/billing/grant/change","/api/billing/coupon/create","/api/billing/coupon/disable"):
+                self.server.store.inspect(self.token(),"billing:manage")
+                if self.server.billing_store is None:raise FamilyError(503,"Billing disabled.")
+                body=self.json_body()
+                args=(self.server.billing_store,self.server.store,self.token())
+                if self.path.endswith("/read") and set(body)=={"email"}:
+                    return self.reply(200,billing_grants.lookup(*args,body["email"]))
+                if self.path.endswith("/change") and set(body)=={"email","action","planId","days","revision"}:
+                    return self.reply(200,billing_grants.manual_change(*args,body["email"],body["action"],body["planId"],body["days"],body["revision"]))
+                if self.path.endswith("/create") and set(body)=={"campaign","planId","days","maxUses","validDays"}:
+                    return self.reply(200,billing_grants.create_trial(*args,body["campaign"],body["planId"],body["days"],body["maxUses"],body["validDays"]))
+                if self.path.endswith("/disable") and set(body)=={"id"}:
+                    return self.reply(200,billing_grants.disable_trial(*args,body["id"]))
+                raise FamilyError(400,"Invalid fields.")
             if self.path=="/api/billing/plan":
                 self.server.store.inspect(self.token(),"billing:manage")
                 if self.server.billing_store is None:raise FamilyError(503,"Billing disabled.")
