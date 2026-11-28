@@ -1,5 +1,5 @@
 import unittest
-from pronunciation_contract import Reference, normalize_evidence
+from pronunciation_contract import Reference, normalize_evidence, practice_feedback
 
 
 class PronunciationTests(unittest.TestCase):
@@ -29,3 +29,18 @@ class PronunciationTests(unittest.TestCase):
         for locale,text,phonemes in [("xx","cat",("k",)),("en-US","",("k",)),("en-US","cat",()),("en-US","cat",["k"]),("en-US","cat",("\n",))]:
             with self.assertRaises(ValueError):
                 Reference("word",locale,text,phonemes)
+
+    def test_guidance_is_bounded_deterministic_and_requires_aligned_evidence(self):
+        guidance={"k":"Listen to first sound.","æ":"Listen to the middle sound.","t":"Listen to final sound."}
+        items=[{**p,"accuracy":score} for p,score in zip(self.items,(65,49,60))]
+        value=practice_feedback(self.ref,{**self.result,"phonemes":items},guidance=guidance)
+        self.assertEqual(value["kind"],"guided-repeat")
+        self.assertFalse(value["masteryEligible"])
+        self.assertEqual([p["phoneme"] for p in value["targets"]],["æ","t"])
+        self.assertEqual(practice_feedback(self.ref,self.result,guidance=guidance)["targets"],[])
+        self.assertIsNone(practice_feedback(self.ref,{**self.result,"status":"no-speech"},guidance=guidance))
+        self.assertIsNone(practice_feedback(self.ref,self.result,guidance={"k":"hint"}))
+        repeated=Reference("repeat","en-US","test",("t","s","t"))
+        result={"activityId":"repeat","locale":"en-US","status":"aligned","phonemes":[{"index":i,"phoneme":p,"accuracy":score} for i,(p,score) in enumerate(zip(repeated.phonemes,(62,90,40)))]}
+        targets=practice_feedback(repeated,result,guidance={"t":"Repeat t.","s":"Repeat s."})["targets"]
+        self.assertEqual([(t["index"],t["phoneme"]) for t in targets],[(2,"t")])
