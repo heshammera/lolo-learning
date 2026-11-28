@@ -24,7 +24,7 @@ key_digest="$(sha256sum "$tmp/cert.der" | cut -d' ' -f1)"
 "$tools/apksigner" sign --ks "$tmp/key" --ks-key-alias "$LOLO_ANDROID_KEY_ALIAS" --ks-pass env:LOLO_ANDROID_STORE_PASSWORD --key-pass env:LOLO_ANDROID_KEY_PASSWORD --out "$tmp/signed.apk" "$tmp/aligned.apk"
 verification="$("$tools/apksigner" verify --min-sdk-version 24 --print-certs "$tmp/signed.apk")"
 # Normalize only whitespace and separators; do not weaken the pinned certificate check.
-digests="$(printf '%s\n' "$verification" | sed -nE 's/^[[:space:]]*Signer #[0-9]+ certificate SHA-256 digest:[[:space:]]*([[:xdigit:]:]+)[[:space:]]*$/\1/p')"
+digests="$(printf '%s\n' "$verification" | sed -nE 's/^[[:space:]]*(Signer #[0-9]+|V[0-9]+(\.[0-9]+)? Signer:) certificate SHA-256 digest:[[:space:]]*([[:xdigit:]:]+)[[:space:]]*$/\3/p')"
 [[ -n "$digests" && "$(printf '%s\n' "$digests" | wc -l)" -eq 1 ]] || { echo 'Expected exactly one signer certificate digest'; printf '%s\n' "$verification"; exit 3; }
 actual="$(printf '%s' "$digests" | tr -d ':' | tr '[:upper:]' '[:lower:]')"
 [[ "$actual" == "$expected" ]] || { echo "Release signer does not match pinned certificate: actual=$actual expected=$expected" >&2; exit 3; }
