@@ -4,7 +4,7 @@ import os
 import threading
 import unittest
 from pathlib import Path
-from unittest.mock import Mock, patch
+from unittest.mock import Mock, MagicMock, patch
 from urllib.request import Request, urlopen
 from urllib.error import HTTPError
 
@@ -22,7 +22,7 @@ class PreviewTests(unittest.TestCase):
                 preview.PreviewServer(0,Mock())
 
     def test_synthetic_only_and_validation(self):
-        store=Mock()
+        store=MagicMock()
         db=store.connect.return_value.__enter__.return_value
         db.execute.return_value.fetchone.return_value=("parent@example.test",)
         with patch.dict(os.environ,{"LOLO_HOMEWORK_STORAGE_STAGING":"true"}):
