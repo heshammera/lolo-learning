@@ -76,6 +76,19 @@ async function verifyPractice(page){
   assert.equal(await page.evaluate(()=>JSON.parse(localStorage.getItem('lolo-mastered')||'[]').length),0);
   await page.locator('#visualQuizDone').click();
   await page.locator('#homePractice').click();
+  await page.locator('#practiceAdaptive').click();
+  await page.locator('#visualQuiz[open]').waitFor();
+  for(let i=0;i<5;i++){
+    assert.match(await page.locator('#visualQuizProgress').textContent(),new RegExp('من 5'));
+    await page.locator('#visualQuizOptions button').first().click();
+    await page.locator('#visualQuizNext').click();
+  }
+  const adaptive=await page.evaluate(()=>JSON.parse(localStorage.getItem('lolo-visual-assessment-v1'))['hello-1']);
+  assert.equal(adaptive.length,2);assert.equal(adaptive[1].mode,'adaptive');assert.equal(adaptive[1].total,5);
+  assert.equal(new Set(adaptive[1].answers.map(a=>a.questionId)).size,5);
+  assert.equal(await page.evaluate(()=>JSON.parse(localStorage.getItem('lolo-mastered')||'[]').length),0);
+  await page.locator('#visualQuizDone').click();
+  await page.locator('#homePractice').click();
   await page.locator('#practiceTrace').click();
   await page.locator('#traceSheet.open').waitFor();
   assert.equal(await page.locator('#traceCanvas').isVisible(),true);
