@@ -44,6 +44,10 @@ on:
       - 'api/family.py'
       - 'server.py'
       - 'database_connection.py'
+      - 'scripts/verify_neon_schema.py'
+      - 'scripts/verify_neon_build.sh'
+      - 'tests/test_neon_schema_verification.py'
+      - 'vercel.json'
       - 'tests/test_database_connection.py'
       - 'request_budget.py'
       - 'tests/test_request_budget.py'
@@ -104,3 +108,4 @@ jobs:
           .venv/bin/python -m unittest discover -s tests -p 'test_request_budget.py' -v
           .venv/bin/python -m unittest discover -s tests -p 'test_security_basics.py' -v
           .venv/bin/python -m unittest discover -s tests -p 'test_database_connection.py' -v
+          .venv/bin/python -m unittest discover -s tests -p 'test_neon_schema_verification.py' -v
