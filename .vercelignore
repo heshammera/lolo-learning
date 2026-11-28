@@ -4,3 +4,6 @@ scripts/preview-activity-library.js
 
 # Local synthetic homework preview is never deployed.
 staging-homework/
+
+# Synthetic billing preview is local only.
+staging-billing/
