@@ -2928,7 +2928,7 @@ function syncParentSettingsUI() {
 
 function showParentTab(tab) {
   const settings = tab === 'settings';
-  if(!settings)resetCloudFamily();
+  if(!settings){resetCloudFamily();clearLocalBackup();}
   $('#parentLessonsPanel').hidden = settings;
   $('#parentSettingsPanel').hidden = !settings;
   $('#parentLessonsTab').setAttribute('aria-selected', String(!settings));
@@ -2962,6 +2962,7 @@ function closeParentGateModal(restoreFocus = true) {
 }
 
 function closeParentSettings() {
+  clearLocalBackup();
   clearExtraParent();
   resetCloudFamily();
   clearTimeout(parentGateAutoLockTimer);
@@ -3080,6 +3081,42 @@ function restoredProfileEntries(snapshot){
   }
   return entries;
 }
+// Limited, offline, parent-authorized migration backup. Never stores credentials or sends requests.
+const LOCAL_BACKUP_MAX=32768;
+function localBackupAllowed(){
+  return parentGate.isUnlocked()&&$('#parentSheet').classList.contains('open')&&!$('#parentSettingsPanel').hidden&&document.visibilityState!=='hidden'&&!!storage.profiles.activeId&&storage.profiles.selectedId()===storage.profiles.activeId;
+}
+function clearLocalBackup(){
+  $('#localBackupText').value='';$('#localBackupName').value='';$('#localBackupConfirm').checked=false;$('#localBackupStatus').textContent='';
+}
+$('#localBackupExport').onclick=()=>{
+  if(!localBackupAllowed())return clearLocalBackup();
+  if(isActive||isStarting)stopSession();
+  clearLocalBackup();
+  const snapshot=localProgressSnapshot();
+  if(!restoredProfileEntries(snapshot)){$('#localBackupStatus').textContent='تعذر تجهيز نسخة متوافقة من التقدم.';return;}
+  const value=JSON.stringify(snapshot);
+  if(value.length>LOCAL_BACKUP_MAX){$('#localBackupStatus').textContent='حجم النسخة أكبر من الحد المتاح.';return;}
+  $('#localBackupText').value=value;
+  $('#localBackupText').focus();$('#localBackupText').select();
+  $('#localBackupStatus').textContent='انسخي النص كاملًا واحفظيه في مكان خاص خارج التطبيق قبل حذفه.';
+};
+$('#localBackupText').addEventListener('input',()=>{$('#localBackupConfirm').checked=false;});
+$('#localBackupName').addEventListener('input',()=>{$('#localBackupConfirm').checked=false;});
+$('#localBackupRestore').onclick=()=>{
+  if(!localBackupAllowed())return clearLocalBackup();
+  if(!$('#localBackupConfirm').checked){$('#localBackupStatus').textContent='أكدي إنشاء ملف تعلم جديد أولًا.';return;}
+  const raw=$('#localBackupText').value;
+  $('#localBackupConfirm').checked=false;
+  let snapshot=null;
+  if(raw.length>0&&raw.length<=LOCAL_BACKUP_MAX){try{snapshot=JSON.parse(raw);}catch{}}
+  const entries=restoredProfileEntries(snapshot);
+  if(!entries){$('#localBackupStatus').textContent='النص غير صالح أو إصدار المنهج غير متوافق. لم يتغير أي ملف.';return;}
+  const id=storage.profiles.importCopy($('#localBackupName').value,entries);
+  if(!id){$('#localBackupStatus').textContent='تعذر الاستعادة. راجعي الاسم ومساحة التخزين وعدد الملفات.';return;}
+  clearLocalBackup();renderLocalProfiles();
+  $('#localBackupStatus').textContent='تمت استعادة نسخة مستقلة. افتحي الملف الجديد من ملفات التعلم.';
+};
 function renderCloudFamily(){
   const s=familyClient.state();$('#cloudFamilyPanel').hidden=!cloudUiEnabled;
   $('#cloudLogin').hidden=s.signedIn;$('#cloudAccount').hidden=!s.signedIn;
@@ -3520,6 +3557,7 @@ $('#resetCourse').onclick = () => requestParentSensitiveAction('reset-course');
 $('#clearAnswerHistory').onclick = () => requestParentSensitiveAction('clear-answer-history');
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'hidden') {
+    clearLocalBackup();
     resetCloudFamily();
     parentGate.lock();
     clearTimeout(parentGateAutoLockTimer);
