@@ -23,9 +23,10 @@ const validator=require('../admin-src/cms-validate.cjs');
   });
   await page.goto('http://127.0.0.1:4180/');
   const editor=page.locator('#visualEditor');await editor.getByRole('button',{name:'إضافة النشاط',exact:true}).waitFor();
-  await editor.getByLabel('اسم المنهج',{exact:true}).fill('منهج العلوم التجريبي');
   const picker=editor.getByLabel('إضافة نشاط من المكتبة',{exact:true}).first();
-  await page.waitForFunction(()=>document.querySelector('#visualEditor select[disabled]')===null&&Array.from(document.querySelectorAll('#visualEditor select')).some(s=>Array.from(s.options).some(o=>o.value==='choice')));
+  await page.waitForFunction(()=>!document.querySelector('#draftEditor').hidden&&document.querySelector('#visualEditor select[disabled]')===null&&Array.from(document.querySelectorAll('#visualEditor select')).some(s=>Array.from(s.options).some(o=>o.value==='choice')));
+  await editor.getByLabel('اسم المنهج',{exact:true}).fill('منهج العلوم التجريبي');
+  assert.equal(await page.locator('#draftJson').evaluate(el=>JSON.parse(el.value).title),'منهج العلوم التجريبي');
   for(const type of ['choice','multi-choice','sequence','match','numeric','classify','fill-blank','free-text','number-line','fractions','drag-drop','geometry','equations','memory-game','puzzle','maze','image-hotspot','science-simulation','interactive-story','trace','free-drawing','coloring','dictation','speech-repeat','reading-aloud','conversation']){
    await picker.selectOption(type);await editor.getByRole('button',{name:'إضافة النشاط',exact:true}).first().click();
   }

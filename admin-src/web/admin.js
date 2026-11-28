@@ -1,6 +1,6 @@
 'use strict';
 const $=id=>document.getElementById(id);
-let entries=[],identity=null,generation=0,draftId=null,draftRevision=0,draftBusy=false,draftBaseline='',draftState='draft';
+let entries=[],identity=null,generation=0,draftId=null,draftRevision=0,draftBusy=false,draftBaseline='',draftState='draft',editorReady=false;
 async function api(path,body){
   const options={credentials:'same-origin',cache:'no-store',redirect:'error'};
   if(body!==undefined)Object.assign(options,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
@@ -49,6 +49,7 @@ async function loadEngine(){
   await new Promise((resolve,reject)=>{const script=document.createElement('script');script.src='/activity-engine.js';script.onload=resolve;script.onerror=reject;document.head.append(script);});
 }
 function clearDrafts(){
+  editorReady=false;
   draftId=null;draftRevision=0;$('drafts').hidden=true;$('draftNav').hidden=true;$('draftEditor').hidden=true;
   $('draftList').replaceChildren();$('draftJson').value='';draftBaseline='';draftState='draft';$('workflowActions').replaceChildren();$('releaseHistory').replaceChildren();$('workflowState').textContent='';$('visualEditor').replaceChildren();$('draftPreview').hidden=true;$('draftSample').replaceChildren();$('draftStatus').textContent='';
 }
@@ -104,7 +105,7 @@ async function loadReleases(){
     if(!result.releases.length)box.textContent='لا توجد إصدارات محفوظة.';
   }catch{if(g===generation)$('draftStatus').textContent='تعذر قراءة سجل الإصدارات.';}
 }
-function canEditDraft(){return !!identity?.permissions.includes('curriculum:edit')&&!draftBusy&&draftState==='draft';}
+function canEditDraft(){return editorReady&&!!identity?.permissions.includes('curriculum:edit')&&!draftBusy&&draftState==='draft';}
 function confirmDiscard(){return !$('draftJson').value||$('draftJson').value===draftBaseline||confirm('توجد تغييرات غير محفوظة. هل تريد فتح مسودة أخرى؟');}
 function renderEditor(){
   renderWorkflow();
@@ -140,7 +141,7 @@ async function loadDrafts(){
   }
 }
 $('draftNav').onclick=()=>$('drafts').scrollIntoView({block:'start'});
-$('newDraft').onclick=()=>{if(draftBusy||!identity?.permissions.includes('curriculum:edit')||!confirmDiscard())return;setDraft(null);$('draftStatus').textContent='مسودة جديدة غير محفوظة.';};
+$('newDraft').onclick=()=>{if(!editorReady||draftBusy||!identity?.permissions.includes('curriculum:edit')||!confirmDiscard())return;setDraft(null);$('draftStatus').textContent='مسودة جديدة غير محفوظة.';};
 async function draftAction(save){
   if(!canEditDraft())return;
   draftBusy=true;$('visualEditor').disabled=true;const g=generation;
@@ -222,7 +223,7 @@ async function loadBilling(){
 $('billingRefresh').onclick=loadBilling;$('billingNav').onclick=()=>$('billingPanel').scrollIntoView({block:'start'});
 let familyPreview=null,familyBusy=false;
 function clearFamilyPilot(){
-  familyPreview=null;$('familyPilotPanel').hidden=true;$('familyPilotNav').hidden=true;$('familyPilotEmail').value='';$('familyPilotResult').textContent='';$('familyPilotStatus').textContent='';$('familyPilotChange').disabled=true;
+  familyPreview=null;$('familyPilotPanel').hidden=true;$('familyPilotNav').hidden=true;$('familyPilotEmail').value='';$('familyPilotResult').textContent='';$('familyPilotStatus').textContent='';$('familyPilotChange').disabled=true;$('familyPilotLookup').disabled=false;
 }
 function showFamilyPilot(email,r){
   familyPreview={email,disabled:r.disabled};$('familyPilotResult').textContent=(r.disabled?'الحساب متوقف':'الحساب نشط')+' · ملفات التعلم: '+r.childCount+' · الجلسات النشطة: '+r.activeSessions;
@@ -238,7 +239,7 @@ $('familyPilotEmail').oninput=()=>{familyPreview=null;$('familyPilotResult').tex
 $('familyPilotLookup').onclick=()=>familyTask(async g=>{const email=$('familyPilotEmail').value.trim();familyPreview=null;$('familyPilotResult').textContent='';const r=await api('/api/family-pilot/lookup',{email});if(g===generation&&email===$('familyPilotEmail').value.trim()){showFamilyPilot(email,r);$('familyPilotStatus').textContent='تم تحميل الحالة التجريبية.';}});
 $('familyPilotChange').onclick=()=>familyTask(async g=>{const p=familyPreview;if(!p||p.email!==$('familyPilotEmail').value.trim()||!confirm('تأكيد تغيير حالة الحساب التجريبي؟'))return;const r=await api('/api/family-pilot/state',{email:p.email,expectedDisabled:p.disabled,disabled:!p.disabled});if(g===generation&&p.email===$('familyPilotEmail').value.trim()){showFamilyPilot(p.email,r);$('familyPilotStatus').textContent='تم حفظ الحالة.';}});
 async function refresh(){
-  const g=++generation;
+  const g=++generation;editorReady=false;$('draftEditor').hidden=true;$('newDraft').disabled=true;
   try{
     const current=await api('/api/session');if(g!==generation)return;
     $('preview').hidden=true;$('sample').replaceChildren();
@@ -248,19 +249,19 @@ async function refresh(){
     clearBilling();$('billingPanel').hidden=!current.permissions.includes('billing:manage');$('billingNav').hidden=$('billingPanel').hidden;
   $('remoteConfigPanel').hidden=!identity?.permissions.includes('settings:manage');
     const canRead=current.permissions.includes('curriculum:read'),canEdit=current.permissions.includes('curriculum:edit');
-    $('drafts').hidden=!canRead;$('draftNav').hidden=!canRead;$('draftEditor').hidden=!canRead;$('draftJson').readOnly=!canEdit;$('newDraft').hidden=!canEdit;$('checkDraft').hidden=!canEdit;$('saveDraft').hidden=!canEdit;
+    $('drafts').hidden=!canRead;$('draftNav').hidden=!canRead;$('draftEditor').hidden=true;$('draftJson').readOnly=!canEdit;$('newDraft').hidden=!canEdit;$('checkDraft').hidden=!canEdit;$('saveDraft').hidden=!canEdit;
     if(!canRead)clearDrafts();
     else{if(!canEdit){$('draftJson').value='';draftBaseline='';draftId=null;draftRevision=0;renderEditor();}else if(!$('draftJson').value)setDraft(null);await loadDrafts();if(g!==generation)return;}
     const allowed=current.permissions.includes('library:read');
     $('library').hidden=!allowed;$('libraryNav').hidden=!allowed;
-    if(!allowed){entries=[];$('cards').replaceChildren();$('sample').replaceChildren();return;}
+    if(!allowed){entries=[];$('cards').replaceChildren();$('sample').replaceChildren();editorReady=canRead;$('draftEditor').hidden=!canRead;$('newDraft').disabled=!canEdit;if(canRead)renderEditor();return;}
     const result=await api('/api/library');if(g!==generation)return;
     await loadEngine();if(g!==generation)return;
     entries=result.activities;
     $('total').textContent=entries.length;$('implemented').textContent=entries.filter(e=>e.status==='implemented').length;$('planned').textContent=entries.filter(e=>e.status==='planned').length;
     $('category').replaceChildren(new Option('كل الأقسام',''));
     for(const [id,label] of new Map(entries.map(e=>[e.category,e.categoryLabel])))$('category').append(new Option(label,id));
-    render();renderEditor();
+    editorReady=canRead;$('draftEditor').hidden=!canRead;$('newDraft').disabled=!canEdit;render();renderEditor();
   }catch(e){if(g===generation)clear(e.status===401?'سجّل الدخول للمتابعة.':'تعذر تحميل لوحة الإدارة.');}
 }
 $('loginForm').addEventListener('submit',async e=>{
