@@ -4,6 +4,8 @@ on:
   push:
     paths:
       - 'family_accounts.py'
+      - 'billing.py'
+      - 'tests/test_billing.py'
       - 'homework_storage.py'
       - 'homework_review.py'
       - 'staging-homework/**'
@@ -55,3 +57,4 @@ jobs:
           .venv/bin/python -m unittest discover -s tests -p 'test_pronunciation_contract.py' -v
           .venv/bin/python -m unittest discover -s tests -p 'test_homework_storage.py' -v
           .venv/bin/python -m unittest discover -s tests -p 'test_homework_preview.py' -v
+          .venv/bin/python -m unittest discover -s tests -p 'test_billing.py' -v
