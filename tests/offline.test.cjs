@@ -57,3 +57,15 @@ test('native package starts from bundled HTML and keeps the previous HTTPS origi
   assert.ok(fs.existsSync(path.join(bundle,'curriculum.json')));
   assert.ok(!fs.existsSync(path.join(bundle,'.env'))&&!fs.existsSync(path.join(bundle,'server.py'))&&!fs.existsSync(path.join(bundle,'api')));
 });
+
+test('Android starting theme no longer uses the launcher logo and hands off the original artwork',()=>{
+  const base=path.join(root,'android-apk/android/app/src/main');
+  const theme=fs.readFileSync(path.join(base,'res/values/styles.xml'),'utf8');
+  assert.match(theme,/windowSplashScreenAnimatedIcon">@drawable\/lolo_startup_transparent</);
+  assert.doesNotMatch(theme,/windowSplashScreenAnimatedIcon">@mipmap\/ic_launcher</);
+  const activity=fs.readFileSync(path.join(base,'java/com/heshammera/lolo/MainActivity.java'),'utf8');
+  assert.match(activity,/public\/assets\/branding\/lolo-splash\.webp/);
+  assert.match(activity,/ImageView\.ScaleType\.FIT_CENTER/);
+  assert.match(activity,/postVisualStateCallback/);
+  assert.match(activity,/postDelayed\(startupTimeout,8000\)/);
+});

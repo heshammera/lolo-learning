@@ -1,6 +1,6 @@
 (() => {
   // Bump this version whenever any precached application asset changes.
-  const version = '2026-11-28-activity-hub-splash-2';
+  const version = '2026-11-28-native-full-art-splash-3';
   const paths = Object.freeze([
     '/index.html','/offline.html','/curriculum.json','/app.js','/storage.js',
     '/assessment-engine.js','/subject-catalog.js','/visual-question-bank.js','/visual-assessment-engine.js','/curriculum-engine.js','/learning-engine.js','/learning-analytics.js','/learning-reminders.js','/learning-path-engine.js',

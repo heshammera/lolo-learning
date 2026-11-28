@@ -354,7 +354,8 @@ async function verifyPractice(page){
     await seed(native);
     await native.addInitScript(()=>{
       Object.defineProperty(navigator,'onLine',{get:()=>false});
-      window.__bootObserved=[];
+      window.__bootObserved=[];window.__nativeSplashHandoffs=0;
+      window.Capacitor={Plugins:{StartupSplash:{painted:async()=>{window.__nativeSplashHandoffs++;}}}};
       let last=null;
       const observer=new MutationObserver(()=>{
         const root=document.getElementById('loloBoot'),bar=document.getElementById('bootProgress');
@@ -372,6 +373,7 @@ async function verifyPractice(page){
     await np.locator('#loloBoot').waitFor({state:'hidden'});
     const stages=await np.evaluate(()=>window.__bootObserved);
     assert.deepEqual(stages.map(s=>s.value),[10,20,45,70,100]);
+    assert.equal(await np.evaluate(()=>window.__nativeSplashHandoffs),1);
     assert.ok(stages.every(s=>s.art),'approved splash image loaded during every visible stage');
     assert.ok(stages.at(-1).at-stages[0].at>=1700,'startup stages are actually visible over time');
     assert.equal(await np.locator('#app').evaluate(el=>el.hasAttribute('inert')),false);
