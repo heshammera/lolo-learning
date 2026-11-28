@@ -35,8 +35,17 @@ class PreviewTests(unittest.TestCase):
                          {"action":"children","extra":True}]:
                 with self.assertRaises(FamilyError):preview.dispatch(store,body,"token")
             with patch.object(preview,"submit",return_value={"id":"test"}) as submit:
-                self.assertEqual(preview.dispatch(store,{"action":"submit","childId":"id","assignmentId":"synthetic-x","image":"YQ==","confirmed":True},"token"),{"id":"test"})
-                submit.assert_called_once_with(store,"token","id","synthetic-x",b"a",True)
+                self.assertEqual(preview.dispatch(store,{"action":"submit","childId":"id","assignmentId":"synthetic-x","confirmed":True},"token"),{"id":"test"})
+                args=submit.call_args.args
+                self.assertEqual(args[:4],(store,"token","id","synthetic-x"))
+                self.assertTrue(args[4].startswith(bytes([137,80,78,71])))
+                self.assertTrue(args[5])
+                with self.assertRaises(FamilyError):
+                    preview.dispatch(store,{"action":"submit","childId":"id","assignmentId":"synthetic-x","image":"YQ==","confirmed":True},"token")
+                self.assertEqual(submit.call_count,1)
+            with patch.object(preview,"list_owned",return_value=[{"id":"a","assignmentId":"synthetic-x"},{"id":"b","assignmentId":"real"}]):
+                self.assertEqual(preview.dispatch(store,{"action":"list","childId":"id"},"token"),{"submissions":[{"id":"a","assignmentId":"synthetic-x"}]})
+                with self.assertRaises(FamilyError):preview.dispatch(store,{"action":"delete","childId":"id","submissionId":"b"},"token")
             db.execute.return_value.fetchone.return_value=("real@example.com",)
             with self.assertRaises(FamilyError):preview.dispatch(store,{"action":"children"},"token")
 
