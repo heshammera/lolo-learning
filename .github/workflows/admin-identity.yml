@@ -34,7 +34,21 @@ jobs:
           --health-interval 5s
           --health-timeout 5s
           --health-retries 10
+      pilot:
+        image: postgres:16
+        env:
+          POSTGRES_USER: pilot_test
+          POSTGRES_PASSWORD: disposable-pilot-only
+          POSTGRES_DB: pilot_test
+        ports:
+          - 5433:5432
+        options: >-
+          --health-cmd "pg_isready -U pilot_test -d pilot_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
     env:
+      LOLO_TEST_ADMIN_PILOT_DATABASE_URL: postgresql://pilot_test:disposable-pilot-only@127.0.0.1:5433/pilot_test
       LOLO_TEST_ADMIN_DATABASE_URL: postgresql://admin_test:disposable-ci-only@127.0.0.1:5432/admin_test
     steps:
       - uses: actions/checkout@v7

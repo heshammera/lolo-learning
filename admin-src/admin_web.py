@@ -21,6 +21,7 @@ import billing_grants
 import billing_discounts
 import billing_analytics
 import remote_config
+import family_owner
 ROOT = Path(__file__).resolve().parent
 COOKIE = "lolo_admin_session"
 SECURE_COOKIE = "__Host-lolo_admin_session"
@@ -49,7 +50,7 @@ def load_library():
 
 class AdminServer(ThreadingHTTPServer):
     daemon_threads=True
-    def __init__(self,port,store,library,signing=None,proxy=None,billing_store=None):
+    def __init__(self,port,store,library,signing=None,proxy=None,billing_store=None,family_pilot_store=None):
         if proxy is not None:proxy=proxy_config(*proxy)
         super().__init__(("127.0.0.1",port),Handler)
         self.store=store
@@ -57,6 +58,7 @@ class AdminServer(ThreadingHTTPServer):
         self.drafts=Drafts(store)
         self.signing=signing
         self.billing_store=billing_store if proxy is None else None
+        self.family_pilot_store=family_pilot_store if proxy is None else None
         self.host="127.0.0.1:"+str(self.server_port)
         self.origin="http://"+self.host
         self.proxy_secret=None
@@ -193,6 +195,16 @@ class Handler(BaseHTTPRequestHandler):
         if not self.valid_host() or not self.valid_origin():
             return self.reply(403,{"error":"Invalid origin."})
         try:
+            if self.path in ("/api/family-pilot/lookup","/api/family-pilot/state"):
+                identity=self.server.store.inspect(self.token(),"family:manage")
+                store=self.server.family_pilot_store
+                if store is None:raise FamilyError(503,"Pilot management disabled.")
+                body=self.json_body()
+                if self.path.endswith("/lookup"):
+                    if set(body)!={"email"}:raise FamilyError(400,"Invalid fields.")
+                    return self.reply(200,family_owner.lookup(store,body["email"]))
+                if set(body)!={"email","expectedDisabled","disabled"}:raise FamilyError(400,"Invalid fields.")
+                return self.reply(200,family_owner.change(store,identity["id"],body["email"],body["expectedDisabled"],body["disabled"]))
             if self.path=="/api/settings/config":
                 self.server.store.inspect(self.token(),"settings:manage")
                 if self.server.billing_store is None:raise FamilyError(503,"Test configuration disabled.")
@@ -302,7 +314,15 @@ def main():
         if not billing_dsn or billing_dsn in (dsn,os.environ.get("LOLO_DATABASE_URL"),os.environ.get("LOLO_HOMEWORK_STAGING_DATABASE_URL")):
             raise RuntimeError("Dedicated disposable billing DB required.")
         billing_store=FamilyStore(billing_dsn)
-    with AdminServer(int(os.environ.get("LOLO_ADMIN_PORT","4180")),store,load_library(),signing,proxy=proxy,billing_store=billing_store) as server:
+    family_pilot_store=None
+    if local and os.environ.get("LOLO_ADMIN_FAMILY_PILOT")=="true":
+        from database_connection import database_dsn
+        primary=database_dsn("family")
+        pilot=os.environ.get("LOLO_FAMILY_PILOT_DATABASE_URL")
+        if os.environ.get("LOLO_FAMILY_PILOT_MODE")!="synthetic" or not primary or not pilot or pilot in (dsn,primary,os.environ.get("LOLO_BILLING_STAGING_DATABASE_URL"),os.environ.get("LOLO_HOMEWORK_STAGING_DATABASE_URL")):
+            raise RuntimeError("Dedicated reviewed synthetic family database required.")
+        family_pilot_store=FamilyStore(pilot,synthetic_only=True)
+    with AdminServer(int(os.environ.get("LOLO_ADMIN_PORT","4180")),store,load_library(),signing,proxy=proxy,billing_store=billing_store,family_pilot_store=family_pilot_store) as server:
         print("HTTPS proxy staging: "+server.origin if https else "Local-only admin: "+server.origin,flush=True)
         server.serve_forever()
 
