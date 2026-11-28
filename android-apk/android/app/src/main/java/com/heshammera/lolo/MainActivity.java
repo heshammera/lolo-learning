@@ -99,5 +99,5 @@ public class MainActivity extends BridgeActivity {
         startupCover=null;cover.removeCallbacks(startupTimeout);
         if(cover.getParent() instanceof ViewGroup)((ViewGroup)cover.getParent()).removeView(cover);
     }
-    @Override protected void onDestroy(){removeStartupCover();super.onDestroy();}
+    @Override public void onDestroy(){removeStartupCover();super.onDestroy();}
 }
