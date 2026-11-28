@@ -175,7 +175,7 @@ html.lolo-background *::before,html.lolo-background *::after{animation-play-stat
 <style>#homeActivityHub{width:100%;margin-top:10px;min-height:72px}#hubCatalog[hidden],#hubPlay[hidden]{display:none!important}#hubFilter{display:block;width:100%;min-height:44px;border:1px solid #d7c7ed;border-radius:12px;padding:10px;font:inherit;background:#fff;color:#45366c}#hubCatalog h3{margin:16px 0 8px;font-size:16px}.hub-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.hub-grid button{min-height:78px;background:white;border:1px solid #e5dcf5;border-radius:14px;padding:10px;text-align:start;color:#45366c;overflow-wrap:anywhere}.hub-grid strong,.hub-grid small{display:block}.hub-grid small{margin-top:4px;font-size:11px;font-weight:400}#hubBody fieldset{min-width:0;display:grid;gap:10px;border:1px solid #ded2ee;border-radius:14px;padding:12px}#hubBody label{display:flex;align-items:center;gap:8px;flex-wrap:wrap}#hubBody input:not([type=radio]):not([type=checkbox]),#hubBody select{max-width:100%;min-height:44px;padding:8px;border:1px solid #d7c7ed;border-radius:8px}#hubBody button{min-height:44px;margin:6px 0;padding:10px;border-radius:10px;background:#ede5fa;color:#54378c}#hubClose{min-width:44px;min-height:44px}</style>
 </head>
 <body>
-<section id="loloBoot" aria-label="جارٍ تجهيز التطبيق" data-phase="loading"><img id="loloBootArt" src="/assets/branding/lolo-splash.webp" alt="" fetchpriority="high" decoding="async" draggable="false"><div id="bootArtFallback" hidden>LOLO Learning</div><div class="boot-loading"><p id="bootMessage" role="status" aria-live="polite">بنجهز رحلتك مع لولو…</p><progress id="bootProgress" max="100" value="10" aria-label="مراحل تجهيز التطبيق"></progress><button type="button" id="bootRetry" hidden>إعادة المحاولة</button></div></section>
+<section id="loloBoot" aria-label="جارٍ تجهيز التطبيق" data-phase="loading"><img id="loloBootArt" src="/assets/branding/lolo-splash.webp" alt="" fetchpriority="high" decoding="sync" draggable="false"><div id="bootArtFallback" hidden>LOLO Learning</div><div class="boot-loading"><p id="bootMessage" role="status" aria-live="polite">بنجهز رحلتك مع لولو…</p><progress id="bootProgress" max="100" value="10" aria-label="مراحل تجهيز التطبيق"></progress><button type="button" id="bootRetry" hidden>إعادة المحاولة</button></div></section>
 <main class="app" id="app" inert aria-label="لولو معلمة تعليمية">
   <aside class="network-notice" id="networkNotice" hidden aria-live="polite">
     <span class="network-icon" aria-hidden="true">☁️</span><div><strong id="networkTitle">وضع بدون إنترنت</strong><p id="networkDetail">كمّلي التدريبات المحفوظة. الصوت الذكي يحتاج اتصال.</p></div><button id="networkRetry" type="button">حاولي تاني</button>
@@ -403,14 +403,49 @@ html.lolo-background *::before,html.lolo-background *::after{animation-play-stat
 <script>
 (()=>{
  const root=document.getElementById('loloBoot'),app=document.getElementById('app'),bar=document.getElementById('bootProgress'),message=document.getElementById('bootMessage'),retry=document.getElementById('bootRetry'),art=document.getElementById('loloBootArt');
- const began=performance.now();let done=false,failed=false;
+ const native=window.LoloNativeBundled===true;
+ // Each displayed step corresponds to completed or reported startup work, not a fake network percentage.
+ const milestones=[];let finished=false,failed=false,painted=false,draining=false,shownAt=0,lastValue=10;
+ const dwell=native?480:0,finalDwell=native?650:0,minimum=native?2500:450;
  function fallback(){art.hidden=true;document.getElementById('bootArtFallback').hidden=false;}
- art.addEventListener('error',fallback);if(art.complete&&!art.naturalWidth)fallback();
+ function markPainted(){
+   if(painted||failed)return;
+   requestAnimationFrame(()=>requestAnimationFrame(()=>{
+     if(painted||failed)return;painted=true;shownAt=performance.now();root.dataset.painted='true';drain();
+   }));
+ }
+ art.addEventListener('load',markPainted,{once:true});
+ art.addEventListener('error',()=>{fallback();markPainted();},{once:true});
+ if(art.complete){if(!art.naturalWidth)fallback();markPainted();}
+ // A slow or corrupt local image must not leave the startup screen stuck.
+ const artTimeout=setTimeout(()=>{if(!painted&&!art.complete){fallback();markPainted();}},1500);
  retry.onclick=()=>location.reload();
- function fail(){if(done)return;failed=true;clearTimeout(watchdog);root.dataset.phase='error';message.textContent='تعذر تجهيز المنهج. جرّبي إعادة المحاولة؛ تقدمك محفوظ.';retry.hidden=false;}
+ function fail(){
+   if(finished||failed)return;
+   failed=true;clearTimeout(watchdog);clearTimeout(artTimeout);root.dataset.phase='error';
+   message.textContent='تعذر تجهيز المنهج. جرّبي إعادة المحاولة؛ تقدمك محفوظ.';retry.hidden=false;
+ }
  const watchdog=setTimeout(fail,25000);
- function stage(value,label){if(done||failed)return;bar.value=Math.max(bar.value,value);message.textContent=label;}
- function finish(){if(done)return;done=true;clearTimeout(watchdog);root.dataset.phase='loading';retry.hidden=true;bar.value=100;message.textContent='يلا نبدأ!';setTimeout(()=>{root.hidden=true;app.removeAttribute('inert');},Math.max(0,450-(performance.now()-began)));}
+ function drain(){
+   if(!painted||draining||failed||!milestones.length)return;
+   draining=true;
+   setTimeout(()=>{
+     draining=false;if(failed)return;
+     const step=milestones.shift();bar.value=step.value;message.textContent=step.label;
+     if(step.value===100){
+       root.dataset.phase='ready';
+       setTimeout(()=>{if(failed)return;finished=true;clearTimeout(watchdog);clearTimeout(artTimeout);root.hidden=true;app.removeAttribute('inert');},Math.max(finalDwell,minimum-(performance.now()-shownAt)));
+     }else drain();
+   },dwell);
+ }
+ function stage(value,label){
+   if(finished||failed||!Number.isFinite(value)||value<=lastValue||value>=100)return;
+   lastValue=value;milestones.push({value,label});drain();
+ }
+ function finish(){
+   if(finished||failed||lastValue===100)return;
+   lastValue=100;milestones.push({value:100,label:'يلا نبدأ!'});drain();
+ }
  window.LoloBoot=Object.freeze({stage,finish,fail});
 })();
 </script>
