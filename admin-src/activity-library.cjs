@@ -19,7 +19,7 @@ const definitions=[
   ['drag-drop','interaction','السحب والإفلات','تصنيف العناصر بالسحب أو النقر مع بديل قوائم اختيار للوحة المفاتيح.',[],['items','groups','assignments']],
   ['speech-repeat','voice','الاستماع والتكرار','نشاط صوتي موحد؛ توجد وظيفة قديمة منفصلة.',['microphone','audio'],[]],
   ['phoneme-score','voice','تقييم النطق المتخصص','تقييم الصوت على مستوى الفونيمات، لا مجرد تفريغ الكلام.',['microphone','specialized-provider','consent'],[]],
-  ['dictation','voice','الإملاء الصوتي','الاستماع وكتابة الإجابة.',['audio'],[]],
+  ['dictation','voice','الإملاء الصوتي','إملاء بصوت محلي معلن من الجهاز؛ لا درجة قبل اكتمال الصوت.',['local-audio'],['language','spokenText','answers']],
   ['conversation','voice','المحادثة التفاعلية','محادثة مقيدة بأهداف الدرس وسياسات الطفل.',['microphone','network','consent'],[]],
   ['trace','writing','تتبع الحروف والأرقام','تتبع هندسي لرموز محدودة؛ ليس تعرفًا على الخط.',[],['glyph']],
   ['free-drawing','writing','الرسم الحر','لوحة محلية تسجل الإكمال دون درجة أو حفظ الرسم.',[],[]],

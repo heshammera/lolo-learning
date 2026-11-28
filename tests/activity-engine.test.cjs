@@ -92,3 +92,13 @@ test('drawing participation ungraded, geometric trace and color assignment',()=>
   assert.equal(engine.evaluate(draw,Array(1)).status,'unresolved');
   assert.equal(engine.evaluate(draw,[[[10,10],[30,30]]]).status,'completed');
  });
+
+test('dictation validates language and spoken answer; no grade before listening',()=>{
+ const a=activities.find(x=>x.type==='dictation');
+ assert.equal(engine.validate(a).valid,true);
+ assert.equal(engine.types.dictation.offline,false);
+ for(const config of [{...a.config,language:'xx'},{...a.config,spokenText:'other'},{...a.config,answers:Array(1)},{...a.config,url:'https://example.test'}])assert.equal(engine.validate({...a,config}).valid,false);
+ for(const response of ['water',{heard:false,answer:'water'},{heard:true,answer:''}])assert.equal(engine.evaluate(a,response).status,'unresolved');
+ assert.equal(engine.evaluate(a,{heard:true,answer:' Water '}).status,'correct');
+ assert.equal(engine.evaluate(a,{heard:true,answer:'fire'}).status,'incorrect');
+});

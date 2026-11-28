@@ -28,6 +28,7 @@
     {id:'writing-trace',type:'trace',version:1,prompt:'تتبعي الحرف L من النقطة الخضراء.',config:{glyph:'L'}},
     {id:'writing-draw',type:'free-drawing',version:1,prompt:'ارسمي شيئًا تحبينه.',config:{}},
     {id:'writing-color',type:'coloring',version:1,prompt:'لوني الدائرة بالأحمر والمثلث بالأزرق والمربع بالأخضر.',config:{answers:{circle:'red',triangle:'blue',square:'green'}}},
+    {id:'language-dictation',type:'dictation',version:1,prompt:'استمعي ثم اكتبي الكلمة.',config:{language:'en',spokenText:'water',answers:['water']}},
   ];
   const api={status:'draft',lessons:[{id:'science-draft-plants',activities:activities.slice(0,4)},{id:'science-draft-animals',activities:activities.slice(4)}]};
   if(typeof window!=='undefined')window.LoloActivityPilot=api;
