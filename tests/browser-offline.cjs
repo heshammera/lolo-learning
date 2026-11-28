@@ -82,6 +82,8 @@ async function verifyPractice(page){
     for(const width of [320,390,768]){
       await page.setViewportSize({width,height:800});
       await page.locator('#childDashboard').waitFor({state:'visible'});
+      assert.equal(await page.locator('#lessonSessionPanel').isVisible(),false);
+      assert.equal(await page.locator('#sessionBack').isVisible(),false);
       const layout=await page.evaluate(()=>{
         const ids=['homeStart','homePractice','homeChoose'];
         const buttons=ids.map(id=>{const r=document.getElementById(id).getBoundingClientRect();return {w:r.width,h:r.height,left:r.left,right:r.right};});
