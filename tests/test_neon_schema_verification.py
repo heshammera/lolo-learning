@@ -24,6 +24,28 @@ class SchemaVerificationTests(unittest.TestCase):
         FamilyStore(dsn).migrate()
         self.assertEqual(verify(dsn),26)
 
+    def test_build_gate_preview_and_production_isolation(self):
+        import subprocess
+        root=Path(__file__).resolve().parents[1]
+        dsn=os.environ["LOLO_TEST_DATABASE_URL"]
+        self.assertNotEqual(dsn,os.environ.get("LOLO_DATABASE_URL"))
+        self.assertNotEqual(dsn,os.environ.get("DATABASE_URL"))
+        FamilyStore(dsn).migrate()
+        # Preview must never attempt a connection, even when opt-in and DSN are present.
+        env=dict(os.environ,VERCEL_ENV="preview",LOLO_USE_VERCEL_DATABASE="true",
+                 LOLO_DATABASE_URL="postgresql://invalid:invalid@127.0.0.1:1/invalid")
+        command=["sh","scripts/verify_neon_build.sh"]
+        result=subprocess.run(command,cwd=root,env=env,capture_output=True,text=True,timeout=60)
+        self.assertEqual(result.returncode,0)
+        self.assertIn("LOLO_NEON_DRIVER=PASS",result.stdout)
+        self.assertIn("SKIPPED: preview; no database connection.",result.stdout)
+        # Same script connects only on production opt-in, using disposable CI database.
+        env.update(VERCEL_ENV="production",LOLO_DATABASE_URL=dsn)
+        result=subprocess.run(command,cwd=root,env=env,capture_output=True,text=True,timeout=60)
+        self.assertEqual(result.returncode,0)
+        self.assertIn("PASS: 26/26 tables",result.stdout)
+        self.assertNotIn(dsn,result.stdout+result.stderr)
+
 class DiagnosticTests(unittest.TestCase):
     def test_missing_dsn_category(self):
         from scripts.verify_neon_schema import VerificationError
