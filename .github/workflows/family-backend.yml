@@ -19,6 +19,8 @@ on:
       - 'remote_config.py'
       - 'tests/test_remote_config.py'
       - 'billing_discounts.py'
+      - 'billing_analytics.py'
+      - 'tests/test_billing_analytics.py'
       - 'tests/test_billing_discounts.py'
       - 'tests/test_billing_grants.py'
       - 'billing_entitlements.py'
@@ -112,5 +114,6 @@ jobs:
           .venv/bin/python -m unittest discover -s tests -p 'test_security_basics.py' -v
           .venv/bin/python -m unittest discover -s tests -p 'test_database_connection.py' -v
           .venv/bin/python -m unittest discover -s tests -p 'test_neon_schema_verification.py' -v
+          .venv/bin/python -m unittest discover -s tests -p 'test_billing_analytics.py' -v
       - name: Verify Vercel browser asset output
         run: node tests/vercel-public.test.cjs

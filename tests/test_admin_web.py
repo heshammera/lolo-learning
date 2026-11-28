@@ -52,6 +52,7 @@ class AdminWebTests(unittest.TestCase):
     def test_login_library_permissions_origin_logout(self):
         import pyotp
         self.assertEqual(self.request("/api/library")[0],401)
+        self.assertEqual(self.request("/api/billing/analytics")[0],401)
         self.assertEqual(self.request("/activity-engine.js")[0],401)
         self.assertEqual(self.request("/api/library",cookie="lolo_admin_session="+"a"*43)[0],401)
         self.assertEqual(self.request("/",host="example.test")[0],403)
@@ -64,6 +65,7 @@ class AdminWebTests(unittest.TestCase):
         self.assertIn("HttpOnly",cookie);self.assertIn("SameSite=Strict",cookie)
         cookie=cookie.split(";",1)[0]
         self.assertEqual(self.request("/api/session",cookie=cookie)[0],200)
+        self.assertEqual(self.request("/api/billing/analytics",cookie=cookie)[0],403)
         status,_,body=self.request("/api/library",cookie=cookie)
         self.assertEqual(status,200)
         self.assertEqual(len(json.loads(body)["activities"]),29)
