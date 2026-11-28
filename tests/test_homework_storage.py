@@ -88,3 +88,38 @@ class HomeworkDatabaseTests(unittest.TestCase):
                 db.execute("UPDATE lolo_homework_submissions SET created_at=CURRENT_TIMESTAMP-INTERVAL '8 days',expires_at=CURRENT_TIMESTAMP-INTERVAL '1 day' WHERE child_id=%s",(self.child,))
             self.assertEqual(list_owned(self.store,self.a,self.child),[])
             self.assertEqual(purge_expired(self.store),9)
+
+    def test_teacher_grant_review_parent_feedback_and_revocation(self):
+        from unittest.mock import Mock
+        from homework_review import grant_for_staging, revoke_for_staging, read_for_review, review, parent_feedback
+        teacher=str(uuid.uuid4())
+        other=str(uuid.uuid4())
+        admin=Mock()
+        admin.inspect.side_effect=lambda token: {"id":teacher if token=="teacher" else other,"role":"support" if token=="support" else "teacher"}
+        with patch.dict(os.environ,{"LOLO_HOMEWORK_STORAGE_STAGING":"true"}):
+            first=submit(self.store,self.a,self.child,self.assignment,image_bytes(),True)["id"]
+            self.assertEqual(parent_feedback(self.store,self.a,self.child,first)["status"],"submitted")
+            with self.assertRaises(FamilyError):
+                read_for_review(self.store,admin,"teacher",first)
+            grant_for_staging(self.store,self.child,self.assignment,teacher)
+            for token,status in [("other",404),("support",403)]:
+                with self.assertRaises(FamilyError) as denied:
+                    read_for_review(self.store,admin,token,first)
+                self.assertEqual(denied.exception.status,status)
+            self.assertTrue(read_for_review(self.store,admin,"teacher",first).startswith(b"\xff\xd8"))
+            for outcome,score in [("reviewed",True),("reviewed",101),("revise",50)]:
+                with self.assertRaises(FamilyError):
+                    review(self.store,admin,"teacher",first,outcome,score,"Try again")
+            self.assertEqual(review(self.store,admin,"teacher",first,"revise",None,"Try again")["status"],"revise")
+            self.assertEqual(parent_feedback(self.store,self.a,self.child,first),{"status":"revise","score":None,"feedback":"Try again"})
+            with self.assertRaises(FamilyError) as denied:
+                parent_feedback(self.store,self.b,self.child,first)
+            self.assertEqual(denied.exception.status,404)
+            with self.assertRaises(FamilyError) as duplicate:
+                review(self.store,admin,"teacher",first,"reviewed",90,"Good")
+            self.assertEqual(duplicate.exception.status,409)
+            second=submit(self.store,self.a,self.child,self.assignment,image_bytes(),True)["id"]
+            self.assertEqual(review(self.store,admin,"teacher",second,"reviewed",90,"Good")["score"],90)
+            revoke_for_staging(self.store,self.child,self.assignment,teacher)
+            with self.assertRaises(FamilyError):
+                read_for_review(self.store,admin,"teacher",second)

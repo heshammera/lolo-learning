@@ -5,6 +5,7 @@ on:
     paths:
       - 'family_accounts.py'
       - 'homework_storage.py'
+      - 'homework_review.py'
       - 'requirements-homework-staging.txt'
       - 'tests/test_homework_storage.py'
       - 'voice_consent.py'
