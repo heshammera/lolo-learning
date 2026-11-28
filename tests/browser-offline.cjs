@@ -76,6 +76,19 @@ async function verifyPractice(page){
   assert.equal(await page.evaluate(()=>JSON.parse(localStorage.getItem('lolo-mastered')||'[]').length),0);
   await page.locator('#visualQuizDone').click();
   await page.locator('#homePractice').click();
+  await page.locator('#practiceAdaptive').click();
+  await page.locator('#visualQuiz[open]').waitFor();
+  for(let i=0;i<5;i++){
+    assert.match(await page.locator('#visualQuizProgress').textContent(),new RegExp('من 5'));
+    await page.locator('#visualQuizOptions button').first().click();
+    await page.locator('#visualQuizNext').click();
+  }
+  const adaptive=await page.evaluate(()=>JSON.parse(localStorage.getItem('lolo-visual-assessment-v1'))['hello-1']);
+  assert.equal(adaptive.length,2);assert.equal(adaptive[1].mode,'adaptive');assert.equal(adaptive[1].total,5);
+  assert.equal(new Set(adaptive[1].answers.map(a=>a.questionId)).size,5);
+  assert.equal(await page.evaluate(()=>JSON.parse(localStorage.getItem('lolo-mastered')||'[]').length),0);
+  await page.locator('#visualQuizDone').click();
+  await page.locator('#homePractice').click();
   await page.locator('#practiceTrace').click();
   await page.locator('#traceSheet.open').waitFor();
   assert.equal(await page.locator('#traceCanvas').isVisible(),true);
@@ -219,7 +232,10 @@ async function verifyPractice(page){
     await Promise.all([page.waitForNavigation({waitUntil:'domcontentloaded'}),original.click()]);
     await page.waitForFunction(()=>document.querySelector('#mic')&&!document.querySelector('#mic').disabled);
     assert.equal(await page.evaluate(()=>window.LoloStorage.profiles.activeId),'default');
-    assert.equal(await page.evaluate(()=>window.LoloStorage.getJSON('lolo-visual-assessment-v1',{})['hello-1'].length),1);
+    const restoredVisual=await page.evaluate(()=>window.LoloStorage.getJSON('lolo-visual-assessment-v1',{})['hello-1']);
+    assert.equal(restoredVisual.filter(r=>r.mode!=='adaptive').length,1);
+    assert.equal(restoredVisual.filter(r=>r.mode==='adaptive').length,1);
+    assert.equal(restoredVisual.find(r=>r.mode==='adaptive').total,5);
     assert.equal(await page.evaluate(()=>window.LoloStorage.get('lolo-learning-path-v1')),saved);
     // Parent-gated manual migration, entirely offline. Preserve the source profile.
     await page.locator('#parentOpen').click();

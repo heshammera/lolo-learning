@@ -10,7 +10,7 @@ const visualBank=window.LoloVisualBank;
 const VISUAL_HISTORY_KEY='lolo-visual-assessment-v1';
 let visualHistory=storage.getJSON(VISUAL_HISTORY_KEY,{});
 let visualSession=null;
-let visualBankReady=false;
+let visualBankReady=false,adaptiveBankReady=false,visualProfile=null;
 const nativeBundle=window.LoloNativeBundled===true;
 const nativeApi=nativeBundle ? options=>{
   const plugin=window.Capacitor?.Plugins?.CapacitorHttp;
@@ -2784,7 +2784,7 @@ function openOfflinePractice(requestedLessonId=null,focus=null){
   const lesson=explicit?allLessons().find(l=>l.id===requestedLessonId):allLessons().find(l=>l.id===pathEngine.current(activePath))||currentLesson;
   if(!lesson)return;
   // Only a parent-authorized explicit recommendation may select a focused practice.
-  if(explicit&&focus==='visual'&&visualBankReady&&visualBank.bank[lesson.id]){openVisualQuiz(lesson.id);return;}
+  if(explicit&&focus==='visual'&&visualBankReady&&visualBank.bank[lesson.id]){openVisualQuiz(lesson.id,adaptiveBankReady&&!!visualBank.adaptiveBank[lesson.id]);return;}
   if(explicit&&focus==='trace'&&traceTargets(lesson).length){startTraceTest(lesson.id);return;}
   const dialog=$('#offlinePractice');
   $('#practiceTitle').textContent=lesson.title||lesson.focus||'نتدرّب سوا';
@@ -2803,32 +2803,37 @@ function openOfflinePractice(requestedLessonId=null,focus=null){
   }
   $('#practiceQuiz').hidden=!visualBankReady||!visualBank.bank[lesson.id];
   $('#practiceQuiz').onclick=()=>{dialog.close();openVisualQuiz(lesson.id);};
+  $('#practiceAdaptive').hidden=!adaptiveBankReady||!visualBank.adaptiveBank[lesson.id];
+  $('#practiceAdaptive').onclick=()=>{dialog.close();openVisualQuiz(lesson.id,true);};
   $('#practiceTrace').hidden=!traceTargets(lesson).length;
   $('#practiceTrace').onclick=()=>{dialog.close();startTraceTest(lesson.id);};
   dialog.showModal();
 }
-function openVisualQuiz(lessonId){
-  if(!visualBankReady||invalidPath||!visualBank.bank[lessonId])return;
+function openVisualQuiz(lessonId,adaptive=false){
+  if(invalidPath||!storage.profiles.activeId||storage.profiles.selectedId()!==storage.profiles.activeId)return;
+  if(adaptive?(!adaptiveBankReady||!visualBank.adaptiveBank[lessonId]):(!visualBankReady||!visualBank.bank[lessonId]))return;
   if(isActive||isStarting)stopSession();
   const lesson=allLessons().find(l=>l.id===lessonId);
   if(!lesson)return;
-  visualSession=visualAssessment.create(visualBank.bank,lessonId,window.LoloAssessment.createAssessmentId(),visualBank.version);
+  visualProfile=storage.profiles.activeId;
+  const assessmentId=window.LoloAssessment.createAssessmentId();
+  visualSession=adaptive?visualAssessment.createAdaptive(visualBank.adaptiveBank,lessonId,assessmentId,visualBank.adaptiveVersion):visualAssessment.create(visualBank.bank,lessonId,assessmentId,visualBank.version);
   if(!visualSession)return;
-  $('#visualQuizTitle').textContent=lesson.title||lesson.focus;
+  $('#visualQuizTitle').textContent=(adaptive?'تحدّي متدرّج · ':'')+(lesson.title||lesson.focus);
   renderVisualQuiz();
   $('#visualQuiz').showModal();
 }
 function renderVisualQuiz(){
   const state=visualSession,q=visualAssessment.current(state);
   if(!state||!q)return;
-  $('#visualQuizProgress').textContent=`السؤال ${state.index+1} من ${state.questions.length}`;
+  $('#visualQuizProgress').textContent=`السؤال ${state.index+1} من ${state.mode==='adaptive'?state.limit:state.questions.length}`;
   $('#visualQuizPrompt').textContent=q.prompt;$('#visualQuizPicture').textContent=q.visual;
   $('#visualQuizFeedback').textContent='';$('#visualQuizNext').hidden=true;$('#visualQuizDone').hidden=true;
   const options=$('#visualQuizOptions');options.replaceChildren();
   for(const option of q.options){
     const button=document.createElement('button');button.type='button';button.textContent=option.label;
     button.onclick=()=>{
-      if(visualSession!==state)return;
+      if(visualSession!==state||!visualProfile||storage.profiles.selectedId()!==visualProfile)return;
       const submitted=visualAssessment.submit(state,q.id,option.id);
       if(!submitted)return;
       visualSession=submitted.state;
@@ -2841,20 +2846,21 @@ function renderVisualQuiz(){
   }
 }
 $('#visualQuizNext').onclick=()=>{
-  if(!visualSession)return;
+  if(!visualSession||!visualProfile||storage.profiles.selectedId()!==visualProfile){$('#visualQuiz').close();return;}
   if(visualAssessment.current(visualSession)){renderVisualQuiz();return;}
-  const result=visualAssessment.summarize(visualSession,visualBank.bank,visualBank.version,new Date().toISOString());
+  const adaptive=visualSession.mode==='adaptive';
+  const result=visualAssessment.summarize(visualSession,adaptive?visualBank.adaptiveBank:visualBank.bank,adaptive?visualBank.adaptiveVersion:visualBank.version,new Date().toISOString());
   const saved=visualAssessment.save(visualHistory,result);
   if(saved.recorded&&storage.set(VISUAL_HISTORY_KEY,JSON.stringify(saved.history)))visualHistory=saved.history;
   $('#visualQuizOptions').replaceChildren();$('#visualQuizPicture').textContent='🌟';
-  $('#visualQuizProgress').textContent='انتهى التحدّي';
+  $('#visualQuizProgress').textContent=adaptive?'انتهى التدريب المتدرّج — لا يمثل إتقان المنهج':'انتهى التحدّي';
   $('#visualQuizPrompt').textContent=result?`نتيجتك: ${result.correct} من ${result.total}`:'لم تُحفظ النتيجة.';
   $('#visualQuizFeedback').textContent=result&&saved.recorded&&visualHistory[result.lessonId]?.some(r=>r.assessmentId===result.assessmentId)?'النتيجة محفوظة في تقرير ولي الأمر.':'تعذر حفظ النتيجة على الجهاز.';
   $('#visualQuizNext').hidden=true;$('#visualQuizDone').hidden=false;
   visualSession=null;renderParentReport();
 };
 $('#visualQuizClose').onclick=$('#visualQuizDone').onclick=()=>$('#visualQuiz').close();
-$('#visualQuiz').addEventListener('close',()=>{visualSession=null;});
+$('#visualQuiz').addEventListener('close',()=>{visualSession=null;visualProfile=null;});
 $('#homePractice').onclick=openOfflinePractice;
 
 const hubGroups=[
@@ -3095,7 +3101,8 @@ function renderParentReport() {
     const trace = traceResults[lesson.id];
     const lessonSkillStates = (lesson.skillIds || []).map(skillId => ({skillId, status: learningEngine.getStatus(skillProgress, skillId)}));
     const visualResult=Array.isArray(visualHistory[lesson.id])?visualHistory[lesson.id].filter(r=>r?.bankVersion===visualBank.version).at(-1):null;
-    if (!stats.correct && !stats.wrong && !result && !trace && !visualResult && lessonSkillStates.every(item => item.status === learningEngine.STATUS.NOT_STARTED)) continue;
+    const adaptiveResult=Array.isArray(visualHistory[lesson.id])?visualHistory[lesson.id].filter(r=>r?.bankVersion===visualBank.adaptiveVersion&&r.mode==='adaptive').at(-1):null;
+    if (!stats.correct && !stats.wrong && !result && !trace && !visualResult && !adaptiveResult && lessonSkillStates.every(item => item.status === learningEngine.STATUS.NOT_STARTED)) continue;
     const details = [];
     for (const item of lessonSkillStates) {
       const record = learningEngine.getRecord(skillProgress, item.skillId);
@@ -3104,6 +3111,7 @@ function renderParentReport() {
     if (stats.correct || stats.wrong) details.push(`${stats.correct || 0} صح و${stats.wrong || 0} محتاجة مراجعة`);
     if (result) details.push(`اختبار الترديد ${result.correct}/${result.total}`);
     if (visualResult) details.push(`تحدّي الفهم بالصور: ${visualResult.correct}/${visualResult.total}`);
+    if (adaptiveResult) details.push(`تدريب متدرّج: ${adaptiveResult.correct}/${adaptiveResult.total} · أسئلة متفاوتة الصعوبة، لا يقارن بالاختبار الثابت`);
     if (trace) details.push(`الكتابة باللمس ${trace.percent}% · ${trace.scores.map(item => `${item.value} ${item.score}%`).join('، ')}`);
     const history = Array.isArray(stats.history) ? stats.history : [];
     const errors = history.filter(item => item.is_correct === false).slice(-3);
@@ -3918,6 +3926,7 @@ if (location.protocol === 'file:') {
     course = data;
     window.LoloBoot?.stage(70,'بنجهز دروسك وتقدمك…');
     visualBankReady=visualAssessment.validateBank(visualBank.bank,new Set(allLessons().map(l=>l.id))).valid;
+    adaptiveBankReady=visualAssessment.validateAdaptive(visualBank.adaptiveBank,new Set(allLessons().map(l=>l.id))).valid;
     const needsCurriculumSetup = !storage.get('lolo-selected-program');
     const savedLessonId = storage.get('lolo-current-lesson');
     const selectedProgram = storage.get('lolo-selected-program');

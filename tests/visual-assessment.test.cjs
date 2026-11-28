@@ -42,3 +42,33 @@ test('bad bank with duplicate choices and unknown lesson is rejected',()=>{
   assert.equal(engine.validateBank({unknown:[q,q]},lessons).valid,false);
   assert.equal(engine.create(content.bank,'no-lesson','x',content.version),null);
 });
+
+test('adaptive pilot bank, nearest unused level, independent verified practice',()=>{
+ assert.equal(engine.validateAdaptive(content.adaptiveBank,lessons).valid,true);
+ assert.equal(Object.keys(content.adaptiveBank).length,4);
+ assert.equal(Object.values(content.adaptiveBank).flat().length,24);
+ const run=correct=>{
+  let state=engine.createAdaptive(content.adaptiveBank,'hello-1','adaptive-'+correct,content.adaptiveVersion,()=>0);
+  const levels=[];
+  for(let i=0;i<5;i++){
+   const q=engine.current(state);levels.push(q.level);
+   const option=correct?q.correctOptionId:q.options.find(o=>o.id!==q.correctOptionId).id;
+   state=engine.submit(state,q.id,option).state;
+  }
+  assert.equal(engine.current(state),null);
+  assert.equal(new Set(state.answers.map(a=>a.questionId)).size,5);
+  assert.equal(engine.summarize(state,content.adaptiveBank,content.adaptiveVersion,new Date().toISOString()).correct,correct?5:0);
+  const invalid={...state,answers:[state.answers[1],state.answers[0],...state.answers.slice(2)]};
+  assert.equal(engine.summarize(invalid,content.adaptiveBank,content.adaptiveVersion,new Date().toISOString()),null);
+  return {levels,state};
+ };
+ const strong=run(true),support=run(false);
+ assert.deepEqual(strong.levels.slice(0,3),[2,3,3]);
+ assert.deepEqual(support.levels.slice(0,3),[2,1,1]);
+ const result=engine.summarize(strong.state,content.adaptiveBank,content.adaptiveVersion,new Date().toISOString());
+ const fixed={assessmentId:'fixed',lessonId:'hello-1',bankVersion:content.version,total:3,correct:2};
+ let h=engine.save({},fixed).history;
+ for(let i=0;i<15;i++)h=engine.save(h,{...result,assessmentId:'adaptive-'+i}).history;
+ assert.equal(h['hello-1'].filter(r=>r.mode==='adaptive').length,10);
+ assert.equal(h['hello-1'].filter(r=>r.bankVersion===content.version).length,1);
+});
