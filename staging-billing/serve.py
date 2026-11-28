@@ -12,6 +12,7 @@ sys.path.insert(0,str(ROOT.parent))
 from family_accounts import FamilyStore, FamilyError
 import billing
 import billing_grants
+import billing_discounts
 import billing_entitlements as entitlements
 
 SHAPES={
@@ -19,6 +20,8 @@ SHAPES={
  "dashboard":{"action"},
  "create":{"action","planId","period","operationId","expectedAmountMinor"},
  "cancel":{"action","orderId"},
+ "discountQuote":{"action","planId","period","code"},
+ "discountCreate":{"action","planId","period","operationId","expectedAmountMinor","code"},
  "redeem":{"action","code"},
  "assign":{"action","childId"},
  "remove":{"action","childId"},
@@ -40,10 +43,11 @@ def dispatch(store,body,token):
         return {"plans":billing.catalog(store),"subscription":billing.test_subscription(store,token),
           "usage":entitlements.usage_status(store,token),"orders":billing.list_orders(store,token),
           "children":store.children(token),"testOnly":True}
-    if action=="create":
+    if action=="discountQuote":return billing_discounts.quote(store,token,body["planId"],body["period"],body["code"])
+    if action in ("create","discountCreate"):
         if type(body["expectedAmountMinor"]) is not int or body["expectedAmountMinor"]<=0:
             raise FamilyError(400,"Quote required.")
-        return billing.create_order(store,token,body["planId"],body["period"],body["operationId"],body["expectedAmountMinor"])
+        return billing.create_order(store,token,body["planId"],body["period"],body["operationId"],body["expectedAmountMinor"],body.get("code"))
     if action=="redeem":return billing_grants.redeem_trial(store,token,body["code"])
     if action=="cancel":return billing.cancel_order(store,token,body["orderId"])
     if action=="assign":return {"ok":entitlements.assign_slot(store,token,body["childId"])}
