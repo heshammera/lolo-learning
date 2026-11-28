@@ -5,6 +5,8 @@ on:
     paths:
       - 'family_accounts.py'
       - 'family_credentials.py'
+      - 'family_mail.py'
+      - 'tests/test_family_mail.py'
       - 'tests/test_family_credentials.py'
       - 'billing.py'
       - 'offline_license.py'
@@ -112,6 +114,7 @@ jobs:
         run: |
           .venv/bin/python -m unittest discover -s tests -p 'test_family_accounts.py' -v
           .venv/bin/python -m unittest discover -s tests -p 'test_family_credentials.py' -v
+          .venv/bin/python -m unittest discover -s tests -p 'test_family_mail.py' -v
           .venv/bin/python -m unittest discover -s tests -p 'test_hosted_family_pilot.py' -v
           .venv/bin/python -m unittest discover -s tests -p 'test_progress_sync.py' -v
           .venv/bin/python -m unittest discover -s tests -p 'test_pronunciation_contract.py' -v

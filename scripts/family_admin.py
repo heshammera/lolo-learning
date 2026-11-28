@@ -8,6 +8,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from family_accounts import FamilyStore, FamilyError
 from database_connection import database_dsn
 from family_credentials import migrate_pilot_credentials, issue_code
+from family_mail import pilot_mail_config, deliver_pilot_code
 
 
 def pilot_store(env=None):
@@ -54,8 +55,18 @@ def main():
             return
         if args.action in ("issue-register-code","issue-reset-code"):
             if not sys.stdout.isatty():raise FamilyError(400,"Use a private interactive terminal; never redirect codes to logs.")
-            code=issue_code(store,"register" if args.action=="issue-register-code" else "reset",input("Synthetic email: "))
-            print("One-time synthetic code; deliver privately to the fixture tester:",code)
+            purpose="register" if args.action=="issue-register-code" else "reset"
+            email=input("Synthetic email: ")
+            if os.environ.get("LOLO_PILOT_MAIL_ENABLED")=="true":
+                config=pilot_mail_config()
+                if input("Send fixture code to configured approved test inbox (type SEND): ")!="SEND":
+                    raise FamilyError(400,"Pilot mail cancelled.")
+                code=issue_code(store,purpose,email)
+                deliver_pilot_code(config,purpose,email,code)
+                print("Pilot code delivered to approved test inbox.")
+            else:
+                code=issue_code(store,purpose,email)
+                print("One-time synthetic code; deliver privately to the fixture tester:",code)
             return
     else:
         store = FamilyStore(os.environ.get("LOLO_DATABASE_URL"))
