@@ -6,6 +6,8 @@ on:
       - 'family_accounts.py'
       - 'billing.py'
       - 'offline_license.py'
+      - 'offline_license_lifecycle.py'
+      - 'tests/test_offline_license_lifecycle.py'
       - 'offline_device_proof.py'
       - 'tests/test_offline_device_proof.py'
       - 'tests/test_offline_device_manager.py'
@@ -87,3 +89,4 @@ jobs:
           .venv/bin/python -m unittest discover -s tests -p 'test_offline_device_proof.py' -v
           .venv/bin/python -m unittest discover -s tests -p 'test_billing_discounts.py' -v
           .venv/bin/python -m unittest discover -s tests -p 'test_offline_device_manager.py' -v
+          .venv/bin/python -m unittest discover -s tests -p 'test_offline_license_lifecycle.py' -v
