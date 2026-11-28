@@ -33,5 +33,6 @@
       ]
     }
   ],
-  "buildCommand": "sh scripts/verify_neon_build.sh"
+  "buildCommand": "sh scripts/verify_neon_build.sh && node scripts/prepare_vercel_public.js",
+  "outputDirectory": "public"
 }

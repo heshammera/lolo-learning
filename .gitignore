@@ -20,3 +20,6 @@ __pycache__/
 *.keystore
 *.p12
 *.pfx
+
+# Generated Vercel static output
+/public/
