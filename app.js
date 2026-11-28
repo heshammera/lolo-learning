@@ -3776,16 +3776,21 @@ window.addEventListener('storage', event => {
 if (location.protocol === 'file:') {
   location.replace('http://localhost:4173/');
 } else {
-  fetch('/curriculum.json').then(response => {
+  window.LoloBoot?.stage(20,'بنحمّل المنهج المحفوظ…');
+  const bootRequest=new AbortController();
+  const bootTimeout=setTimeout(()=>bootRequest.abort(),15000);
+  fetch('/curriculum.json',{signal:bootRequest.signal}).then(response => {
     if (!response.ok) throw new Error();
     return response.json();
   }).then(data => {
+    window.LoloBoot?.stage(45,'بنتأكد من المنهج…');
     const validation = curriculumEngine.validateCurriculum(data);
     if (!validation.valid) {
       console.error('Curriculum validation failed:', validation.errors);
       throw new Error('Invalid curriculum data.');
     }
     course = data;
+    window.LoloBoot?.stage(70,'بنجهز دروسك وتقدمك…');
     visualBankReady=visualAssessment.validateBank(visualBank.bank,new Set(allLessons().map(l=>l.id))).valid;
     const needsCurriculumSetup = !storage.get('lolo-selected-program');
     const savedLessonId = storage.get('lolo-current-lesson');
@@ -3824,8 +3829,10 @@ if (location.protocol === 'file:') {
     updateProgress();
     $('#mic').disabled = false;
     if (storage.get('lolo-welcome-tour-v1-complete') === 'true' && !needsCurriculumSetup) $('#app').classList.add('ready');
+    window.LoloBoot?.finish();
   }).catch(() => {
+    window.LoloBoot?.fail();
     showError(navigator.onLine===false?'المناهج لم تُحفظ على الجهاز بعد. اتصلي بالإنترنت مرة واحدة أو ثبتي نسخة لولو الجديدة.':'المنهج مش ظاهر. راجعي ملفات التطبيق.');
     $('#mic').disabled = false;
-  });
+  }).finally(()=>clearTimeout(bootTimeout));
 }

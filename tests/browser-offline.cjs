@@ -67,6 +67,10 @@ async function verifyPractice(page){
     page.on('pageerror',error=>errors.push(error.message));
     page.on('request',request=>{if(request.method()==='POST'&&request.url().includes('/api/'))paid++;});
     await page.goto(root,{waitUntil:'domcontentloaded'});
+    assert.equal((await context.request.get(root+'/assets/branding/lolo-splash.webp')).status(),200);
+    await page.locator('#loloBoot').waitFor({state:'hidden'});
+    assert.equal(await page.locator('#bootProgress').getAttribute('value'),'100');
+    assert.equal(await page.evaluate(()=>document.getElementById('app').hasAttribute('inert')),false);
     assert.equal((await context.request.get(root+'/learning-analytics.js')).status(),200);
     assert.equal((await context.request.get(root+'/learning-reminders.js')).status(),200);
     await page.waitForFunction(()=>!!navigator.serviceWorker.controller,{},{timeout:30000});
@@ -76,6 +80,8 @@ async function verifyPractice(page){
     await context.setOffline(true);
     await page.locator('#networkNotice[data-state="offline"]').waitFor();
     await page.reload({waitUntil:'domcontentloaded'});
+    await page.locator('#loloBoot').waitFor({state:'hidden'});
+    assert.ok(await page.evaluate(()=>document.getElementById('loloBootArt').naturalWidth>0));
     await page.locator('#networkNotice[data-state="offline"]').waitFor();
     await page.waitForFunction(()=>document.querySelector('#mic')&&!document.querySelector('#mic').disabled);
     assert.equal(await page.evaluate(()=>localStorage.getItem('lolo-learning-path-v1')),saved);
