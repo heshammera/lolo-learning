@@ -57,7 +57,17 @@
       const c=a.config;
       if(a.type==='true-false')select(box,'الإجابة الصحيحة',String(c.answer),[{id:'true',label:'صح'},{id:'false',label:'خطأ'}],v=>c.answer=v===''?null:v==='true');
       else if(a.type==='numeric')field(box,'الإجابة الرقمية الصحيحة',c.answer,v=>c.answer=v,{type:'number'});
-      else if(a.type==='speech-repeat'){
+      else if(a.type==='reading-aloud'){
+        select(box,'لغة القراءة',c.language,[{id:'ar',label:'العربية'},{id:'en',label:'English'}],v=>c.language=v);
+        c.segments.forEach((segment,i)=>{
+          const row=el('div');row.className='cms-row';box.append(row);
+          field(row,'جزء القراءة '+(i+1),segment,v=>c.segments[i]=v,{max:200});
+          if(c.segments.length>1)remove(row,c.segments,i,'حذف الجزء');
+          move(row,c.segments,i);
+        });
+        const add=button(box,'إضافة جزء',()=>{c.segments.push('');rebuild();});add.disabled=c.segments.length>=8;
+        box.append(el('p','تدريب ذاتي دون تسجيل أو تقييم سرعة ودقة القراءة.'));
+      }else if(a.type==='speech-repeat'){
         select(box,'لغة العبارة',c.language,[{id:'ar',label:'العربية'},{id:'en',label:'English'}],v=>c.language=v);
         field(box,'النص المسموع',c.spokenText,v=>c.spokenText=v,{max:200});
         box.append(el('p','التكرار ذاتي دون ميكروفون أو تقييم للنطق. يلزم صوت محلي مناسب.'));

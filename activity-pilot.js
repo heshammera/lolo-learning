@@ -30,6 +30,7 @@
     {id:'writing-color',type:'coloring',version:1,prompt:'لوني الدائرة بالأحمر والمثلث بالأزرق والمربع بالأخضر.',config:{answers:{circle:'red',triangle:'blue',square:'green'}}},
     {id:'language-dictation',type:'dictation',version:1,prompt:'استمعي ثم اكتبي الكلمة.',config:{language:'en',spokenText:'water',answers:['water']}},
     {id:'language-repeat',type:'speech-repeat',version:1,prompt:'استمعي ثم كرري العبارة بصوتك.',config:{language:'ar',spokenText:'أنا أحب القراءة'}},
+    {id:'language-reading',type:'reading-aloud',version:1,prompt:'اقرئي النص بصوتك جزءًا بعد جزء.',config:{language:'ar',segments:['ذهبت لولو إلى الحديقة.','شاهدت زهرة جميلة.','سقت الزهرة بالماء.']}},
   ];
   const api={status:'draft',lessons:[{id:'science-draft-plants',activities:activities.slice(0,4)},{id:'science-draft-animals',activities:activities.slice(4)}]};
   if(typeof window!=='undefined')window.LoloActivityPilot=api;
