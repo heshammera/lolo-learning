@@ -82,6 +82,14 @@
       if(!tokenPattern.test(result?.token||'')||!uuid.test(result?.parentId||'')||!Number.isFinite(expires)||expires<=now())throw fail('استجابة الدخول غير صالحة.');
       session={token:result.token,expires,parentId:result.parentId};return state();
     }
+    async function redeem(purpose,email,code,password){
+      if(!allowed()||busy||live())throw fail('افتحي لوحة ولي الأمر دون تسجيل الدخول.');
+      if(!['register','reset'].includes(purpose)||typeof email!=='string'||email.length>254||!/^[^\s@]+@example\.test$/i.test(email.trim())||!tokenPattern.test(code||'')||typeof password!=='string'||password.length<12||password.length>128)throw fail('راجعي البيانات التجريبية.');
+      clear();
+      const result=await call({action:purpose==='register'?'registerWithCode':'resetWithCode',email:email.trim().toLowerCase(),code,password},false);
+      if(result?.ok!==true)throw fail('تعذر تأكيد العملية.');
+      return true;
+    }
     async function list(){
       const result=await call({action:'children'});
       if(!Array.isArray(result?.children)||result.children.length>12||!result.children.every(c=>uuid.test(c?.id||'')&&typeof c.nickname==='string'&&c.nickname.length<=40&&bands.has(c.ageBand))||new Set(result.children.map(c=>c.id)).size!==result.children.length)throw fail('تعذر قراءة ملفات الحساب.');
@@ -157,7 +165,7 @@
       return sendQueued(q,localProfileId,snapshot);
     }
     async function logout(){try{if(live())await call({action:'logout'});}finally{clear();}}
-    return Object.freeze({state,clear,login,list,add,compare,upload,merge,pending,resume,discard,logout,link,unlink,linkState,retryLinked});
+    return Object.freeze({state,clear,login,redeem,list,add,compare,upload,merge,pending,resume,discard,logout,link,unlink,linkState,retryLinked});
   }
   const api=Object.freeze({create,mergeSnapshots});
   if(typeof module!=='undefined'&&module.exports)module.exports=api;
