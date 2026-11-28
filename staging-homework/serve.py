@@ -1,6 +1,6 @@
 """Loopback-only synthetic homework parent preview; never imported by production."""
 import base64
-import binascii
+import io
 import json
 import os
 import re
@@ -15,19 +15,32 @@ from family_accounts import FamilyStore, FamilyError
 from homework_storage import submit, list_owned, delete_owned, MAX_INPUT, require_staging
 from homework_review import parent_feedback, teacher_id, read_for_review, review, identifier
 
-MAX_BODY=4*((MAX_INPUT+2)//3)+4096
+MAX_BODY=4096
 SYNTHETIC_EMAIL=re.compile(r"[a-zA-Z0-9._+-]{1,100}@example\.test")
 SYNTHETIC_ASSIGNMENT=re.compile(r"synthetic-[a-zA-Z0-9_-]{1,54}")
 SHAPES={
     "login":{"action","email","password"},
     "children":{"action"},
-    "submit":{"action","childId","assignmentId","image","confirmed"},
+    "submit":{"action","childId","assignmentId","confirmed"},
+    "assignments":{"action"},
     "list":{"action","childId"},
     "feedback":{"action","childId","submissionId"},
     "delete":{"action","childId","submissionId"},
     "logout":{"action"},
 }
 
+
+def synthetic_image():
+    from PIL import Image,ImageDraw
+    image=Image.new("RGB",(640,400),"white")
+    draw=ImageDraw.Draw(image)
+    draw.rectangle((24,24,616,376),outline="#384d75",width=4)
+    draw.text((48,48),"LOLO - SYNTHETIC TEST ONLY",fill="#384d75")
+    draw.text((48,110),"2 + 3 = 5",fill="black")
+    for i in range(5):
+        x=60+i*100
+        draw.ellipse((x,180,x+70,250),fill="#9acde8",outline="#384d75")
+    out=io.BytesIO();image.save(out,format="PNG");return out.getvalue()
 
 def dispatch(store,body,token):
     require_staging()
@@ -44,6 +57,11 @@ def dispatch(store,body,token):
         row=db.execute("SELECT email FROM lolo_parents WHERE id=%s",(parent,)).fetchone()
         if not row or not SYNTHETIC_EMAIL.fullmatch(row[0]):
             raise FamilyError(403,"Synthetic test account required.")
+    if action=="assignments":
+        with store.connect() as db:
+            store.authenticated_parent(db,token)
+            rows=db.execute("SELECT id FROM lolo_homework_assignments WHERE active=true AND left(id,10)='synthetic-' ORDER BY id LIMIT 100").fetchall()
+            return {"assignments":[{"id":r[0]} for r in rows],"testOnly":True}
     if action=="children":
         return {"children":store.children(token)}
     if action=="logout":
@@ -53,16 +71,11 @@ def dispatch(store,body,token):
     if action=="submit":
         if not isinstance(body["assignmentId"],str) or not SYNTHETIC_ASSIGNMENT.fullmatch(body["assignmentId"]) or body["confirmed"] is not True:
             raise FamilyError(400,"Synthetic assignment and confirmation required.")
-        encoded=body["image"]
-        if not isinstance(encoded,str) or len(encoded)>4*((MAX_INPUT+2)//3):
-            raise FamilyError(400,"Image too large.")
-        try:
-            raw=base64.b64decode(encoded,validate=True)
-        except (ValueError,binascii.Error):
-            raise FamilyError(400,"Invalid image.") from None
-        return submit(store,token,child,body["assignmentId"],raw,True)
+        return submit(store,token,child,body["assignmentId"],synthetic_image(),True)
     if action=="list":
-        return {"submissions":list_owned(store,token,child)}
+        return {"submissions":[s for s in list_owned(store,token,child) if SYNTHETIC_ASSIGNMENT.fullmatch(s["assignmentId"])]}
+    if not any(s["id"]==body["submissionId"] and SYNTHETIC_ASSIGNMENT.fullmatch(s["assignmentId"]) for s in list_owned(store,token,child)):
+        raise FamilyError(404,"Synthetic submission not found.")
     if action=="feedback":
         return parent_feedback(store,token,child,body["submissionId"])
     delete_owned(store,token,child,body["submissionId"])

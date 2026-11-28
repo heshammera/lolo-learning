@@ -18,7 +18,7 @@ const definitions=[
   ['image-hotspot','interaction','تحديد أجزاء الرسم','اختيار منطقة في رسم نبات أو وجه مدمج، مع بديل نصي.',[],['diagram','answer']],
   ['drag-drop','interaction','السحب والإفلات','تصنيف العناصر بالسحب أو النقر مع بديل قوائم اختيار للوحة المفاتيح.',[],['items','groups','assignments']],
   ['speech-repeat','voice','الاستماع والتكرار','استماع محلي وتكرار ذاتي دون تسجيل أو درجة نطق.',['local-audio'],['language','spokenText']],
-  ['phoneme-score','voice','تقييم النطق المتخصص','تقييم الصوت على مستوى الفونيمات، لا مجرد تفريغ الكلام.',['microphone','specialized-provider','consent'],[]],
+  ['phoneme-score','voice','تقييم النطق المتخصص','عقد تحقق من أدلة الفونيمات موجود؛ مزود التقييم الفعلي والموافقة والربط غير مفعّلة.',['microphone','specialized-provider','consent'],[]],
   ['dictation','voice','الإملاء الصوتي','إملاء بصوت محلي معلن من الجهاز؛ لا درجة قبل اكتمال الصوت.',['local-audio'],['language','spokenText','answers']],
   ['conversation','voice','المحادثة الموجهة','حوار مكتوب محدد مسبقًا مع اختيار الرد؛ ليس محادثة صوتية حرة أو ذكاء اصطناعي مباشر.',[],['language','turns']],
   ['trace','writing','تتبع الحروف والأرقام','تتبع هندسي لرموز محدودة؛ ليس تعرفًا على الخط.',[],['glyph']],
@@ -34,7 +34,7 @@ const definitions=[
   ['memory-game','games','لعبة الذاكرة','كشف أزواج بطاقات نصية أو رموز ضمن عدد محاولات محدد.',[],['items','maxTurns']],
   ['puzzle','games','بازل الترتيب','تبديل قطع نصية أو رموز حتى الوصول إلى ترتيب معتمد.',[],['items','answer']],
   ['maze','games','المتاهة','شبكة ممرات قابلة للتعديل والتحقق من إمكانية الوصول.',[],['grid']],
-  ['homework-upload','homework','رفع الواجبات','رفع ملف بإذن ولي الأمر ومراجعة الخصوصية.',['network','consent','secure-upload'],[]],
+  ['homework-upload','homework','رفع الواجبات','مسار تجريبي منفصل لولي الأمر والمعلم باستخدام صورة مولدة من الخادم؛ رفع ملفات الطلاب الفعلية غير مفعّل.',['network','consent','secure-upload'],[]],
 ];
 const examples=new Map(pilot.lessons.flatMap(l=>l.activities).map(a=>[a.type,a]));
 const clone=v=>JSON.parse(JSON.stringify(v));
@@ -44,7 +44,7 @@ function catalog(){
     return {id,category,categoryLabel:groups[category],label,description,status:runtime?'implemented':'planned',
       versions:runtime?[runtime.version]:[],offline:runtime?runtime.offline:null,
       evaluator:runtime?.evaluator||null,renderer:runtime?.renderer||null,
-      requirements:[...requirements],configFields:[...fields],example:runtime&&examples.has(id)?clone(examples.get(id)):null};
+      requirements:[...requirements],integrationStage:id==='homework-upload'?'synthetic-workflow':id==='phoneme-score'?'evidence-contract':null,configFields:[...fields],example:runtime&&examples.has(id)?clone(examples.get(id)):null};
   });
 }
 function compatibility(entry,target){
