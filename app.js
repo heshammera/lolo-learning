@@ -3051,9 +3051,10 @@ renderActiveLocalProfile();
 
 let cloudUiEnabled=false,cloudSyncEnabled=false;
 const BACKUP_QUEUE_KEY='lolo-pending-cloud-backup-v1';
-const familyClient=window.LoloFamilyClient.create(apiFetch,{queueStore:{read:()=>storage.getJSON(BACKUP_QUEUE_KEY,null),write:q=>storage.set(BACKUP_QUEUE_KEY,JSON.stringify(q)),remove:()=>storage.remove(BACKUP_QUEUE_KEY)},allowed:()=>cloudUiEnabled&&parentGate.isUnlocked()&&$('#parentSheet').classList.contains('open')&&!$('#parentSettingsPanel').hidden&&document.visibilityState!=='hidden'});
+const CLOUD_LINK_KEY='lolo-cloud-profile-link-v1';
+const familyClient=window.LoloFamilyClient.create(apiFetch,{linkStore:{read:()=>{const raw=storage.get(CLOUD_LINK_KEY);return raw===null?null:JSON.parse(raw);},write:v=>storage.profiles.selectedId()===storage.profiles.activeId&&storage.set(CLOUD_LINK_KEY,JSON.stringify(v)),remove:()=>storage.profiles.selectedId()===storage.profiles.activeId&&storage.remove(CLOUD_LINK_KEY)},queueStore:{read:()=>storage.getJSON(BACKUP_QUEUE_KEY,null),write:q=>storage.set(BACKUP_QUEUE_KEY,JSON.stringify(q)),remove:()=>storage.remove(BACKUP_QUEUE_KEY)},allowed:()=>cloudUiEnabled&&!!storage.profiles.activeId&&storage.profiles.selectedId()===storage.profiles.activeId&&parentGate.isUnlocked()&&$('#parentSheet').classList.contains('open')&&!$('#parentSettingsPanel').hidden&&document.visibilityState!=='hidden'});
 function resetCloudFamily(){
-  familyClient.clear();$('#cloudEmail').value='';$('#cloudPassword').value='';$('#cloudNickname').value='';$('#cloudConfirm').checked=false;$('#cloudMergeConfirm').checked=false;$('#cloudRestoreConfirm').checked=false;$('#cloudStatus').textContent='';renderCloudFamily();
+  familyClient.clear();$('#cloudEmail').value='';$('#cloudPassword').value='';$('#cloudNickname').value='';$('#cloudConfirm').checked=false;$('#cloudMergeConfirm').checked=false;$('#cloudRestoreConfirm').checked=false;$('#cloudLinkConfirm').checked=false;$('#cloudLinkRetry').checked=false;$('#cloudStatus').textContent='';renderCloudFamily();
 }
 function localProgressSnapshot(){
   if(!course||invalidPath||!storage.profiles.activeId||storage.profiles.selectedId()!==storage.profiles.activeId)return null;
@@ -3122,10 +3123,16 @@ function renderCloudFamily(){
   $('#cloudLogin').hidden=s.signedIn;$('#cloudAccount').hidden=!s.signedIn;
   $('#cloudFamilyPanel').querySelectorAll('button,input,select').forEach(el=>el.disabled=s.busy||navigator.onLine===false);
   const list=$('#cloudChildren');list.replaceChildren();
+  const profileId=storage.profiles.activeId,link=familyClient.linkState(profileId);
+  $('#cloudLinkStatus').textContent=!link.valid?'ربط الملف غير صالح؛ المزامنة متوقفة.':link.linked?(link.authorized?'الملف مرتبط بالحساب السحابي الحالي.':'الملف مرتبط بحساب آخر أو ملف غير متاح؛ سجلي الدخول للحساب المرتبط.'):'الملف غير مرتبط.';
+  $('#cloudUnlink').hidden=!link.authorized;$('#cloudUnlink').disabled=s.busy||!!familyClient.pending();
+  $('#cloudLinkBox').hidden=!cloudSyncEnabled||!s.signedIn||!link.valid||link.linked||!!familyClient.pending();
+  $('#cloudLinkChild').replaceChildren(...s.children.map(c=>new Option(c.nickname,c.id)));
+  $('#cloudLinkCreate').disabled=s.busy||!$('#cloudLinkConfirm').checked||!s.children.length||!link.valid||link.linked||!!familyClient.pending();
   for(const child of s.children){
     const row=document.createElement('div');row.className='local-profile-row';
     const name=document.createElement('strong');name.textContent=child.nickname;row.append(name);
-    if(cloudSyncEnabled){
+    if(cloudSyncEnabled&&link.valid&&(!link.linked||link.authorized&&link.childId===child.id)){
       const button=document.createElement('button');button.type='button';button.textContent='معاينة النسخة';button.disabled=s.busy||navigator.onLine===false;
       button.onclick=()=>{if(!parentGate.isUnlocked())return resetCloudFamily();if(isActive||isStarting)stopSession();$('#cloudConfirm').checked=false;$('#cloudMergeConfirm').checked=false;$('#cloudRestoreConfirm').checked=false;runCloud(()=>familyClient.compare(child.id,storage.profiles.activeId,localProgressSnapshot()),'راجعي الملفين قبل أي حفظ.');};
       row.append(button);
@@ -3163,11 +3170,25 @@ async function runCloud(action,success){
 $('#cloudLogin').addEventListener('submit',event=>{
   event.preventDefault();
   const email=$('#cloudEmail').value,password=$('#cloudPassword').value;$('#cloudPassword').value='';
-  runCloud(async()=>{await familyClient.login(email,password);await familyClient.list();},'تم تسجيل الدخول.');
+  runCloud(async()=>{await familyClient.login(email,password);await familyClient.list();if(cloudSyncEnabled)await familyClient.retryLinked(storage.profiles.activeId,localProgressSnapshot());},'تم تسجيل الدخول ومراجعة الطلبات الموافق عليها.');
 });
 $('#cloudChildForm').addEventListener('submit',event=>{event.preventDefault();const nickname=$('#cloudNickname').value;$('#cloudNickname').value='';runCloud(()=>familyClient.add(nickname,$('#cloudAgeBand').value),'تم إضافة الملف.');});
 $('#cloudRefresh').onclick=()=>runCloud(()=>familyClient.list(),'تم تحديث الملفات.');
 $('#cloudLogout').onclick=()=>runCloud(()=>familyClient.logout(),'تم تسجيل الخروج.');
+$('#cloudLinkConfirm').onchange=()=>{$('#cloudLinkCreate').disabled=!$('#cloudLinkConfirm').checked||!familyClient.state().signedIn||!$('#cloudLinkChild').value;};
+$('#cloudLinkChild').onchange=()=>{$('#cloudLinkConfirm').checked=false;$('#cloudLinkCreate').disabled=true;};
+$('#cloudLinkCreate').onclick=()=>{
+  if(!cloudSyncEnabled||!parentGate.isUnlocked()||!$('#cloudLinkConfirm').checked)return;
+  const ok=familyClient.link($('#cloudLinkChild').value,storage.profiles.activeId,$('#cloudLinkRetry').checked);
+  $('#cloudLinkConfirm').checked=false;$('#cloudLinkRetry').checked=false;
+  $('#cloudStatus').textContent=ok?'تم ربط الملف على هذا الجهاز. لم يتم إرسال تقدم.':'تعذر الربط. راجعي الحساب والطلبات المحفوظة.';
+  renderCloudFamily();
+};
+$('#cloudUnlink').onclick=()=>{
+  if(!cloudSyncEnabled||!parentGate.isUnlocked()||!confirm('إلغاء الربط المحلي؟ لن تُحذف البيانات السحابية.'))return;
+  $('#cloudStatus').textContent=familyClient.unlink(storage.profiles.activeId)?'تم إلغاء الربط.':'تعذر إلغاء الربط؛ راجعي الطلبات المحفوظة.';
+  renderCloudFamily();
+};
 $('#cloudConfirm').onchange=renderCloudFamily;
 $('#cloudUpload').onclick=()=>{
   if(!$('#cloudConfirm').checked||!cloudSyncEnabled)return;
