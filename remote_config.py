@@ -55,3 +55,15 @@ def preview(store,token):
     with store.connect() as db:
         parent_for_test(store,db,token)
         return record(db.execute("SELECT revision,policy,updated_at FROM lolo_remote_test_config WHERE id=1").fetchone())
+
+def signed_preview(store,token,nonce,key_id,key):
+    import re
+    from offline_license import sign
+    enabled()
+    if type(nonce) is not str or not re.fullmatch(r"[a-f0-9]{64}",nonce):raise FamilyError(400,"Invalid request nonce.")
+    with store.connect() as db:
+        parent_for_test(store,db,token)
+        r=record(db.execute("SELECT revision,policy,updated_at FROM lolo_remote_test_config WHERE id=1").fetchone())
+        now=db.execute("SELECT floor(extract(epoch FROM clock_timestamp()))::bigint").fetchone()[0]
+        return sign({"format":1,"audience":"lolo-remote-config-test","testOnly":True,"nonce":nonce,
+            "revision":r["revision"],"policy":r["policy"],"issuedAt":now,"expiresAt":now+300},key_id,key)

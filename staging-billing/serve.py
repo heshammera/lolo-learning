@@ -32,6 +32,7 @@ SHAPES={
  "logout":{"action"},
  "devices":{"action"},
  "configPreview":{"action"},
+ "configSigned":{"action","nonce"},
  "licenseStatus":{"action","deviceId","deviceKeySha256"},
  "licenseBegin":{"action","deviceId","publicSpki"},
  "licenseComplete":{"action","challengeId","signature"},
@@ -55,6 +56,9 @@ def dispatch(store,body,token,signing=None):
         if action=="licenseStatus":return offline_license_lifecycle.status(store,token,body["deviceId"],body["deviceKeySha256"],key_id,key)
         if action=="licenseBegin":return offline_device_proof.begin(store,token,body["deviceId"],body["publicSpki"])
         return offline_device_proof.complete(store,token,body["challengeId"],body["signature"],key_id,key)
+    if action=="configSigned":
+        if signing is None:raise FamilyError(503,"Test signing disabled.")
+        return remote_config.signed_preview(store,token,body["nonce"],*signing)
     if action=="configPreview":return remote_config.preview(store,token)
     if action=="dashboard":
         return {"plans":billing.catalog(store),"subscription":billing.test_subscription(store,token),
@@ -106,6 +110,7 @@ class Handler(BaseHTTPRequestHandler):
     def do_GET(self):
         if not self.host_ok():return self.reply(403,{"error":"Forbidden."})
         files={"/":("index.html","text/html; charset=utf-8"),"/billing.js":("billing.js","text/javascript; charset=utf-8"),"/billing.css":("billing.css","text/css; charset=utf-8")}
+        if self.path=="/remote-config-client.js":return self.reply(200,(ROOT.parent/"remote-config-client.js").read_bytes(),"text/javascript; charset=utf-8")
         if self.path not in files:return self.reply(404,{"error":"Not found."})
         name,mime=files[self.path]
         return self.reply(200,(ROOT/name).read_bytes(),mime)

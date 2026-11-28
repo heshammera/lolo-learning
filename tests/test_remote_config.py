@@ -22,3 +22,24 @@ class RemoteConfigTests(unittest.TestCase):
             with self.assertRaises(FamilyError):cfg.read(store,admin,"test")
         with patch.dict(os.environ,{"LOLO_BILLING_STAGING":"true","LOLO_REMOTE_CONFIG_STAGING":"false"}):
             with self.assertRaises(FamilyError):cfg.read(store,admin,"test")
+
+    def test_signed_preview_is_scoped(self):
+        from cryptography.hazmat.primitives.asymmetric import ec
+        from cryptography.hazmat.primitives import hashes
+        from cryptography.hazmat.primitives.asymmetric.utils import encode_dss_signature
+        import base64,json
+        store=FamilyStore(os.environ["LOLO_TEST_DATABASE_URL"]);store.migrate()
+        email=f"{uuid.uuid4()}@example.test";store.provision(email,"synthetic-long-password")
+        token=store.login(email,"synthetic-long-password")["token"]
+        key=ec.generate_private_key(ec.SECP256R1())
+        try:
+            with patch.dict(os.environ,{"LOLO_BILLING_STAGING":"true","LOLO_REMOTE_CONFIG_STAGING":"true"}):
+                envelope=cfg.signed_preview(store,token,"a"*64,"test-ci",key)
+                def decode(v):return base64.urlsafe_b64decode(v+"="*((-len(v))%4))
+                raw=decode(envelope["payload"]);sig=decode(envelope["signature"])
+                key.public_key().verify(encode_dss_signature(int.from_bytes(sig[:32],"big"),int.from_bytes(sig[32:],"big")),raw,ec.ECDSA(hashes.SHA256()))
+                payload=json.loads(raw);self.assertEqual(payload["nonce"],"a"*64);self.assertEqual(payload["expiresAt"]-payload["issuedAt"],300)
+                with self.assertRaises(FamilyError):cfg.signed_preview(store,"invalid","a"*64,"test-ci",key)
+                with self.assertRaises(FamilyError):cfg.signed_preview(store,token,"invalid","test-ci",key)
+        finally:
+            with store.connect() as db:db.execute("DELETE FROM lolo_parents WHERE email=%s",(email,))

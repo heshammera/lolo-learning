@@ -17,6 +17,10 @@ on:
       - 'tests/offline-license-cross.cjs'
       - 'billing_grants.py'
       - 'remote_config.py'
+      - 'remote-config-client.js'
+      - 'tests/remote-config-client.test.cjs'
+      - 'billing_analytics.py'
+      - 'tests/test_billing_analytics.py'
       - 'tests/test_remote_config.py'
       - 'billing_discounts.py'
       - 'tests/test_billing_discounts.py'
@@ -93,3 +97,5 @@ jobs:
           .venv/bin/python -m unittest discover -s tests -p 'test_offline_device_manager.py' -v
           .venv/bin/python -m unittest discover -s tests -p 'test_offline_license_lifecycle.py' -v
           .venv/bin/python -m unittest discover -s tests -p 'test_remote_config.py' -v
+          .venv/bin/python -m unittest discover -s tests -p 'test_billing_analytics.py' -v
+          node --test tests/remote-config-client.test.cjs
