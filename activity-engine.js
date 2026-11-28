@@ -7,9 +7,9 @@
     ['drag-drop','السحب والإفلات'],['geometry','الأشكال الهندسية'],['equations','المعادلات الخطية'],
     ['memory-game','لعبة الذاكرة'],['puzzle','بازل الترتيب'],['maze','المتاهة'],
     ['image-hotspot','تحديد أجزاء الرسم'],['science-simulation','محاكاة الميزان'],['interactive-story','قصة تفاعلية'],
-    ['trace','تتبع الحروف والأرقام'],['free-drawing','الرسم الحر'],['coloring','التلوين'],['dictation','الإملاء الصوتي'],['speech-repeat','الاستماع والتكرار'],
-  ].map(([id,label])=>[id,Object.freeze({id,label,version:1,offline:!['dictation','speech-repeat'].includes(id),evaluator:['free-drawing','speech-repeat'].includes(id)?'completion-only':'deterministic',renderer:'generic-v1'})])));
-  const planned=Object.freeze(['phoneme-score','conversation','reading-aloud','homework-upload']);
+    ['trace','تتبع الحروف والأرقام'],['free-drawing','الرسم الحر'],['coloring','التلوين'],['dictation','الإملاء الصوتي'],['speech-repeat','الاستماع والتكرار'],['reading-aloud','القراءة الجهرية'],
+  ].map(([id,label])=>[id,Object.freeze({id,label,version:1,offline:!['dictation','speech-repeat'].includes(id),evaluator:['free-drawing','speech-repeat','reading-aloud'].includes(id)?'completion-only':'deterministic',renderer:'generic-v1'})])));
+  const planned=Object.freeze(['phoneme-score','conversation','homework-upload']);
   const plain=v=>v!==null&&typeof v==='object'&&!Array.isArray(v)&&[Object.prototype,null].includes(Object.getPrototypeOf(v));
   const exact=(o,keys)=>plain(o)&&Object.keys(o).length===keys.length&&keys.every(k=>Object.hasOwn(o,k));
   const id=v=>typeof v==='string'&&/^[a-zA-Z0-9][a-zA-Z0-9_-]{0,63}$/.test(v);
@@ -122,6 +122,7 @@
       case 'numeric':valid=exact(c,['answer'])&&integer(c.answer);break;
       case 'fill-blank':
       case 'free-text':valid=exact(c,['answers'])&&alternatives(c.answers);break;
+      case 'reading-aloud':valid=exact(c,['language','segments'])&&['ar','en'].includes(c.language)&&Array.isArray(c.segments)&&c.segments.length>=1&&c.segments.length<=8&&dense(c.segments)&&c.segments.every(answerText);break;
       case 'speech-repeat':valid=exact(c,['language','spokenText'])&&['ar','en'].includes(c.language)&&answerText(c.spokenText);break;
       case 'dictation':valid=exact(c,['language','spokenText','answers'])&&['ar','en'].includes(c.language)&&answerText(c.spokenText)&&alternatives(c.answers)&&dense(c.answers)&&c.answers.some(a=>normalize(a)===normalize(c.spokenText));break;
       case 'number-line':valid=exact(c,['min','max','step','answer'])&&integer(c.min)&&integer(c.max)&&integer(c.step)&&c.step>0&&c.max>c.min&&(c.max-c.min)%c.step===0&&(c.max-c.min)/c.step<=20&&onLine(c,c.answer);break;
@@ -161,6 +162,7 @@
       case 'numeric':resolved=integer(response);correct=response===c.answer;break;
       case 'fill-blank':
       case 'free-text':resolved=answerText(response);correct=resolved&&c.answers.some(a=>normalize(a)===normalize(response));break;
+      case 'reading-aloud':return exact(response,['readSegments'])&&Array.isArray(response.readSegments)&&response.readSegments.length===c.segments.length&&dense(response.readSegments)&&response.readSegments.every((value,index)=>value===index)?{status:'completed'}:{status:'unresolved'};
       case 'speech-repeat':return exact(response,['heard','repeated'])&&response.heard===true&&response.repeated===true?{status:'completed'}:{status:'unresolved'};
       case 'dictation':resolved=exact(response,['heard','answer'])&&response.heard===true&&answerText(response.answer);correct=resolved&&c.answers.some(a=>normalize(a)===normalize(response.answer));break;
       case 'number-line':resolved=onLine(c,response);correct=resolved&&response===c.answer;break;
@@ -445,6 +447,21 @@
       }
       gameResponse=()=>({...chosen});refresh();
     }
+    function readingBoard(){
+      const line=doc.createElement('p');line.lang=c.language;line.dir=c.language==='ar'?'rtl':'ltr';line.style.fontSize='1.35em';line.style.lineHeight='1.8';
+      const status=doc.createElement('p');status.setAttribute('aria-live','polite');
+      const note=doc.createElement('p');note.textContent='اقرئي كل جزء بصوتك ثم أكدي الانتهاء. لا نستخدم الميكروفون ولا نقيس سرعة أو دقة القراءة.';
+      fieldset.append(note,status,line);
+      const read=[];let position=0;
+      const next=gameButton(fieldset,'قرأت هذا الجزء',()=>{if(fieldset.disabled||position>=c.segments.length)return;read.push(position++);refresh();});
+      const reset=gameButton(fieldset,'ابدئي من جديد',()=>{if(fieldset.disabled)return;read.length=0;position=0;refresh();});
+      function refresh(){
+        const done=position===c.segments.length;
+        status.textContent=done?'اكتملت جميع الأجزاء. اضغطي إنهاء التدريب.':String(position+1)+' / '+String(c.segments.length);
+        line.textContent=done?'':c.segments[position];next.disabled=done;reset.disabled=position===0;
+      }
+      gameResponse=()=>({readSegments:[...read]});refresh();
+    }
     function localSpeechBoard(){
       const repeat=activity.type==='speech-repeat';
       const view=doc.defaultView,synth=view?.speechSynthesis;
@@ -510,6 +527,7 @@
       const equationText=doc.createElement('p');equationText.dir='ltr';equationText.className='activity-equation';equationText.textContent=c.coefficient+' × x '+(c.constant<0?'− '+Math.abs(c.constant):'+ '+c.constant)+' = '+c.result;fieldset.append(equationText);
       const input=doc.createElement('input');input.type='number';input.step='1';input.setAttribute('aria-label','قيمة س');fieldset.append(input);controls.push(input);
     }else if(activity.type==='drag-drop')dragBoard();
+    else if(activity.type==='reading-aloud')readingBoard();
     else if(activity.type==='dictation'||activity.type==='speech-repeat')localSpeechBoard();
     else if(activity.type==='memory-game')memoryBoard();
     else if(activity.type==='puzzle')puzzleBoard();
@@ -523,7 +541,7 @@
     else if(activity.type==='match')c.left.forEach(o=>selector(o.label,c.right));
     else if(activity.type==='classify')c.items.forEach(o=>selector(o.label,c.groups));
     const feedback=doc.createElement('p');feedback.setAttribute('role','status');
-    const submit=doc.createElement('button');submit.type='submit';submit.textContent=activity.type==='free-drawing'?'إنهاء الرسم':activity.type==='speech-repeat'?'إنهاء تدريب التكرار':'تحقق من الإجابة';form.append(submit,feedback);
+    const submit=doc.createElement('button');submit.type='submit';submit.textContent=activity.type==='free-drawing'?'إنهاء الرسم':activity.type==='speech-repeat'?'إنهاء تدريب التكرار':activity.type==='reading-aloud'?'إنهاء تدريب القراءة':'تحقق من الإجابة';form.append(submit,feedback);
     let finished=false;
     form.addEventListener('submit',e=>{
       e.preventDefault();if(finished)return;
@@ -541,7 +559,7 @@
       else if(activity.type==='sequence')response=controls.map(x=>x.value);
       else response=Object.fromEntries((activity.type==='match'?c.left:c.items).map((o,i)=>[o.id,controls[i].value]));
       const result=evaluate(activity,response);
-      feedback.textContent=result.status==='completed'?(activity.type==='speech-repeat'?'تم إكمال تدريب التكرار دون تقييم النطق.':'تم إكمال النشاط الفني!'):result.status==='correct'?'أحسنت! ⭐':result.status==='incorrect'?'محاولة جميلة، راجعي الإجابة.':'كمّلي الاختيارات الأول.';
+      feedback.textContent=result.status==='completed'?(activity.type==='speech-repeat'?'تم إكمال تدريب التكرار دون تقييم النطق.':activity.type==='reading-aloud'?'تم إكمال تدريب القراءة دون تقييم الدقة أو السرعة.':'تم إكمال النشاط الفني!'):result.status==='correct'?'أحسنت! ⭐':result.status==='incorrect'?'محاولة جميلة، راجعي الإجابة.':'كمّلي الاختيارات الأول.';
       if(result.status!=='unresolved'){finished=true;fieldset.disabled=true;submit.disabled=true;onResult?.(result);}
     });
     container.append(form);return true;

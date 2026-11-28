@@ -112,3 +112,10 @@ test('speech repetition is strictly completion-only without recording',()=>{
  for(const response of [null,true,{heard:false,repeated:true},{heard:true,repeated:false},{heard:true,repeated:true,score:100}])assert.equal(engine.evaluate(a,response).status,'unresolved');
  assert.equal(engine.evaluate(a,{heard:true,repeated:true}).status,'completed');
 });
+
+test('reading aloud is offline completion-only with ordered segment confirmations',()=>{
+ const a=activities.find(x=>x.type==='reading-aloud');assert.equal(engine.validate(a).valid,true);assert.equal(engine.types['reading-aloud'].evaluator,'completion-only');assert.equal(engine.types['reading-aloud'].offline,true);
+ for(const config of [{...a.config,language:'xx'},{...a.config,segments:[]},{...a.config,segments:Array(3)},{...a.config,segments:['']},{...a.config,record:true}])assert.equal(engine.validate({...a,config}).valid,false);
+ for(const response of [null,{readSegments:[0]},{readSegments:[0,2,1]},{readSegments:[0,0,1]},{readSegments:Array(3)},{readSegments:[0,1,2],score:100}])assert.equal(engine.evaluate(a,response).status,'unresolved');
+ assert.equal(engine.evaluate(a,{readSegments:[0,1,2]}).status,'completed');
+});

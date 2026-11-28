@@ -37,3 +37,8 @@ test('speech repetition records participation but never correctness',()=>{
  const candidate=JSON.parse(JSON.stringify(p));candidate.content.units[0].lessons[0].activities=[{id:'repeat',type:'speech-repeat',version:1,prompt:'Repeat',config:{language:'en',spokenText:'hello'}}];
  const s=runtime.create(candidate,'lesson','u1','l1');assert.equal(s.record('repeat',{status:'correct'}),false);assert.equal(s.record('repeat',{status:'completed'}),true);assert.equal(s.state().correct,0);assert.equal(s.state().ungraded,1);
 });
+
+test('reading practice cannot inflate scores',()=>{
+ const candidate=JSON.parse(JSON.stringify(p));candidate.content.units[0].lessons[0].activities=[{id:'reading',type:'reading-aloud',version:1,prompt:'Read',config:{language:'en',segments:['Hello','Good morning']}}];
+ const s=runtime.create(candidate,'lesson','u1','l1');assert.equal(s.record('reading',{status:'correct'}),false);assert.equal(s.record('reading',{status:'completed'}),true);assert.equal(s.state().correct,0);assert.equal(s.state().ungraded,1);
+});
