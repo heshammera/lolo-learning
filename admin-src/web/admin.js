@@ -159,6 +159,7 @@ async function draftAction(save){
 }
 $('checkDraft').onclick=()=>draftAction(false);$('saveDraft').onclick=()=>draftAction(true);
 function clearBilling(){
+  $('analyticsMetrics').replaceChildren();$('analyticsStatus').textContent='';
   $('discountSecret').textContent='';$('discountCampaign').value='';$('discountHistory').replaceChildren();
   clearGrant();$('trialSecret').textContent='';$('trialCampaign').value='';$('trialHistory').replaceChildren();
   $('billingNav').hidden=true;$('billingPanel').hidden=true;$('billingPlans').replaceChildren();$('billingHistory').replaceChildren();$('billingStatus').textContent='';
@@ -174,6 +175,17 @@ $('trialCreate').onclick=()=>grantTask(async g=>{if(!confirm('إنشاء كود 
 $('trialList').onclick=()=>grantTask(async g=>{const r=await api('/api/billing/coupons');if(g!==generation)return;$('trialHistory').replaceChildren();for(const c of r.coupons){const row=document.createElement('p');row.textContent=c.campaign+' · '+c.planId+' · '+c.used+'/'+c.maxUses+' · '+(c.enabled?'متاح':'متوقف')+' ';if(c.enabled){const b=document.createElement('button');b.textContent='إيقاف الكود';b.onclick=()=>grantTask(async current=>{if(!confirm('إيقاف الكود؟'))return;await api('/api/billing/coupon/disable',{id:c.id});if(current===generation){b.disabled=true;row.append(document.createTextNode(' تم الإيقاف'));}});row.append(b);}$('trialHistory').append(row);}});
 $('discountCreate').onclick=()=>grantTask(async g=>{if(!confirm('إنشاء كوبون خصم تجريبي؟ سيظهر الكود مرة واحدة.'))return;const r=await api('/api/billing/discount/create',{campaign:$('discountCampaign').value,planId:$('discountPlan').value,period:$('discountPeriod').value,kind:$('discountKind').value,value:Number($('discountValue').value),maxUses:Number($('discountUses').value),validDays:Number($('discountValidity').value)});if(g===generation)$('discountSecret').textContent=r.code;});
 $('discountList').onclick=()=>grantTask(async g=>{const r=await api('/api/billing/discounts');if(g!==generation)return;$('discountHistory').replaceChildren();for(const c of r.discounts){const row=document.createElement('p');row.textContent=c.campaign+' · '+c.planId+' · '+c.period+' · '+c.reservedOrUsed+'/'+c.maxUses+' · '+(c.enabled?'متاح':'متوقف')+' ';if(c.enabled){const b=document.createElement('button');b.textContent='إيقاف';b.onclick=()=>grantTask(async current=>{if(!confirm('إيقاف الكوبون؟'))return;await api('/api/billing/discount/disable',{id:c.id});if(current===generation){b.disabled=true;row.append(document.createTextNode(' تم الإيقاف'));}});row.append(b);}$('discountHistory').append(row);}});
+function minorLabel(s){if(typeof s!=='string'||!/^\d+$/.test(s))return 'غير متاح';const v=BigInt(s);return (v/100n).toString()+'.'+(v%100n).toString().padStart(2,'0')+' ج.م';}
+$('analyticsRefresh').onclick=()=>grantTask(async g=>{
+  $('analyticsMetrics').replaceChildren();$('analyticsStatus').textContent='جاري تحميل إحصائيات الاختبار';
+  try{
+    const r=await api('/api/billing/analytics');if(g!==generation)return;
+    if(r.testOnly!==true||r.realRevenueMinor!==null||r.actualProviderCostMinor!==null)throw Error('Unexpected dataset');
+    const metrics=[['حسابات أولياء الأمور النشطة',r.activeAccounts],['ملفات الطلاب',r.studentProfiles],['Free',r.plans.free],['Plus',r.plans.plus],['Family',r.plans.family],['تفعيل يدوي نشط',r.activeSources.manual],['تجربة نشطة',r.activeSources.trial],['اشتراك بتسوية اختبار نشط',r.activeSources.testSettlement],['طلبات اختبار معلقة',r.orders.pending],['طلبات ملغاة أو منتهية',r.orders.cancelledOrExpired],['طلبات تمت تسويتها تجريبيًا',r.orders.testSettled],['إجمالي مبالغ الاختبار (كل الفترة)',minorLabel(r.orders.testAmountMinor)],['خصومات مسوّاة تجريبيًا',minorLabel(r.orders.testDiscountMinor)],['ثواني صوت محجوزة هذا الشهر',r.usage.voice.reservedUnits],['محاولات نطق محجوزة هذا الشهر',r.usage.pronunciation.reservedUnits],['مرات استخدام تجربة مجانية',r.campaigns.trialRedemptions],['خصومات مسوّاة تجريبيًا',r.campaigns.discountSettled],['خصومات محجوزة نشطة',r.campaigns.discountPending],['أجهزة غير ملغاة',r.devices.registeredNotRevoked],['أجهزة ملغاة',r.devices.revoked],['الإيرادات الحقيقية','غير متاحة'],['تكلفة المزود الفعلية','غير متاحة']];
+    for(const [label,value] of metrics){const card=document.createElement('article'),title=document.createElement('small'),number=document.createElement('strong');title.textContent=label;number.textContent=String(value);card.append(title,number);$('analyticsMetrics').append(card);}
+    $('analyticsStatus').textContent='آخر تحديث '+new Date(r.asOf).toLocaleString('ar-EG')+' · شهر الحجوزات UTC: '+r.usageMonth.slice(0,7);
+  }catch(e){if(g===generation)$('analyticsStatus').textContent='تعذر تحميل الإحصائيات.';throw e;}
+});
 let billingBusy=false;
 const billingFields=[['monthlyMinor','السعر الشهري (قرش)',0,100000000],['yearlyMinor','السعر السنوي (قرش)',0,100000000],['childLimit','عدد الطلاب',1,12],['voiceSecondsMonthly','ثواني المحادثة شهريًا',0,360000],['pronunciationAttemptsMonthly','محاولات النطق شهريًا',0,10000]];
 async function loadBilling(){
