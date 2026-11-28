@@ -47,6 +47,9 @@ on:
       - 'api/family.py'
       - 'database/**'
       - 'requirements.txt'
+      - 'requirements-homework-staging.txt'
+      - 'homework_storage.py'
+      - 'homework_review.py'
       - 'tests/**'
       - '.github/workflows/build-android.yml'
 
@@ -83,7 +86,9 @@ jobs:
       - name: Run local security and storage tests
         run: |
           cd ..
-          python3 -m unittest discover -s tests -v
+          python3 -m venv "$RUNNER_TEMP/lolo-python-tests"
+          "$RUNNER_TEMP/lolo-python-tests/bin/pip" install -r requirements-homework-staging.txt
+          "$RUNNER_TEMP/lolo-python-tests/bin/python" -m unittest discover -s tests -v
           node tests/storage.test.cjs
           node tests/assessment-engine.test.cjs
           node --test tests/visual-assessment.test.cjs tests/subject-catalog.test.cjs
