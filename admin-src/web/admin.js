@@ -9,7 +9,7 @@ async function api(path,body){
   return response.json();
 }
 function clear(message=''){
-  generation++;identity=null;entries=[];clearDrafts();
+  generation++;identity=null;entries=[];clearDrafts();clearBilling();
   $('login').hidden=false;$('workspace').hidden=true;$('logout').hidden=true;$('library').hidden=true;$('libraryNav').hidden=true;
   $('cards').replaceChildren();$('sample').replaceChildren();$('preview').hidden=true;
   $('password').value='';$('code').value='';$('message').textContent=message;
@@ -158,6 +158,34 @@ async function draftAction(save){
   }finally{draftBusy=false;$('visualEditor').disabled=false;buttons.forEach(b=>b.disabled=false);}
 }
 $('checkDraft').onclick=()=>draftAction(false);$('saveDraft').onclick=()=>draftAction(true);
+function clearBilling(){
+  $('billingNav').hidden=true;$('billingPanel').hidden=true;$('billingPlans').replaceChildren();$('billingHistory').replaceChildren();$('billingStatus').textContent='';
+}
+let billingBusy=false;
+const billingFields=[['monthlyMinor','السعر الشهري (قرش)',0,100000000],['yearlyMinor','السعر السنوي (قرش)',0,100000000],['childLimit','عدد الطلاب',1,12],['voiceSecondsMonthly','ثواني المحادثة شهريًا',0,360000],['pronunciationAttemptsMonthly','محاولات النطق شهريًا',0,10000]];
+async function loadBilling(){
+  if(billingBusy||!identity?.permissions.includes('billing:manage'))return;
+  const g=generation;billingBusy=true;$('billingRefresh').disabled=true;
+  $('billingPlans').replaceChildren();$('billingHistory').replaceChildren();
+  try{
+    const data=await api('/api/billing/plans');if(g!==generation)return;
+    for(const plan of data.plans){
+      const form=document.createElement('form'),heading=document.createElement('h3');heading.textContent=plan.id.toUpperCase()+' · '+(plan.monthlyMinor/100)+' ج.م / شهر';form.append(heading);
+      const inputs={};
+      for(const [key,label,min,max] of billingFields){const l=document.createElement('label'),el=document.createElement('input');l.textContent=label;el.type='number';el.min=min;el.max=max;el.step=1;el.required=true;el.value=plan[key];l.append(el);form.append(l);inputs[key]=el;}
+      const label=document.createElement('label'),enabled=document.createElement('input');enabled.type='checkbox';enabled.checked=plan.enabled;label.append(enabled,document.createTextNode('إتاحة الباقة للشراء'));form.append(label);
+      const button=document.createElement('button');button.type='submit';button.textContent='حفظ الباقة';form.append(button);
+      form.onsubmit=async e=>{e.preventDefault();if(g!==generation||billingBusy||!identity?.permissions.includes('billing:manage')||!confirm('حفظ إعدادات الباقة التجريبية؟'))return;const values={enabled:enabled.checked};for(const key of Object.keys(inputs)){if(!inputs[key].value)return;values[key]=Number(inputs[key].value);}
+        billingBusy=true;button.disabled=true;try{await api('/api/billing/plan',{planId:plan.id,revision:plan.revision,values});if(g===generation){billingBusy=false;await loadBilling();$('billingStatus').textContent='تم حفظ الباقة التجريبية.';}}catch(err){if(g===generation)$('billingStatus').textContent=err.status===409?'تغيرت الباقة. حدّث القائمة قبل الحفظ.':'تعذر حفظ الباقة.';}finally{billingBusy=false;button.disabled=false;}};
+      $('billingPlans').append(form);
+    }
+    const h=await api('/api/billing/history');if(g!==generation)return;
+    for(const item of h.changes){const row=document.createElement('p');row.textContent=item.planId+' · '+item.changedAt+' · '+item.actorId+' · '+JSON.stringify(item.before)+' ← '+JSON.stringify(item.after);$('billingHistory').append(row);}
+    $('billingStatus').textContent='تم تحميل إعدادات الاختبار.';
+  }catch(err){if(g===generation)$('billingStatus').textContent=err.status===503?'إدارة الاشتراكات التجريبية غير مفعّلة.':'تعذر تحميل الباقات.';}
+  finally{billingBusy=false;$('billingRefresh').disabled=false;}
+}
+$('billingRefresh').onclick=loadBilling;$('billingNav').onclick=()=>$('billingPanel').scrollIntoView({block:'start'});
 async function refresh(){
   const g=++generation;
   try{
@@ -165,6 +193,7 @@ async function refresh(){
     $('preview').hidden=true;$('sample').replaceChildren();
     identity=current;$('login').hidden=true;$('workspace').hidden=false;$('logout').hidden=false;$('message').textContent='';
     $('role').textContent='ROLE / '+current.role;
+    clearBilling();$('billingPanel').hidden=!current.permissions.includes('billing:manage');$('billingNav').hidden=$('billingPanel').hidden;
     const canRead=current.permissions.includes('curriculum:read'),canEdit=current.permissions.includes('curriculum:edit');
     $('drafts').hidden=!canRead;$('draftNav').hidden=!canRead;$('draftEditor').hidden=!canRead;$('draftJson').readOnly=!canEdit;$('newDraft').hidden=!canEdit;$('checkDraft').hidden=!canEdit;$('saveDraft').hidden=!canEdit;
     if(!canRead)clearDrafts();

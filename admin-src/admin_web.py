@@ -15,6 +15,8 @@ from pathlib import Path
 from admin_identity import AdminStore, FamilyError
 from cms_drafts import Drafts
 from content_packages import export_active
+from family_accounts import FamilyStore
+import billing_owner
 ROOT = Path(__file__).resolve().parent
 COOKIE = "lolo_admin_session"
 SECURE_COOKIE = "__Host-lolo_admin_session"
@@ -43,13 +45,14 @@ def load_library():
 
 class AdminServer(ThreadingHTTPServer):
     daemon_threads=True
-    def __init__(self,port,store,library,signing=None,proxy=None):
+    def __init__(self,port,store,library,signing=None,proxy=None,billing_store=None):
         if proxy is not None:proxy=proxy_config(*proxy)
         super().__init__(("127.0.0.1",port),Handler)
         self.store=store
         self.library=library
         self.drafts=Drafts(store)
         self.signing=signing
+        self.billing_store=billing_store if proxy is None else None
         self.host="127.0.0.1:"+str(self.server_port)
         self.origin="http://"+self.host
         self.proxy_secret=None
@@ -150,6 +153,11 @@ class Handler(BaseHTTPRequestHandler):
             if self.path=="/activity-engine.js":
                 self.server.store.inspect(self.token(),"library:read")
                 return self.reply(200,(ROOT.parent/"activity-engine.js").read_bytes(),"text/javascript; charset=utf-8")
+            if self.path in ("/api/billing/plans","/api/billing/history"):
+                self.server.store.inspect(self.token(),"billing:manage")
+                if self.server.billing_store is None:raise FamilyError(503,"Billing disabled.")
+                fn=billing_owner.list_plans if self.path.endswith("/plans") else billing_owner.history
+                return self.reply(200,fn(self.server.billing_store,self.server.store,self.token()))
             if self.path=="/api/session":
                 return self.reply(200,self.server.store.inspect(self.token()))
             if self.path=="/api/drafts":
@@ -164,6 +172,12 @@ class Handler(BaseHTTPRequestHandler):
         if not self.valid_host() or not self.valid_origin():
             return self.reply(403,{"error":"Invalid origin."})
         try:
+            if self.path=="/api/billing/plan":
+                self.server.store.inspect(self.token(),"billing:manage")
+                if self.server.billing_store is None:raise FamilyError(503,"Billing disabled.")
+                body=self.json_body()
+                if set(body)!={"planId","revision","values"}:raise FamilyError(400,"Invalid fields.")
+                return self.reply(200,billing_owner.change_plan(self.server.billing_store,self.server.store,self.token(),body["planId"],body["revision"],body["values"]))
             if self.path=="/api/login":
                 body=self.json_body()
                 if set(body)!={"email","password","code"}:raise FamilyError(400,"Invalid fields.")
@@ -231,7 +245,13 @@ def main():
         key=serialization.load_pem_private_key(key_file.read_bytes(),password=None)
         if not isinstance(key,ec.EllipticCurvePrivateKey) or not isinstance(key.curve,ec.SECP256R1):raise RuntimeError("P-256 key required.")
         signing=(os.environ["LOLO_ADMIN_SIGNING_KEY_ID"],key)
-    with AdminServer(int(os.environ.get("LOLO_ADMIN_PORT","4180")),store,load_library(),signing,proxy=proxy) as server:
+    billing_store=None
+    if local and os.environ.get("LOLO_BILLING_STAGING")=="true":
+        billing_dsn=os.environ.get("LOLO_BILLING_STAGING_DATABASE_URL")
+        if not billing_dsn or billing_dsn in (dsn,os.environ.get("LOLO_DATABASE_URL"),os.environ.get("LOLO_HOMEWORK_STAGING_DATABASE_URL")):
+            raise RuntimeError("Dedicated disposable billing DB required.")
+        billing_store=FamilyStore(billing_dsn)
+    with AdminServer(int(os.environ.get("LOLO_ADMIN_PORT","4180")),store,load_library(),signing,proxy=proxy,billing_store=billing_store) as server:
         print("HTTPS proxy staging: "+server.origin if https else "Local-only admin: "+server.origin,flush=True)
         server.serve_forever()
 
