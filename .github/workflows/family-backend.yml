@@ -6,6 +6,8 @@ on:
       - 'family_accounts.py'
       - 'billing.py'
       - 'billing_grants.py'
+      - 'billing_discounts.py'
+      - 'tests/test_billing_discounts.py'
       - 'tests/test_billing_grants.py'
       - 'billing_entitlements.py'
       - 'billing_owner.py'
@@ -70,3 +72,4 @@ jobs:
           .venv/bin/python -m unittest discover -s tests -p 'test_billing_owner.py' -v
           .venv/bin/python -m unittest discover -s tests -p 'test_billing_preview.py' -v
           .venv/bin/python -m unittest discover -s tests -p 'test_billing_grants.py' -v
+          .venv/bin/python -m unittest discover -s tests -p 'test_billing_discounts.py' -v

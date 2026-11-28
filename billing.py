@@ -44,13 +44,17 @@ def order_record(row):
     return {"id":str(row[0]),"planId":row[1],"period":row[2],"amountMinor":row[3],"currency":row[4],
             "status":row[5],"expiresAt":row[6].isoformat(),"testOnly":True}
 
-def create_order(store,token,plan,period,operation_id,expected_amount=None):
+def create_order(store,token,plan,period,operation_id,expected_amount=None,discount_code=None):
     require_staging()
     if plan not in ("plus","family") or period not in ("monthly","yearly"):
         raise FamilyError(400,"Invalid paid plan or period.")
     if expected_amount is not None and (type(expected_amount) is not int or expected_amount<=0):
         raise FamilyError(400,"Invalid quote.")
     operation=identifier(operation_id)
+    if discount_code is not None:
+        from billing_discounts import code_digest,calculate
+        digest=code_digest(discount_code)
+        if expected_amount is None:raise FamilyError(400,"Discount quote required.")
     with store.connect() as db:
         parent=parent_for_test(store,db,token,lock=True)
         previous=db.execute("""SELECT id,plan_id,period,amount_minor,currency,status,expires_at
@@ -58,19 +62,23 @@ def create_order(store,token,plan,period,operation_id,expected_amount=None):
         if previous:
             if previous[1]!=plan or previous[2]!=period or (expected_amount is not None and previous[3]!=expected_amount):
                 raise FamilyError(409,"Operation already used.")
+            existing=db.execute("SELECT d.code_hash FROM lolo_billing_orders o LEFT JOIN lolo_billing_test_discounts d ON d.id=o.discount_id WHERE o.id=%s",(previous[0],)).fetchone()[0]
+            if (discount_code is None and existing is not None) or (discount_code is not None and (existing is None or bytes(existing)!=digest)):raise FamilyError(409,"Operation already used.")
             return order_record(previous)
         row=db.execute("SELECT monthly_minor,yearly_minor FROM lolo_billing_plans WHERE id=%s AND enabled=true FOR SHARE",(plan,)).fetchone()
         if not row:raise FamilyError(404,"Plan unavailable.")
         amount=row[0] if period=="monthly" else row[1]
-        if expected_amount is not None and amount!=expected_amount:
-            raise FamilyError(409,"Quote changed; review current price.")
         # Avoid unlimited pending orders; expired intents are not usable.
         db.execute("UPDATE lolo_billing_orders SET status='cancelled' WHERE parent_id=%s AND status='pending' AND expires_at<=CURRENT_TIMESTAMP",(parent,))
         if db.execute("SELECT count(*) FROM lolo_billing_orders WHERE parent_id=%s AND status='pending'",(parent,)).fetchone()[0]>=3:
             raise FamilyError(409,"Too many pending orders.")
-        result=db.execute("""INSERT INTO lolo_billing_orders(id,parent_id,operation_id,plan_id,period,amount_minor,currency)
-            VALUES (%s,%s,%s,%s,%s,%s,'EGP') RETURNING id,plan_id,period,amount_minor,currency,status,expires_at""",
-            (uuid.uuid4(),parent,operation,plan,period,amount)).fetchone()
+        original=amount
+        cid,discount=(calculate(db,parent,plan,period,amount,discount_code,lock=True) if discount_code is not None else (None,0))
+        amount-=discount
+        if expected_amount is not None and amount!=expected_amount:raise FamilyError(409,"Quote changed; review current price.")
+        result=db.execute("""INSERT INTO lolo_billing_orders(id,parent_id,operation_id,plan_id,period,amount_minor,currency,discount_id,original_amount_minor,discount_minor)
+            VALUES (%s,%s,%s,%s,%s,%s,'EGP',%s,%s,%s) RETURNING id,plan_id,period,amount_minor,currency,status,expires_at""",
+            (uuid.uuid4(),parent,operation,plan,period,amount,cid,original,discount)).fetchone()
         return order_record(result)
 
 def read_order(store,token,order_id):
