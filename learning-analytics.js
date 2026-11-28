@@ -54,7 +54,25 @@
   }
   return choices.sort((a,b)=>a.rank-b.rank||(a.percent??101)-(b.percent??101)).slice(0,limit).map(({rank,...row})=>row);
  }
- const api=Object.freeze({summarize,recommend});
+ // Choose an evidence-based training approach, not a proficiency score. Offline activities
+ // stay in their independent evidence channels; a small sample never raises difficulty.
+ function adaptivePlan(report,{dueLessonIds=[],eligibleIds=[],capabilities={},limit=3}={}){
+  const items=recommend(report,{dueLessonIds,eligibleIds,limit});
+  return items.map(item=>{
+   const row=report.rows.find(r=>r.id===item.lessonId);
+   const caps=own(capabilities,item.lessonId)||{};
+   const available=['recap','visual','trace'].filter(k=>caps[k]===true);
+   // Prioritize independent weak visual/trace results only to select practice mode.
+   let mode=available.includes('recap')?'recap':available[0]||null;
+   if(item.reason==='scheduled-review'&&row.latest?.total>=5&&row.latest.percent>=85&&available.includes('visual'))mode='visual';
+   else if(item.reason!=='new-lesson'&&available.includes('trace')&&row.tracePercent!==null&&row.tracePercent<60)mode='trace';
+   else if(item.reason!=='new-lesson'&&available.includes('visual')&&row.visualPercent!==null&&row.visualPercent<60)mode='visual';
+   const intensity=item.reason==='new-lesson'||!row.latest||row.latest.total<5?'guided':
+     row.latest.percent<60?'foundation':row.latest.percent<85?'consolidate':'refresh';
+   return {...item,mode,intensity};
+  }).filter(item=>item.mode);
+ }
+ const api=Object.freeze({summarize,recommend,adaptivePlan});
  if(typeof module!=='undefined'&&module.exports)module.exports=api;
  if(typeof window!=='undefined')window.LoloLearningAnalytics=api;
 })();
