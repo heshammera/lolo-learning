@@ -36,6 +36,8 @@ on:
       - 'tests/test_homework_storage.py'
       - 'voice_consent.py'
       - 'pronunciation_contract.py'
+      - 'pronunciation_preview.py'
+      - 'tests/test_pronunciation_preview.py'
       - 'tests/test_pronunciation_contract.py'
       - 'progress_sync.py'
       - 'database/**'
@@ -93,3 +95,4 @@ jobs:
           .venv/bin/python -m unittest discover -s tests -p 'test_offline_device_manager.py' -v
           .venv/bin/python -m unittest discover -s tests -p 'test_offline_license_lifecycle.py' -v
           .venv/bin/python -m unittest discover -s tests -p 'test_remote_config.py' -v
+          .venv/bin/python -m unittest discover -s tests -p 'test_pronunciation_preview.py' -v
