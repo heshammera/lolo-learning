@@ -184,6 +184,19 @@
     return Object.freeze({grade, createSpokenAssessment, gradeSpokenResponse, attemptCount: () => attempts.size});
   }
 
+  // Guidance is derived from the current lesson's recorded responses only.
+  // No transcript, inferred ability, or cross-child history is returned.
+  function lessonGuidance(events, hintLevel='gentle', mode='lesson') {
+    if(mode!=='lesson'||!Array.isArray(events)||!events.length)return null;
+    const recent=events.slice(-3);
+    if(!recent.every(e=>e&&typeof e.is_correct==='boolean'))return null;
+    let streak=0;
+    for(let i=recent.length-1;i>=0&&recent[i].is_correct===false;i--)streak++;
+    if(streak===0)return {kind:'continue',prompt:'شجعي المحاولة في جملة قصيرة ثم اسألي سؤالًا واحدًا من نفس الدرس، ما لم يكن الدرس قد انتهى.'};
+    if(streak===1)return {kind:'hint',prompt:hintLevel==='guided'?'قسّمي نفس المطلوب إلى خطوة صغيرة واحدة وقدمي تلميحًا واضحًا دون إعطاء الإجابة؛ ثم انتظري.':'قدمي تلميحًا بسيطًا من الكلمات أو الصور الموجودة، ثم انتظري محاولة واحدة. لا تضيفي سؤالًا جديدًا.'};
+    if(streak===2)return {kind:'example',prompt:'اشرحي الفكرة بمثال واحد أبسط من محتوى الدرس الحالي، وفي الماث اعتمدي فقط على المشهد المعروض فعليًا. لا تحسبي المثال كإجابة، ثم انتظري.'};
+    return {kind:'offer-break',prompt:'اطمئنيها بلطف أن التعلم يحتاج وقتًا، واعرضي عليها راحة اختيارية أو محاولة أسهل. لا تضغطي عليها، وإذا طلبت التوقف استدعي request_learning_break فورًا.'};
+  }
   function createAssessmentId() { return makeId('assessment'); }
-  return Object.freeze({create, createAssessmentId, normalizeAnswer, normalizeMathAnswer});
+  return Object.freeze({create, createAssessmentId, normalizeAnswer, normalizeMathAnswer, lessonGuidance});
 });

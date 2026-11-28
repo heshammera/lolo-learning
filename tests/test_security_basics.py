@@ -29,6 +29,10 @@ class AssessmentToolingTests(unittest.TestCase):
         self.assertIn("submit_spoken_assessment_answer", tool_names)
         self.assertNotIn("record_lesson_test_result", tool_names)
         instructions = server.teacher_instructions("hello-1", "test")
+        self.assertNotIn("guidance.prompt",instructions)
+        lesson_instructions=server.teacher_instructions("hello-1","lesson")
+        self.assertIn("guidance.prompt",lesson_instructions)
+        self.assertIn("recorded=false",lesson_instructions)
         self.assertIn("لا ترسلي الإجابة أو is_correct", instructions)
         self.assertIn("submit_spoken_assessment_answer", instructions)
 
