@@ -261,9 +261,10 @@ async function verifyPractice(page){
     const remoteChild='11111111-1111-4111-8111-111111111111', token='a'.repeat(43);
     let revision=0,remote=null,writes=0,firstOperation=null;
     const actions=[];
-    await staging.route('**/api/status',route=>route.fulfill({json:{providers:[],familyUiEnabled:true,progressSyncEnabled:true}}));
+    await staging.route('**/api/status',route=>route.fulfill({json:{providers:[],familyUiEnabled:true,progressSyncEnabled:true,familyCredentialsPilotEnabled:true}}));
     await staging.route('**/api/family',async route=>{
       const body=route.request().postDataJSON();actions.push(body.action);
+      if(['registerWithCode','resetWithCode'].includes(body.action)){assert.equal(route.request().headers()['authorization'],undefined);assert.equal(body.email,'synthetic@example.test');assert.equal(body.code,'b'.repeat(43));assert.equal(body.password,'synthetic-long-password');await route.fulfill({status:body.action==='registerWithCode'?201:200,json:{ok:true}});return;}
       if(body.action!=='login')assert.equal(route.request().headers()['authorization'],'Bearer '+token);
       let data={};
       if(body.action==='login')data={token,expiresAt:'2099-01-01T00:00:00Z',parentId:remoteChild};
@@ -290,6 +291,18 @@ async function verifyPractice(page){
     await sp.locator('#parentGateSetup button[type="submit"]').click();
     await sp.locator('#parentGateRecoveryDone').click();
     await sp.locator('#cloudFamilyPanel:not([hidden])').waitFor();
+    for(const selector of ['#cloudRegisterOpen','#cloudResetOpen']){
+      await sp.locator(selector).click();
+      await sp.locator('#cloudCredentialEmail').fill('synthetic@example.test');
+      await sp.locator('#cloudCredentialCode').fill('b'.repeat(43));
+      await sp.locator('#cloudCredentialPassword').fill('synthetic-long-password');
+      await sp.locator('#cloudCredentialConfirm').fill('synthetic-long-password');
+      await sp.locator('#cloudCredentialSubmit').click();
+      await sp.locator('#cloudLogin:not([hidden])').waitFor();
+      assert.equal(await sp.locator('#cloudCredentialCode').inputValue(),'');
+      assert.equal(await sp.locator('#cloudCredentialPassword').inputValue(),'');
+      assert.equal(await sp.evaluate(()=>JSON.stringify(localStorage).includes('synthetic-long-password')||JSON.stringify(sessionStorage).includes('synthetic-long-password')),false);
+    }
     await sp.locator('#cloudEmail').fill('synthetic@example.test');
     await sp.locator('#cloudPassword').fill('synthetic-password');
     await sp.locator('#cloudLogin button[type="submit"]').click();
@@ -345,7 +358,7 @@ async function verifyPractice(page){
     await sp.locator('#cloudLogin:not([hidden])').waitFor();
     assert.equal(await sp.locator('#cloudAccount').isVisible(),false);
     assert.equal(writes,3);
-    assert.deepEqual(actions,['login','children','readProgress','writeProgress','login','children','writeProgress','readProgress','writeProgress']);
+    assert.deepEqual(actions,['registerWithCode','resetWithCode','login','children','readProgress','writeProgress','login','children','writeProgress','readProgress','writeProgress']);
     assert.deepEqual(stagingErrors,[]);
     await staging.close();
     // Simulate native offline connectivity while serving the bundled files locally.
