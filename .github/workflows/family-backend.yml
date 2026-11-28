@@ -4,6 +4,8 @@ on:
   push:
     paths:
       - 'family_accounts.py'
+      - 'family_credentials.py'
+      - 'tests/test_family_credentials.py'
       - 'billing.py'
       - 'offline_license.py'
       - 'offline_license_lifecycle.py'
@@ -94,6 +96,7 @@ jobs:
       - name: Test isolated family database
         run: |
           .venv/bin/python -m unittest discover -s tests -p 'test_family_accounts.py' -v
+          .venv/bin/python -m unittest discover -s tests -p 'test_family_credentials.py' -v
           .venv/bin/python -m unittest discover -s tests -p 'test_progress_sync.py' -v
           .venv/bin/python -m unittest discover -s tests -p 'test_pronunciation_contract.py' -v
           .venv/bin/python -m unittest discover -s tests -p 'test_homework_storage.py' -v
