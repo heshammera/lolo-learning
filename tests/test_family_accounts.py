@@ -51,6 +51,29 @@ class FamilyDatabaseTests(unittest.TestCase):
             for email in self.emails:
                 db.execute("DELETE FROM lolo_parents WHERE email=%s",(email,))
 
+    def test_voice_receipt_requires_ownership_review_and_expiry(self):
+        from voice_consent import grant_reviewed_receipt, eligible_staging, revoke, POLICY
+        a,b=[self.store.login(email,self.password)["token"] for email in self.emails]
+        child=self.store.create_child(a,"Synthetic learner","7-9")["id"]
+        self.assertFalse(eligible_staging(self.store,a,child))
+        with self.assertRaises(FamilyError):
+            grant_reviewed_receipt(self.store,child,"bad",POLICY)
+        grant_reviewed_receipt(self.store,child,"a"*64,POLICY)
+        self.assertTrue(eligible_staging(self.store,a,child))
+        for operation in (eligible_staging,revoke):
+            with self.assertRaises(FamilyError) as denied:
+                operation(self.store,b,child)
+            self.assertEqual(denied.exception.status,404)
+        revoke(self.store,a,child)
+        self.assertFalse(eligible_staging(self.store,a,child))
+        grant_reviewed_receipt(self.store,child,"b"*64,POLICY)
+        with self.store.connect() as db:
+            db.execute("UPDATE lolo_voice_consent SET granted_at=CURRENT_TIMESTAMP-INTERVAL '31 days',expires_at=CURRENT_TIMESTAMP-INTERVAL '1 day' WHERE child_id=%s",(child,))
+        self.assertFalse(eligible_staging(self.store,a,child))
+        self.store.logout(a)
+        with self.assertRaises(FamilyError):
+            eligible_staging(self.store,a,child)
+
     def test_login_child_isolation_and_logout(self):
         with self.assertRaises(FamilyError):
             self.store.login(self.emails[0],"incorrect-long-password")

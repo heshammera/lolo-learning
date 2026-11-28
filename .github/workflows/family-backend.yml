@@ -4,6 +4,9 @@ on:
   push:
     paths:
       - 'family_accounts.py'
+      - 'voice_consent.py'
+      - 'pronunciation_contract.py'
+      - 'tests/test_pronunciation_contract.py'
       - 'progress_sync.py'
       - 'database/**'
       - 'api/family.py'
@@ -43,3 +46,4 @@ jobs:
         run: |
           .venv/bin/python -m unittest discover -s tests -p 'test_family_accounts.py' -v
           .venv/bin/python -m unittest discover -s tests -p 'test_progress_sync.py' -v
+          .venv/bin/python -m unittest discover -s tests -p 'test_pronunciation_contract.py' -v
