@@ -6,6 +6,8 @@ on:
       - 'family_accounts.py'
       - 'homework_storage.py'
       - 'homework_review.py'
+      - 'staging-homework/**'
+      - 'tests/test_homework_preview.py'
       - 'requirements-homework-staging.txt'
       - 'tests/test_homework_storage.py'
       - 'voice_consent.py'
@@ -52,3 +54,4 @@ jobs:
           .venv/bin/python -m unittest discover -s tests -p 'test_progress_sync.py' -v
           .venv/bin/python -m unittest discover -s tests -p 'test_pronunciation_contract.py' -v
           .venv/bin/python -m unittest discover -s tests -p 'test_homework_storage.py' -v
+          .venv/bin/python -m unittest discover -s tests -p 'test_homework_preview.py' -v
