@@ -7,9 +7,9 @@
     ['drag-drop','السحب والإفلات'],['geometry','الأشكال الهندسية'],['equations','المعادلات الخطية'],
     ['memory-game','لعبة الذاكرة'],['puzzle','بازل الترتيب'],['maze','المتاهة'],
     ['image-hotspot','تحديد أجزاء الرسم'],['science-simulation','محاكاة الميزان'],['interactive-story','قصة تفاعلية'],
-    ['trace','تتبع الحروف والأرقام'],['free-drawing','الرسم الحر'],['coloring','التلوين'],['dictation','الإملاء الصوتي'],
-  ].map(([id,label])=>[id,Object.freeze({id,label,version:1,offline:id!=='dictation',evaluator:id==='free-drawing'?'completion-only':'deterministic',renderer:'generic-v1'})])));
-  const planned=Object.freeze(['speech-repeat','phoneme-score','conversation','reading-aloud','homework-upload']);
+    ['trace','تتبع الحروف والأرقام'],['free-drawing','الرسم الحر'],['coloring','التلوين'],['dictation','الإملاء الصوتي'],['speech-repeat','الاستماع والتكرار'],
+  ].map(([id,label])=>[id,Object.freeze({id,label,version:1,offline:!['dictation','speech-repeat'].includes(id),evaluator:['free-drawing','speech-repeat'].includes(id)?'completion-only':'deterministic',renderer:'generic-v1'})])));
+  const planned=Object.freeze(['phoneme-score','conversation','reading-aloud','homework-upload']);
   const plain=v=>v!==null&&typeof v==='object'&&!Array.isArray(v)&&[Object.prototype,null].includes(Object.getPrototypeOf(v));
   const exact=(o,keys)=>plain(o)&&Object.keys(o).length===keys.length&&keys.every(k=>Object.hasOwn(o,k));
   const id=v=>typeof v==='string'&&/^[a-zA-Z0-9][a-zA-Z0-9_-]{0,63}$/.test(v);
@@ -122,6 +122,7 @@
       case 'numeric':valid=exact(c,['answer'])&&integer(c.answer);break;
       case 'fill-blank':
       case 'free-text':valid=exact(c,['answers'])&&alternatives(c.answers);break;
+      case 'speech-repeat':valid=exact(c,['language','spokenText'])&&['ar','en'].includes(c.language)&&answerText(c.spokenText);break;
       case 'dictation':valid=exact(c,['language','spokenText','answers'])&&['ar','en'].includes(c.language)&&answerText(c.spokenText)&&alternatives(c.answers)&&dense(c.answers)&&c.answers.some(a=>normalize(a)===normalize(c.spokenText));break;
       case 'number-line':valid=exact(c,['min','max','step','answer'])&&integer(c.min)&&integer(c.max)&&integer(c.step)&&c.step>0&&c.max>c.min&&(c.max-c.min)%c.step===0&&(c.max-c.min)/c.step<=20&&onLine(c,c.answer);break;
       case 'fractions':valid=exact(c,['numerator','denominator'])&&fraction(c);break;
@@ -160,6 +161,7 @@
       case 'numeric':resolved=integer(response);correct=response===c.answer;break;
       case 'fill-blank':
       case 'free-text':resolved=answerText(response);correct=resolved&&c.answers.some(a=>normalize(a)===normalize(response));break;
+      case 'speech-repeat':return exact(response,['heard','repeated'])&&response.heard===true&&response.repeated===true?{status:'completed'}:{status:'unresolved'};
       case 'dictation':resolved=exact(response,['heard','answer'])&&response.heard===true&&answerText(response.answer);correct=resolved&&c.answers.some(a=>normalize(a)===normalize(response.answer));break;
       case 'number-line':resolved=onLine(c,response);correct=resolved&&response===c.answer;break;
       case 'trace':return {status:traceGrade(c.glyph,response)};
@@ -443,40 +445,43 @@
       }
       gameResponse=()=>({...chosen});refresh();
     }
-    function dictationBoard(){
+    function localSpeechBoard(){
+      const repeat=activity.type==='speech-repeat';
       const view=doc.defaultView,synth=view?.speechSynthesis;
       const notice=doc.createElement('p');notice.setAttribute('aria-live','polite');
-      const input=doc.createElement('input');input.type='text';input.maxLength=200;input.autocomplete='off';input.spellcheck=false;input.setAttribute('aria-label','إجابة الإملاء');input.disabled=true;
+      const input=doc.createElement('input');input.type=repeat?'checkbox':'text';input.maxLength=200;input.autocomplete='off';input.spellcheck=false;input.setAttribute('aria-label',repeat?'كررت العبارة بصوتي':'إجابة الإملاء');input.disabled=true;
       let heard=false,active=null,timer=null,observer=null;
       const available=()=>{try{return Array.from(synth?.getVoices()||[]).find(v=>v.localService===true&&String(v.lang).toLowerCase().split(/[-_]/)[0]===c.language);}catch{return null;}};
       function finish(ok){
         if(!active)return;
         active=null;view.clearTimeout(timer);observer?.disconnect();doc.removeEventListener('visibilitychange',visibility);
         heard=ok;input.disabled=!ok;
-        play.disabled=false;notice.textContent=ok?'اكتبي ما سمعتيه.':'الصوت لم يكتمل. جربي الاستماع مرة أخرى.';
+        play.disabled=false;notice.textContent=ok?(repeat?'كرري العبارة بصوتك ثم أكدي أنك تدربتِ. لا يتم تسجيل صوتك أو تقييم نطقك.':'اكتبي ما سمعتيه.'):'الصوت لم يكتمل. جربي الاستماع مرة أخرى.';
       }
       function cancel(){if(!active)return;finish(false);try{synth.cancel();}catch{}}
       function visibility(){if(doc.visibilityState==='hidden')cancel();}
-      const play=gameButton(fieldset,'استمعي للإملاء',()=>{
+      const play=gameButton(fieldset,repeat?'استمعي للعبارة':'استمعي للإملاء',()=>{
         if(fieldset.disabled||active)return;
-        heard=false;input.disabled=true;
+        heard=false;input.disabled=true;if(repeat)input.checked=false;
         const voice=available();
         if(!voice||!view?.SpeechSynthesisUtterance){notice.textContent='الصوت المحلي المناسب غير متاح على الجهاز. لم تُسجل درجة؛ أضيفي صوت اللغة من إعدادات الجهاز ثم جربي.';return;}
         if(synth.speaking||synth.pending){notice.textContent='انتظري انتهاء الصوت الحالي ثم جربي.';return;}
         try{
           const utterance=new view.SpeechSynthesisUtterance(c.spokenText);utterance.voice=voice;utterance.lang=voice.lang;utterance.rate=.85;
           active=utterance;play.disabled=true;notice.textContent='استمعي أولًا…';
-          utterance.onend=()=>{if(active===utterance)finish(form.isConnected&&doc.visibilityState!=='hidden');};
+          utterance.onend=()=>{if(active===utterance)finish(form.isConnected&&!form.closest('[hidden],[aria-hidden="true"]')&&doc.visibilityState!=='hidden');};
           utterance.onerror=()=>{if(active===utterance)finish(false);};
-          observer=new view.MutationObserver(()=>{if(!form.isConnected||form.closest('[hidden]'))cancel();});
-          observer.observe(doc.documentElement,{childList:true,subtree:true,attributes:true,attributeFilter:['hidden']});
+          observer=new view.MutationObserver(()=>{if(!form.isConnected||form.closest('[hidden],[aria-hidden="true"]'))cancel();});
+          observer.observe(doc.documentElement,{childList:true,subtree:true,attributes:true,attributeFilter:['hidden','aria-hidden']});
           doc.addEventListener('visibilitychange',visibility);
           timer=view.setTimeout(cancel,30000);
           synth.speak(utterance);
         }catch{if(active)cancel();else notice.textContent='تعذر تشغيل الصوت المحلي.';}
       });
-      notice.textContent='استمعي للصوت المحلي قبل كتابة الإجابة.';
-      fieldset.append(notice,input);gameResponse=()=>heard&&!active?{heard:true,answer:input.value}:null;
+      notice.textContent=repeat?'استمعي للعبارة ثم كرريها بصوتك. لا نستخدم الميكروفون ولا نقيم النطق.':'استمعي للصوت المحلي قبل كتابة الإجابة.';
+      fieldset.append(notice);
+      if(repeat){const label=doc.createElement('label');label.append(input,doc.createTextNode(' كررت العبارة بصوتي'));fieldset.append(label);}else fieldset.append(input);
+      gameResponse=()=>heard&&!active?(repeat?{heard:true,repeated:input.checked}:{heard:true,answer:input.value}):null;
     }
     if(activity.type==='choice'||activity.type==='multi-choice')optionList(c.options,activity.type==='choice'?'radio':'checkbox');
     else if(activity.type==='true-false')optionList([{id:'true',label:'صح'},{id:'false',label:'خطأ'}],'radio');
@@ -505,7 +510,7 @@
       const equationText=doc.createElement('p');equationText.dir='ltr';equationText.className='activity-equation';equationText.textContent=c.coefficient+' × x '+(c.constant<0?'− '+Math.abs(c.constant):'+ '+c.constant)+' = '+c.result;fieldset.append(equationText);
       const input=doc.createElement('input');input.type='number';input.step='1';input.setAttribute('aria-label','قيمة س');fieldset.append(input);controls.push(input);
     }else if(activity.type==='drag-drop')dragBoard();
-    else if(activity.type==='dictation')dictationBoard();
+    else if(activity.type==='dictation'||activity.type==='speech-repeat')localSpeechBoard();
     else if(activity.type==='memory-game')memoryBoard();
     else if(activity.type==='puzzle')puzzleBoard();
     else if(activity.type==='maze')mazeBoard();
@@ -518,7 +523,7 @@
     else if(activity.type==='match')c.left.forEach(o=>selector(o.label,c.right));
     else if(activity.type==='classify')c.items.forEach(o=>selector(o.label,c.groups));
     const feedback=doc.createElement('p');feedback.setAttribute('role','status');
-    const submit=doc.createElement('button');submit.type='submit';submit.textContent=activity.type==='free-drawing'?'إنهاء الرسم':'تحقق من الإجابة';form.append(submit,feedback);
+    const submit=doc.createElement('button');submit.type='submit';submit.textContent=activity.type==='free-drawing'?'إنهاء الرسم':activity.type==='speech-repeat'?'إنهاء تدريب التكرار':'تحقق من الإجابة';form.append(submit,feedback);
     let finished=false;
     form.addEventListener('submit',e=>{
       e.preventDefault();if(finished)return;
@@ -536,7 +541,7 @@
       else if(activity.type==='sequence')response=controls.map(x=>x.value);
       else response=Object.fromEntries((activity.type==='match'?c.left:c.items).map((o,i)=>[o.id,controls[i].value]));
       const result=evaluate(activity,response);
-      feedback.textContent=result.status==='completed'?'تم إكمال النشاط الفني!':result.status==='correct'?'أحسنت! ⭐':result.status==='incorrect'?'محاولة جميلة، راجعي الإجابة.':'كمّلي الاختيارات الأول.';
+      feedback.textContent=result.status==='completed'?(activity.type==='speech-repeat'?'تم إكمال تدريب التكرار دون تقييم النطق.':'تم إكمال النشاط الفني!'):result.status==='correct'?'أحسنت! ⭐':result.status==='incorrect'?'محاولة جميلة، راجعي الإجابة.':'كمّلي الاختيارات الأول.';
       if(result.status!=='unresolved'){finished=true;fieldset.disabled=true;submit.disabled=true;onResult?.(result);}
     });
     container.append(form);return true;

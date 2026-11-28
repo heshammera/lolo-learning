@@ -32,3 +32,8 @@ test('completion-only result cannot inflate correctness',()=>{
  const s=runtime.create(p,'curriculum');assert.equal(s.record('draw',{status:'correct'}),false);assert.equal(s.record('draw',{status:'completed'}),true);assert.equal(s.state().correct,0);assert.equal(s.state().ungraded,1);
  assert.equal(runtime.create(p,'curriculum',null,null,s.results()).state().done,true);
 });
+
+test('speech repetition records participation but never correctness',()=>{
+ const candidate=JSON.parse(JSON.stringify(p));candidate.content.units[0].lessons[0].activities=[{id:'repeat',type:'speech-repeat',version:1,prompt:'Repeat',config:{language:'en',spokenText:'hello'}}];
+ const s=runtime.create(candidate,'lesson','u1','l1');assert.equal(s.record('repeat',{status:'correct'}),false);assert.equal(s.record('repeat',{status:'completed'}),true);assert.equal(s.state().correct,0);assert.equal(s.state().ungraded,1);
+});

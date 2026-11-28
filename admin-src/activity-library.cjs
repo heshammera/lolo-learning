@@ -17,7 +17,7 @@ const definitions=[
   ['free-text','questions','إجابة نصية قصيرة','مطابقة بدائل نصية معتمدة؛ لا يقيم الإنشاء الحر أو المعنى.',[],['answers']],
   ['image-hotspot','interaction','تحديد أجزاء الرسم','اختيار منطقة في رسم نبات أو وجه مدمج، مع بديل نصي.',[],['diagram','answer']],
   ['drag-drop','interaction','السحب والإفلات','تصنيف العناصر بالسحب أو النقر مع بديل قوائم اختيار للوحة المفاتيح.',[],['items','groups','assignments']],
-  ['speech-repeat','voice','الاستماع والتكرار','نشاط صوتي موحد؛ توجد وظيفة قديمة منفصلة.',['microphone','audio'],[]],
+  ['speech-repeat','voice','الاستماع والتكرار','استماع محلي وتكرار ذاتي دون تسجيل أو درجة نطق.',['local-audio'],['language','spokenText']],
   ['phoneme-score','voice','تقييم النطق المتخصص','تقييم الصوت على مستوى الفونيمات، لا مجرد تفريغ الكلام.',['microphone','specialized-provider','consent'],[]],
   ['dictation','voice','الإملاء الصوتي','إملاء بصوت محلي معلن من الجهاز؛ لا درجة قبل اكتمال الصوت.',['local-audio'],['language','spokenText','answers']],
   ['conversation','voice','المحادثة التفاعلية','محادثة مقيدة بأهداف الدرس وسياسات الطفل.',['microphone','network','consent'],[]],
