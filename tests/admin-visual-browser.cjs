@@ -6,16 +6,17 @@ const validator=require('../admin-src/cms-validate.cjs');
 (async()=>{
  const browser=await chromium.launch({headless:true});
  try{
-  const page=await browser.newPage({viewport:{width:1280,height:900}});const errors=[];let saved=null,revision=0;
+  const page=await browser.newPage({viewport:{width:1280,height:900}});const errors=[];let saved=null,revision=0,ownerMode=false;
   page.on('pageerror',e=>errors.push(e.message));page.on('dialog',d=>d.accept());
   await page.route('http://127.0.0.1:4180/**',async route=>{
     const url=new URL(route.request().url()).pathname;
     const files={'/':'admin-src/web/index.html','/admin.css':'admin-src/web/admin.css','/admin.js':'admin-src/web/admin.js','/cms-editor.js':'admin-src/web/cms-editor.js','/activity-engine.js':'activity-engine.js'};
     if(files[url])return route.fulfill({path:path.resolve(__dirname,'..',files[url]),contentType:url==='/'?'text/html':url.endsWith('.css')?'text/css':'application/javascript'});
-    if(url==='/api/session')return route.fulfill({json:{role:'content-manager',permissions:['library:read','curriculum:read','curriculum:edit']}});
+    if(url==='/api/session')return route.fulfill({json:{role:ownerMode?'owner':'content-manager',permissions:['library:read','curriculum:read','curriculum:edit',...(ownerMode?['curriculum:publish']:[])]}});
     if(url==='/api/library')return route.fulfill({json:{activities:library.query()}});
-    if(url==='/api/drafts')return route.fulfill({json:{drafts:saved?[{id:'test-draft',revision,title:saved.title}]:[]}});
-    if(url==='/api/draft/read')return route.fulfill({json:{id:'test-draft',revision,content:saved}});
+    if(url==='/api/drafts')return route.fulfill({json:{drafts:saved?[{id:ownerMode?'11111111-1111-4111-8111-111111111111':'test-draft',revision,title:saved.title}]:[]}});
+    if(url==='/api/draft/read')return route.fulfill({json:{id:ownerMode?'11111111-1111-4111-8111-111111111111':'test-draft',revision,content:saved,status:ownerMode?'published':'draft'}});
+    if(url==='/api/draft/history')return route.fulfill({json:{releases:[{id:'22222222-2222-4222-8222-222222222222',version:2,active:true},{id:'33333333-3333-4333-8333-333333333333',version:1,active:false}]}});
     const body=route.request().postDataJSON();
     if(url==='/api/draft/check')return route.fulfill({json:validator.validate(body.content)});
     if(url==='/api/draft/save'){const result=validator.validate(body.content);assert.equal(result.valid,true,JSON.stringify(result));saved=body.content;revision++;return route.fulfill({json:{saved:true,id:'test-draft',revision}});}
@@ -178,6 +179,20 @@ const validator=require('../admin-src/cms-validate.cjs');
   await page.locator('#draftList button').first().click();
   await page.waitForFunction(()=>document.querySelectorAll('#visualEditor .cms-unit').length===1);
   assert.equal(await editor.locator('.cms-activity').count(),27);
+  await page.getByRole('button',{name:'سجل الإصدارات',exact:true}).click();
+  await page.locator('#releaseHistory .cms-row').first().waitFor();
+  assert.equal(await page.getByRole('button',{name:'تحميل طلب تصدير الإصدار',exact:true}).count(),0);
+  ownerMode=true;await page.reload();
+  await page.locator('#draftList button').first().waitFor();
+  await page.waitForFunction(()=>!document.querySelector('#draftEditor').hidden);
+  await page.locator('#draftList button').first().click();
+  await page.getByRole('button',{name:'سجل الإصدارات',exact:true}).click();
+  const exportButton=page.getByRole('button',{name:'تحميل طلب تصدير الإصدار',exact:true});
+  await exportButton.waitFor();assert.equal(await exportButton.count(),1);
+  const [download]=await Promise.all([page.waitForEvent('download'),exportButton.click()]);
+  assert.equal(download.suggestedFilename(),'lolo-export-request-11111111-1111-4111-8111-111111111111.json');
+  const exported=JSON.parse(fs.readFileSync(await download.path(),'utf8'));
+  assert.deepEqual(exported,{format:1,draftId:'11111111-1111-4111-8111-111111111111',releaseId:'22222222-2222-4222-8222-222222222222'});
   assert.deepEqual(errors,[]);
  }finally{await browser.close();}
 })().catch(e=>{console.error(e);process.exitCode=1;});

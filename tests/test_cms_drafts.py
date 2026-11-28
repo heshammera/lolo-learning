@@ -114,7 +114,12 @@ class DraftTests(unittest.TestCase):
         self.cms.transition(teacher,ident,2,"approve")
         first=self.cms.transition(owner,ident,3,"publish")["releaseId"]
         denied(lambda:export(editor,first),403)
-        self.assertEqual(payload(export(owner,first))["sequence"],1)
+        from export_request import sign_request
+        from content_packages import public_jwk
+        request={"format":1,"draftId":ident,"releaseId":first}
+        denied(lambda:sign_request(self.store,owner,request,"fixture",key,{}),400)
+        denied(lambda:sign_request(self.store,editor,request,"fixture",key,{"fixture":public_jwk(key)}),403)
+        self.assertEqual(payload(sign_request(self.store,owner,request,"fixture",key,{"fixture":public_jwk(key)}))["sequence"],1)
         self.cms.transition(editor,ident,4,"reopen")
         d["title"]="Updated"
         self.cms.save(editor,ident,5,d)

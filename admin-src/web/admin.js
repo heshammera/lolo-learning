@@ -96,6 +96,20 @@ async function loadReleases(){
     for(const r of result.releases){
       const row=document.createElement('div');row.className='cms-row';
       const name=document.createElement('span');name.textContent='إصدار '+r.version+(r.active?' · نشط تجريبيًا':'');row.append(name);
+      if(r.active&&identity?.permissions.includes('curriculum:publish')){
+        const b=document.createElement('button');b.type='button';b.textContent='تحميل طلب تصدير الإصدار';
+        b.onclick=()=>{
+          if(draftBusy||g!==generation||id!==draftId||!identity?.permissions.includes('curriculum:publish'))return;
+          if($('draftJson').value!==draftBaseline){$('draftStatus').textContent='احفظ التعديلات قبل طلب التصدير.';return;}
+          const uuid=/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/;
+          if(!uuid.test(id)||!uuid.test(r.id)){$('draftStatus').textContent='معرّف الإصدار غير صالح.';return;}
+          const request={format:1,draftId:id,releaseId:r.id};
+          const url=URL.createObjectURL(new Blob([JSON.stringify(request,null,2)],{type:'application/json'}));
+          const a=document.createElement('a');a.href=url;a.download='lolo-export-request-'+id+'.json';
+          document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);
+          $('draftStatus').textContent='تم تجهيز طلب التصدير فقط. يحتاج إلى تحقق مستقل وتوقيع المشرف قبل النشر.';
+        };row.append(b);
+      }
       if(!r.active&&active&&identity?.permissions.includes('curriculum:publish')){
         const b=document.createElement('button');b.type='button';b.textContent='رجوع لهذا الإصدار';
         b.onclick=async()=>{if(draftBusy||id!==draftId||!confirm('استعادة هذا الإصدار التجريبي دون حذف أي نسخة؟'))return;draftBusy=true;try{await api('/api/draft/rollback',{id,target:r.id,expectedActive:active.id});draftBusy=false;if(g===generation&&id===draftId)await loadReleases();}catch{if(g===generation)$('draftStatus').textContent='تعذر الرجوع؛ راجع حالة الإصدار.';}finally{draftBusy=false;}};row.append(b);
