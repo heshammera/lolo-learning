@@ -1,3 +1,6 @@
 # Keep separate administration source out of the student deployment.
 admin-src/
 scripts/preview-activity-library.js
+
+# Local synthetic homework preview is never deployed.
+staging-homework/
