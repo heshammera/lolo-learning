@@ -8,8 +8,7 @@ from billing import require_staging, parent_for_test, identifier, FEATURES
 def policy(db,parent):
     row=db.execute("""SELECT p.id,p.child_limit,p.voice_seconds,p.pronunciation_attempts
         FROM lolo_billing_plans p WHERE p.id=COALESCE(
-        (SELECT e.plan_id FROM lolo_billing_test_entitlements e WHERE e.parent_id=%s
-          AND e.starts_at<=CURRENT_TIMESTAMP AND e.ends_at>CURRENT_TIMESTAMP),'free')""",(parent,)).fetchone()
+        (SELECT e.plan_id FROM lolo_billing_test_effective e WHERE e.parent_id=%s),'free')""",(parent,)).fetchone()
     if not row:raise FamilyError(503,"Plan policy unavailable.")
     return {"planId":row[0],"childLimit":row[1],"voiceLimit":row[2],"pronunciationLimit":row[3]}
 

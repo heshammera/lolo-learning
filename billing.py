@@ -101,7 +101,7 @@ def test_settle(store,order_id,amount_minor,currency):
         if amount_minor!=expected:raise FamilyError(400,"Amount mismatch.")
         if status=="test_paid":return {"status":"test_paid","testOnly":True}
         if status!="pending" or not valid:raise FamilyError(409,"Order inactive.")
-        if db.execute("SELECT 1 FROM lolo_billing_test_entitlements WHERE parent_id=%s AND ends_at>CURRENT_TIMESTAMP",(parent,)).fetchone():
+        if db.execute("SELECT 1 FROM lolo_billing_test_effective WHERE parent_id=%s",(parent,)).fetchone():
             raise FamilyError(409,"Existing active test subscription; renewal not yet supported.")
         interval="1 month" if period=="monthly" else "1 year"
         db.execute("""INSERT INTO lolo_billing_test_entitlements(parent_id,order_id,plan_id,starts_at,ends_at)
@@ -115,8 +115,7 @@ def test_subscription(store,token):
     require_staging()
     with store.connect() as db:
         parent=parent_for_test(store,db,token)
-        row=db.execute("""SELECT plan_id,ends_at FROM lolo_billing_test_entitlements
-            WHERE parent_id=%s AND starts_at<=CURRENT_TIMESTAMP AND ends_at>CURRENT_TIMESTAMP""",(parent,)).fetchone()
+        row=db.execute("""SELECT plan_id,ends_at FROM lolo_billing_test_effective WHERE parent_id=%s""",(parent,)).fetchone()
         return {"planId":row[0] if row else "free","endsAt":row[1].isoformat() if row else None,"testOnly":True}
 
 def list_orders(store,token):
