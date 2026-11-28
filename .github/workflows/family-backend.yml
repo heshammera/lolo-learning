@@ -6,6 +6,8 @@ on:
       - 'family_accounts.py'
       - 'billing.py'
       - 'offline_license.py'
+      - 'offline_device_proof.py'
+      - 'tests/test_offline_device_proof.py'
       - 'offline-license.js'
       - 'requirements-offline-license-staging.txt'
       - 'tests/test_offline_license.py'
@@ -79,3 +81,4 @@ jobs:
           .venv/bin/python -m unittest discover -s tests -p 'test_billing_preview.py' -v
           .venv/bin/python -m unittest discover -s tests -p 'test_billing_grants.py' -v
           .venv/bin/python -m unittest discover -s tests -p 'test_offline_license.py' -v
+          .venv/bin/python -m unittest discover -s tests -p 'test_offline_device_proof.py' -v
