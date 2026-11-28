@@ -2049,7 +2049,9 @@ function sendTeacherTurn(text) {
 
 function stopPlayback() {
   for (const source of playingSources) {
+    source.onended=null;
     try { source.stop(); } catch {}
+    try { source.disconnect(); } catch {}
   }
   playingSources.clear();
   nextAudioTime = audioContext?.currentTime || 0;
@@ -2138,16 +2140,18 @@ function playPcm24k(base64) {
   if (!audioContext || audioContext.state === 'closed') return;
   const binary = atob(base64);
   const count = Math.floor(binary.length / 2);
-  const bytes = new Uint8Array(count * 2);
-  for (let i = 0; i < bytes.length; i++) bytes[i] = binary.charCodeAt(i);
-  const view = new DataView(bytes.buffer);
+  if(!count)return;
   const audio = audioContext.createBuffer(1, count, 24000);
   const channel = audio.getChannelData(0);
-  for (let i = 0; i < count; i++) channel[i] = view.getInt16(i * 2, true) / 32768;
+  // Decode little-endian PCM directly into the final audio buffer.
+  for (let i = 0; i < count; i++) {
+    const value=binary.charCodeAt(2*i)|(binary.charCodeAt(2*i+1)<<8);
+    channel[i]=(value>=32768?value-65536:value)/32768;
+  }
   const source = audioContext.createBufferSource();
   source.buffer = audio;
   source.connect(audioContext.destination);
-  source.onended = () => playingSources.delete(source);
+  source.onended = () => {playingSources.delete(source);try{source.disconnect();}catch{}};
   const startAt = Math.max(audioContext.currentTime + 0.025, nextAudioTime);
   source.start(startAt);
   nextAudioTime = startAt + audio.duration;
@@ -2731,7 +2735,10 @@ function stopSession() {
 
 $('#mic').onclick = () => isActive || isStarting ? stopSession() : startSession();
 $('#sessionBack').onclick=()=>{if(isActive||isStarting)stopSession();else{$('#app').classList.remove('in-lesson');renderSessionVisual();}$('#homeStart').focus();};
+function syncBackgroundMotion(){document.documentElement.classList.toggle('lolo-background',document.visibilityState==='hidden');}
+syncBackgroundMotion();
 document.addEventListener('visibilitychange', () => {
+  syncBackgroundMotion();
   if (document.visibilityState === 'hidden' && (isActive || isStarting)) stopSession();
 });
 window.addEventListener('pagehide', () => {
@@ -2924,9 +2931,13 @@ function renderLearningReminders(){
   }
 }
 function renderParentReport() {
-  renderLearningReminders();
   const report = $('#parentReport');
   if (!report) return;
+  if (!parentGate.isUnlocked()||!$('#parentSheet').classList.contains('open')||$('#parentSettingsPanel').hidden||document.visibilityState==='hidden') {
+    if(report.childElementCount)report.replaceChildren();
+    return;
+  }
+  renderLearningReminders();
   report.replaceChildren();
   const programId = $('#trackSelect')?.value || currentLesson?.programId || storage.get('lolo-selected-program');
   const lessons = allLessons().filter(lesson => !programId || lesson.programId === programId);
@@ -3058,6 +3069,8 @@ function showParentTab(tab) {
   $('#parentSettingsTab').setAttribute('aria-selected', String(settings));
   $('#parentSheetTitle').textContent = settings ? 'إعدادات وليّ الأمر' : 'اختيار الدروس والاختبارات';
   $('#parentScroll').scrollTop = 0;
+  if(settings)renderParentReport();
+  else $('#parentReport').replaceChildren();
 }
 
 function setParentGateView(view, title, intro = '') {
@@ -3087,6 +3100,7 @@ function closeParentGateModal(restoreFocus = true) {
 function closeParentSettings() {
   $('#nativeReminderPanel').hidden=true;$('#nativeReminderStatus').textContent='';
   $('#learningReminders')?.replaceChildren();
+  $('#parentReport')?.replaceChildren();
   clearLocalBackup();
   clearExtraParent();
   resetCloudFamily();
@@ -3665,6 +3679,15 @@ $('#parentSheet').addEventListener('click', () => { parentGate.touch(); if (pare
 $('#parentSheet').addEventListener('keydown', () => { parentGate.touch(); if (parentGate.isUnlocked()) scheduleParentAutoLock(); });
 $('#parentLessonsTab').onclick = () => showParentTab('lessons');
 $('#parentSettingsTab').onclick = () => showParentTab('settings');
+$('#parentQuickNav').addEventListener('click',event=>{
+  const button=event.target.closest('button[data-parent-jump]');
+  if(!button||!parentGate.isUnlocked()||!$('#parentSheet').classList.contains('open')||$('#parentSettingsPanel').hidden)return;
+  const section=document.getElementById(button.dataset.parentJump);
+  if(!section||section.hidden||!$('#parentSettingsPanel').contains(section))return;
+  const heading=section.querySelector('h3');if(!heading)return;
+  heading.tabIndex=-1;heading.focus({preventScroll:true});
+  const scroll=$('#parentScroll');scroll.scrollTop+=section.getBoundingClientRect().top-scroll.getBoundingClientRect().top-8;
+});
 for (const id of ['learningPath', 'sessionMinutes', 'speechPace', 'hintLevel', 'rewardSeconds', 'reminderHour']) $(`#${id}`).onchange = saveParentSettings;
 for (const id of ['repeatWords', 'rewardEnabled','remindersEnabled','dailyReminder']) $(`#${id}`).onchange = saveParentSettings;
 $('#lessonTab').onclick = () => showPickerTab('lessons');
@@ -3760,6 +3783,7 @@ document.addEventListener('visibilitychange', () => {
     parentGateAutoLockTimer = null;
     $('#parentSheet').classList.remove('open');
     $('#parentSheet').setAttribute('aria-hidden', 'true');
+    $('#parentReport').replaceChildren();$('#learningReminders').replaceChildren();
     closeParentGateModal();
   }
 });
@@ -3790,16 +3814,21 @@ window.addEventListener('storage', event => {
 if (location.protocol === 'file:') {
   location.replace('http://localhost:4173/');
 } else {
-  fetch('/curriculum.json').then(response => {
+  window.LoloBoot?.stage(20,'بنحمّل المنهج المحفوظ…');
+  const bootRequest=new AbortController();
+  const bootTimeout=setTimeout(()=>bootRequest.abort(),15000);
+  fetch('/curriculum.json',{signal:bootRequest.signal}).then(response => {
     if (!response.ok) throw new Error();
     return response.json();
   }).then(data => {
+    window.LoloBoot?.stage(45,'بنتأكد من المنهج…');
     const validation = curriculumEngine.validateCurriculum(data);
     if (!validation.valid) {
       console.error('Curriculum validation failed:', validation.errors);
       throw new Error('Invalid curriculum data.');
     }
     course = data;
+    window.LoloBoot?.stage(70,'بنجهز دروسك وتقدمك…');
     visualBankReady=visualAssessment.validateBank(visualBank.bank,new Set(allLessons().map(l=>l.id))).valid;
     const needsCurriculumSetup = !storage.get('lolo-selected-program');
     const savedLessonId = storage.get('lolo-current-lesson');
@@ -3838,8 +3867,10 @@ if (location.protocol === 'file:') {
     updateProgress();
     $('#mic').disabled = false;
     if (storage.get('lolo-welcome-tour-v1-complete') === 'true' && !needsCurriculumSetup) $('#app').classList.add('ready');
+    window.LoloBoot?.finish();
   }).catch(() => {
+    window.LoloBoot?.fail();
     showError(navigator.onLine===false?'المناهج لم تُحفظ على الجهاز بعد. اتصلي بالإنترنت مرة واحدة أو ثبتي نسخة لولو الجديدة.':'المنهج مش ظاهر. راجعي ملفات التطبيق.');
     $('#mic').disabled = false;
-  });
+  }).finally(()=>clearTimeout(bootTimeout));
 }
