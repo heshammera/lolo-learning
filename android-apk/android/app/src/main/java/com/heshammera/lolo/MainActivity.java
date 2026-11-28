@@ -9,6 +9,7 @@ public class MainActivity extends BridgeActivity {
         // Synthetic proof bridge is intentionally absent in release builds.
         if ((getApplicationInfo().flags & ApplicationInfo.FLAG_DEBUGGABLE) != 0) {
             registerPlugin(OfflineDeviceProofPlugin.class);
+            registerPlugin(OfflineLicenseVaultPlugin.class);
         }
         super.onCreate(savedInstanceState);
     }
