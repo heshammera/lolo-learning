@@ -11,6 +11,7 @@ public class MainActivity extends BridgeActivity {
             registerPlugin(OfflineDeviceProofPlugin.class);
             registerPlugin(OfflineLicenseVaultPlugin.class);
         }
+        registerPlugin(LearningReminderPlugin.class);
         super.onCreate(savedInstanceState);
     }
 }
