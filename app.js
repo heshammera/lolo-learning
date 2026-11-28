@@ -1810,7 +1810,7 @@ function rewardGameKind(lesson) {
 
 function showRewardGame(lesson) {
   const cards = lessonRewardCards(lesson);
-  const game = {kind: rewardGameKind(lesson), lessonId: lesson.id, cards, attempts: 0};
+  const game = {kind: rewardGameKind(lesson), lessonId: lesson.id, cards, attempts: 0, won:false, celebrationTimer:null};
   const [first, second, third] = [cards[0], cards[1], cards[2] || cards[0]];
   const demo = $('#rewardDemo');
   const options = $('#rewardOptions');
@@ -1826,7 +1826,7 @@ function showRewardGame(lesson) {
     demo.textContent = Array(count).fill(first.icon).join(' ');
     for (let number = 1; number <= 3; number++) addRewardOption(String(number), String(number), game);
   } else if (game.kind === 'pattern') {
-    game.answer = first.icon;
+    game.answer = second.icon;
     game.voicePrompt = 'كمّلي النمط في لعبة المكافأة: بصّي على الصور واختاري الصورة اللي تيجي بعدهم.';
     title.textContent = 'كمّلي النمط!';
     prompt.textContent = 'إيه الصورة اللي تيجي بعد كده؟';
@@ -1842,7 +1842,8 @@ function showRewardGame(lesson) {
     const hide = document.createElement('button');
     hide.type = 'button'; hide.className = 'reward-main-action'; hide.textContent = 'اخفي صورة 🙈';
     hide.onclick = () => {
-      demo.textContent = `${first.icon}　❔　${second.icon}`;
+      if(activeRewardGame!==game||game.won)return;
+      demo.textContent = `${first.icon}　${second.icon}　❔`;
       options.replaceChildren();
       for (const item of game.memoryCards) addRewardOption(item.icon, item.icon, game);
       hide.remove();
@@ -1856,10 +1857,10 @@ function showRewardGame(lesson) {
       const button = document.createElement('button'); button.type = 'button'; button.className = 'reward-option'; button.textContent = '⭐';
       button.setAttribute('aria-label', 'نجمة');
       button.onclick = () => {
-        if (button.disabled) return;
+        if (activeRewardGame!==game||game.won||button.disabled) return;
         button.disabled = true; button.classList.add('correct'); button.textContent = '✨';
         game.collected.add(index); game.attempts++;
-        if (game.collected.size === 3) { $('#rewardInstruction').textContent = 'جمعتيهم كلهم! ✨'; setTimeout(() => { if (activeRewardGame === game) finishRewardGame(true); }, 850); }
+        if (game.collected.size === 3) celebrateReward(game,'جمعتيهم كلهم! ✨');
       };
       options.appendChild(button);
     }
@@ -1873,8 +1874,10 @@ function showRewardGame(lesson) {
     choices.sort((a, b) => (a.icon.charCodeAt(0) + mastered.size) % 3 - (b.icon.charCodeAt(0) + mastered.size) % 3);
     for (const item of choices) addRewardOption(item.icon, item.icon, game);
   }
+  $('#rewardCard').dataset.result='playing';
   $('#rewardOverlay').hidden = false;
   document.body.style.overflow = 'hidden';
+  $('#rewardSkip').focus();
   if (micStream) micStream.getAudioTracks().forEach(track => { track.enabled = false; });
   const duration = Math.max(4, Math.min(15, Number(parentSettings.rewardSeconds) || 9)) * 1000;
   const timerBar = document.querySelector('.reward-timer span');
@@ -1889,12 +1892,11 @@ function addRewardOption(label, value, game) {
   button.type = 'button'; button.className = 'reward-option'; button.textContent = label;
   button.setAttribute('aria-label', label);
   button.onclick = () => {
-    if (!activeRewardGame || button.disabled) return;
+    if (activeRewardGame!==game || game.won || button.disabled) return;
     game.attempts++;
     if (value === game.answer) {
       button.classList.add('correct'); button.disabled = true;
-      $('#rewardInstruction').textContent = 'شطورة! كسبتي المكافأة! 🌟';
-      setTimeout(() => { if (activeRewardGame === game) finishRewardGame(true); }, 850);
+      celebrateReward(game,'شطورة! كسبتي المكافأة! 🌟');
     } else {
       button.classList.add('wrong'); setTimeout(() => button.classList.remove('wrong'), 350);
       $('#rewardInstruction').textContent = 'جربي صورة تانية، مفيش غلط في اللعبة 💛';
@@ -1903,10 +1905,21 @@ function addRewardOption(label, value, game) {
   $('#rewardOptions').appendChild(button);
 }
 
+function celebrateReward(game,message){
+  if(activeRewardGame!==game||game.won)return;
+  game.won=true;clearTimeout(game.timeout);
+  $('#rewardCard').dataset.result='won';
+  $('#rewardInstruction').textContent=message;
+  for(const b of $('#rewardOptions').querySelectorAll('button'))b.disabled=true;
+  document.querySelector('.reward-timer span').style.animation='none';
+  const reduced=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  game.celebrationTimer=setTimeout(()=>{if(activeRewardGame===game)finishRewardGame(true);},reduced?0:600);
+}
 function finishRewardGame(completed) {
   const game = activeRewardGame;
   if (!game) return;
-  clearTimeout(game.timeout);
+  clearTimeout(game.timeout);clearTimeout(game.celebrationTimer);
+  completed=completed||game.won===true;
   activeRewardGame = null;
   $('#rewardOverlay').hidden = true;
   document.body.style.overflow = '';
@@ -2057,7 +2070,7 @@ function closeSession(preserveDeadline = false) {
   isStarting = false;
   clearTimeout(mathInteractionTimer);
   mathInteractionTimer = null;
-  if (activeRewardGame) clearTimeout(activeRewardGame.timeout);
+  if (activeRewardGame){clearTimeout(activeRewardGame.timeout);clearTimeout(activeRewardGame.celebrationTimer);}
   activeRewardGame = null;
   rewardFollowUp = null;
   $('#rewardOverlay').hidden = true;
@@ -2725,6 +2738,7 @@ window.addEventListener('pagehide', () => {
   if (isActive || isStarting) stopSession();
 });
 $('#rewardSkip').onclick = () => finishRewardGame(false);
+$('#rewardOverlay').addEventListener('keydown',e=>{if(!activeRewardGame)return;if(e.key==='Escape'){e.preventDefault();finishRewardGame(false);}else if(e.key==='Tab'){const controls=[...$('#rewardOverlay').querySelectorAll('button:not(:disabled)')];if(!controls.length)return;const first=controls[0],last=controls.at(-1);if(e.shiftKey&&document.activeElement===first){e.preventDefault();last.focus();}else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus();}}});
 $('#homeStart').onclick = () => startSession();
 $('#homeChoose').onclick = () => openParentSettings('lessons');
 let noticeTimer=null;
