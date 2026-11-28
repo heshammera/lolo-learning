@@ -26,6 +26,9 @@ def grant_reviewed_receipt(store, child_id, receipt_digest, policy):
     with store.connect() as db:
         if not db.execute("SELECT id FROM lolo_children WHERE id=%s FOR UPDATE",(child_id,)).fetchone():
             raise FamilyError(404,"Profile not found.")
+        used=db.execute("""INSERT INTO lolo_voice_receipt_history(child_id,receipt_digest)
+            VALUES (%s,%s) ON CONFLICT DO NOTHING""",(child_id,receipt_digest))
+        if not used.rowcount:raise FamilyError(409,"Receipt already reviewed.")
         db.execute("""INSERT INTO lolo_voice_consent(child_id,purpose,policy,receipt_digest,granted_at,expires_at,revoked_at)
             VALUES (%s,%s,%s,%s,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP + INTERVAL '30 days',NULL)
             ON CONFLICT(child_id,purpose) DO UPDATE SET policy=EXCLUDED.policy,receipt_digest=EXCLUDED.receipt_digest,

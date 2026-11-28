@@ -15,6 +15,7 @@ import billing_grants
 import billing_discounts
 import offline_license
 import remote_config
+import pronunciation_preview
 import offline_device_proof
 import offline_license_lifecycle
 import billing_entitlements as entitlements
@@ -32,6 +33,7 @@ SHAPES={
  "logout":{"action"},
  "devices":{"action"},
  "configPreview":{"action"},
+ "pronunciationPreview":{"action","childId","referenceId","operationId"},
  "licenseStatus":{"action","deviceId","deviceKeySha256"},
  "licenseBegin":{"action","deviceId","publicSpki"},
  "licenseComplete":{"action","challengeId","signature"},
@@ -55,6 +57,7 @@ def dispatch(store,body,token,signing=None):
         if action=="licenseStatus":return offline_license_lifecycle.status(store,token,body["deviceId"],body["deviceKeySha256"],key_id,key)
         if action=="licenseBegin":return offline_device_proof.begin(store,token,body["deviceId"],body["publicSpki"])
         return offline_device_proof.complete(store,token,body["challengeId"],body["signature"],key_id,key)
+    if action=="pronunciationPreview":return pronunciation_preview.evaluate(store,token,body["childId"],body["referenceId"],body["operationId"])
     if action=="configPreview":return remote_config.preview(store,token)
     if action=="dashboard":
         return {"plans":billing.catalog(store),"subscription":billing.test_subscription(store,token),
