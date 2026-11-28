@@ -13,6 +13,7 @@ from family_accounts import FamilyStore, FamilyError
 import billing
 import billing_grants
 import billing_discounts
+import offline_license
 import billing_entitlements as entitlements
 
 SHAPES={
@@ -26,6 +27,8 @@ SHAPES={
  "assign":{"action","childId"},
  "remove":{"action","childId"},
  "logout":{"action"},
+ "devices":{"action"},
+ "revokeDevice":{"action","deviceId"},
 }
 
 def dispatch(store,body,token):
@@ -49,6 +52,8 @@ def dispatch(store,body,token):
             raise FamilyError(400,"Quote required.")
         return billing.create_order(store,token,body["planId"],body["period"],body["operationId"],body["expectedAmountMinor"],body.get("code"))
     if action=="redeem":return billing_grants.redeem_trial(store,token,body["code"])
+    if action=="devices":return {"devices":offline_license.devices(store,token),"testOnly":True}
+    if action=="revokeDevice":return offline_license.revoke(store,token,body["deviceId"])
     if action=="cancel":return billing.cancel_order(store,token,body["orderId"])
     if action=="assign":return {"ok":entitlements.assign_slot(store,token,body["childId"])}
     if action=="remove":return {"ok":entitlements.remove_slot(store,token,body["childId"])}
