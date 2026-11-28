@@ -9,6 +9,7 @@ User=lolo-admin
 Group=lolo-admin
 WorkingDirectory=/opt/lolo-learning
 EnvironmentFile=/etc/lolo-admin/admin.env
+ExecStartPre=/opt/lolo-learning/.venv/bin/python /opt/lolo-learning/admin-src/preflight.py
 ExecStart=/opt/lolo-learning/.venv/bin/python /opt/lolo-learning/admin-src/admin_web.py
 Restart=on-failure
 NoNewPrivileges=true
