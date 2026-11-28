@@ -5,6 +5,8 @@ on:
     paths:
       - 'family_accounts.py'
       - 'billing.py'
+      - 'paymob_contract.py'
+      - 'tests/test_paymob_contract.py'
       - 'billing_entitlements.py'
       - 'billing_owner.py'
       - 'staging-billing/**'
@@ -67,3 +69,4 @@ jobs:
           .venv/bin/python -m unittest discover -s tests -p 'test_billing_entitlements.py' -v
           .venv/bin/python -m unittest discover -s tests -p 'test_billing_owner.py' -v
           .venv/bin/python -m unittest discover -s tests -p 'test_billing_preview.py' -v
+          .venv/bin/python -m unittest discover -s tests -p 'test_paymob_contract.py' -v
