@@ -1,2 +1,5 @@
 # Next Action
-Verify visual activity CI, then trace, free drawing, coloring and consent-aware voice/reading contracts. Homework upload requires secure storage/retention/review. Preserve production gates and remaining V2 requirements.
+1. Verify driver-gate candidate CI; keep production read-only Neon gate mandatory. Confirm 26/26 tables, privileges and projections on the intended Neon database; never bypass or print secrets.
+2. Verify production shell/assets, family synthetic identity and consent, explicit cloud restore/link/merge and retry behavior before live activation.
+3. Reconcile all original V2 requirements in docs/MASTER_REQUIREMENTS_STATUS.md and docs/IMPLEMENTATION_PLAN.md; inspect open PRs for overlap with main and only integrate verified changes. Keep independent owner CMS, activity library, signed content, remaining activity types, learning and assessment, voice safety, homework, subscription/coupons/manual grants, offline licenses, UI, privacy, accessibility, monitoring and mobile signing/device tests in scope. Paymob remains deferred until merchant account is ready.
+4. Build verified APK for main, keep Android application ID, verify upgrade/install on physical devices and document release checks. Never mark production features verified based on preview alone.
