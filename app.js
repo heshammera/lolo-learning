@@ -2740,10 +2740,12 @@ if(network.getState()==='offline')renderNetworkNotice('offline');
 if(!nativeBundle&&!window.Capacitor?.isNativePlatform?.()&&'serviceWorker' in navigator&&window.isSecureContext){
   navigator.serviceWorker.register('/sw.js').catch(()=>{ /* App still works online; installation is not assumed. */ });
 }
-function openOfflinePractice(){
+function openOfflinePractice(requestedLessonId=null){
   if(!course||invalidPath){setStatus('اختاري خطة تعلم صالحة من لوحة ولي الأمر.');return;}
   if(isActive||isStarting)stopSession();
-  const lesson=allLessons().find(l=>l.id===pathEngine.current(activePath))||currentLesson;
+  const explicit=typeof requestedLessonId==='string';
+  if(explicit&&(!parentGate.isUnlocked()||!$('#parentSheet').classList.contains('open')))return;
+  const lesson=explicit?allLessons().find(l=>l.id===requestedLessonId):allLessons().find(l=>l.id===pathEngine.current(activePath))||currentLesson;
   if(!lesson)return;
   const dialog=$('#offlinePractice');
   $('#practiceTitle').textContent=lesson.title||lesson.focus||'نتدرّب سوا';
@@ -2864,6 +2866,46 @@ function renderParentReport() {
   };
   addCard('الدروس', `${completed} من ${lessons.length} مكتمل`);
   addCard('الإجابات', `${correct} صح · ${wrong} محتاجة مراجعة · ${total ? Math.round(correct / total * 100) : 0}% صح`);
+  const analytics=window.LoloLearningAnalytics?.summarize({lessons,completedIds:[...mastered],tests:testResults,traces:traceResults,visual:visualHistory,visualVersion:visualBank.version,curriculumVersion:course?.curriculumVersion});
+  if(analytics?.summary){
+    const a=analytics.summary;
+    addCard('تحليل النتائج الحالية',a.latestPercent===null?'لا توجد اختبارات ترديد قابلة للمقارنة مع إصدار المنهج الحالي.':a.latestPercent+'% من '+a.latestTotal+' سؤالًا في أحدث اختبار لكل درس · '+a.assessed+' / '+a.lessonCount+' درس له اختبار');
+    const panel=document.createElement('details');panel.className='parent-report-card';
+    const heading=document.createElement('summary');heading.textContent='النتائج حسب الدرس وأولويات المراجعة';panel.append(heading);
+    const note=document.createElement('p');note.textContent='التقييم خاص بالترديد وليس بالنطق أو الإتقان العام. الكتابة والفهم بالصور نتائج تدريبية مستقلة. لا نصنف الدرس قبل توفر خمسة أسئلة في أحدث اختبار.';panel.append(note);
+    const labels={'practice':'يحتاج تدريبًا','strong-result':'نتيجة ترديد قوية','developing':'في مرحلة التحسن','limited-evidence':'أدلة قليلة','not-assessed':'لا يوجد اختبار حديث مطابق'};
+    for(const row of analytics.rows){
+      const section=document.createElement('div');section.className='parent-analytics-row';
+      const name=document.createElement('strong');name.textContent=row.title+' · '+labels[row.status];section.append(name);
+      const text=document.createElement('p');const pieces=[];
+      if(row.latest){pieces.push('أحدث اختبار: '+row.latest.correct+'/'+row.latest.total+' ('+row.latest.percent+'%)');if(row.trend!==null)pieces.push('التغير عن الاختبار السابق: '+(row.trend>0?'+':'')+row.trend+' نقطة مئوية');}
+      if(row.hasUncomparableTest)pieces.push('النتائج القديمة غير داخلة في التحليل الحالي');
+      if(row.tracePercent!==null)pieces.push('الكتابة: '+row.tracePercent+'%');
+      if(row.visualPercent!==null)pieces.push('الفهم بالصور: '+row.visualPercent+'%');
+      text.textContent=pieces.join(' · ')||'لا توجد نتائج حديثة قابلة للعرض.';section.append(text);
+      if(row.latest){const meter=document.createElement('progress');meter.max=100;meter.value=row.latest.percent;meter.setAttribute('aria-label','نتيجة الترديد '+row.title);section.append(meter);}
+      if(a.priorities.includes(row.id)){const button=document.createElement('button');button.type='button';button.className='small-btn';button.textContent='اختيار الدرس للمراجعة';button.onclick=()=>{if(parentGate.isUnlocked()&&$('#parentSheet').classList.contains('open'))chooseLesson(row.id,'test');};section.append(button);}
+      panel.append(section);
+    }
+    report.append(panel);
+    const dueLessonIds=lessons.filter(lesson=>(lesson.skillIds||[]).some(id=>{
+      const r=learningEngine.getRecord(skillProgress,id);
+      return r.curriculumVersion===course?.curriculumVersion&&r.lessonVersion===lesson.version&&learningEngine.getStatus(skillProgress,id)===learningEngine.STATUS.REVIEW_REQUIRED;
+    })).map(l=>l.id);
+    const eligibleIds=lessons.filter(l=>l.board?.tokens?.some(t=>t.text)||l.cards?.length||traceTargets(l).length||visualBankReady&&visualBank.bank[l.id]).map(l=>l.id);
+    const suggestions=window.LoloLearningAnalytics.recommend(analytics,{dueLessonIds,eligibleIds});
+    const rec=document.createElement('div');rec.className='parent-report-card';rec.id='adaptiveRecommendations';
+    const heading2=document.createElement('strong');heading2.textContent='خطة تدريب مقترحة (حتى 3 دروس)';rec.append(heading2);
+    const reasonLabels={'scheduled-review':'حان موعد المراجعة','practice':'آخر نتيجة ترديد تحتاج تدريبًا','consolidate':'تثبيت المعلومات','new-lesson':'درس جديد غير مختبر'};
+    if(!suggestions.length){const t=document.createElement('p');t.textContent='لا توجد أولويات واضحة حاليًا في هذا المنهج. يمكنك اختيار الدروس يدويًا.';rec.append(t);}
+    for(const item of suggestions){
+      const row=document.createElement('div');row.className='parent-analytics-row';
+      const t=document.createElement('p');t.textContent=item.title+' · '+reasonLabels[item.reason]+(item.percent===null?'':' · '+item.percent+'%');row.append(t);
+      const b=document.createElement('button');b.type='button';b.className='small-btn';b.textContent='تدريب محلي على الدرس';
+      b.onclick=()=>{if(parentGate.isUnlocked()&&$('#parentSheet').classList.contains('open'))openOfflinePractice(item.lessonId);};row.append(b);rec.append(row);
+    }
+    report.append(rec);
+  }
   addCard('الاختبارات', `${testEntries.length} شفهي · ${traceEntries.length} كتابة باللمس`);
   const visualEntries=lessons.filter(l=>Array.isArray(visualHistory[l.id])&&visualHistory[l.id].some(r=>r?.bankVersion===visualBank.version));
   if(visualEntries.length)addCard('تحدّي الفهم بالصور',`${visualEntries.length} دروس لها نتائج محلية مستقلة · محتوى تجريبي، لا يمثل إتقان المنهج`);
