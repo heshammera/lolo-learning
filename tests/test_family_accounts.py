@@ -64,6 +64,29 @@ class FamilyDatabaseTests(unittest.TestCase):
             for email in self.emails:
                 db.execute("DELETE FROM lolo_parents WHERE email=%s",(email,))
 
+    def test_pilot_operator_read_only_check(self):
+        from scripts.family_admin import check_pilot
+        import uuid
+        pilot=FamilyStore(self.store.dsn,synthetic_only=True)
+        initial=check_pilot(pilot)
+        self.assertGreaterEqual(initial["fixture_accounts"],2)
+        token=pilot.login(self.emails[0],self.password)["token"]
+        child=pilot.create_child(token,"Synthetic 42","4-6")
+        self.assertEqual(check_pilot(pilot)["fixture_profiles"],initial["fixture_profiles"]+1)
+        with self.store.connect() as db:
+            db.execute("UPDATE lolo_children SET nickname=%s WHERE id=%s",("Nonfixture",child["id"]))
+        with self.assertRaises(FamilyError) as denied:
+            check_pilot(pilot)
+        self.assertEqual(denied.exception.status,409)
+        self.assertEqual(self.store.children(token)[0]["nickname"],"Nonfixture")
+        self.store.delete_child(token,child["id"])
+        email=f"{uuid.uuid4()}@example.invalid"
+        self.emails.append(email)
+        self.store.provision(email,self.password)
+        with self.assertRaises(FamilyError) as denied:
+            check_pilot(pilot)
+        self.assertEqual(denied.exception.status,409)
+
     def test_synthetic_pilot_isolates_nonfixture_accounts(self):
         import uuid
         email=f"{uuid.uuid4()}@example.invalid"
