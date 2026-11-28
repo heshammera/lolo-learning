@@ -232,7 +232,10 @@ async function verifyPractice(page){
     await Promise.all([page.waitForNavigation({waitUntil:'domcontentloaded'}),original.click()]);
     await page.waitForFunction(()=>document.querySelector('#mic')&&!document.querySelector('#mic').disabled);
     assert.equal(await page.evaluate(()=>window.LoloStorage.profiles.activeId),'default');
-    assert.equal(await page.evaluate(()=>window.LoloStorage.getJSON('lolo-visual-assessment-v1',{})['hello-1'].length),1);
+    const restoredVisual=await page.evaluate(()=>window.LoloStorage.getJSON('lolo-visual-assessment-v1',{})['hello-1']);
+    assert.equal(restoredVisual.filter(r=>r.mode!=='adaptive').length,1);
+    assert.equal(restoredVisual.filter(r=>r.mode==='adaptive').length,1);
+    assert.equal(restoredVisual.find(r=>r.mode==='adaptive').total,5);
     assert.equal(await page.evaluate(()=>window.LoloStorage.get('lolo-learning-path-v1')),saved);
     // Parent-gated manual migration, entirely offline. Preserve the source profile.
     await page.locator('#parentOpen').click();
