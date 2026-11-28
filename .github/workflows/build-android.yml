@@ -2,6 +2,11 @@ name: Build Lolo Android APK
 
 on:
   workflow_dispatch:
+    inputs:
+      signed_release:
+        description: 'Build a signed release from main (requires operator signing secrets)'
+        type: boolean
+        default: false
   push:
     paths:
       - 'android-apk/**'
@@ -51,6 +56,8 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-24.04
+    env:
+      LOLO_ANDROID_VERSION_CODE: ${{ github.run_number }}
     defaults:
       run:
         working-directory: android-apk
@@ -68,6 +75,9 @@ jobs:
         with:
           distribution: temurin
           java-version: 21
+      - name: Enforce release branch
+        if: inputs.signed_release && github.ref != 'refs/heads/main'
+        run: exit 1
       - name: Install packages
         run: npm ci
       - name: Run local security and storage tests
@@ -106,10 +116,35 @@ jobs:
           cd android
           chmod +x gradlew
           ./gradlew --no-daemon assembleDebug
+      - name: Build unsigned release and verify signing with disposable test key
+        run: |
+          cd android
+          ./gradlew --no-daemon assembleRelease
+          cd ..
+          bash ../scripts/test_android_signing.sh
       - name: Publish APK artifact
         uses: actions/upload-artifact@v7
         with:
           name: lolo-android-debug-apk
           path: android-apk/android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Sign release APK with operator key
+        if: github.event_name == 'workflow_dispatch' && inputs.signed_release && github.ref == 'refs/heads/main'
+        env:
+          LOLO_ANDROID_KEYSTORE_BASE64: ${{ secrets.LOLO_ANDROID_KEYSTORE_BASE64 }}
+          LOLO_ANDROID_STORE_PASSWORD: ${{ secrets.LOLO_ANDROID_STORE_PASSWORD }}
+          LOLO_ANDROID_KEY_ALIAS: ${{ secrets.LOLO_ANDROID_KEY_ALIAS }}
+          LOLO_ANDROID_KEY_PASSWORD: ${{ secrets.LOLO_ANDROID_KEY_PASSWORD }}
+          LOLO_ANDROID_CERT_SHA256: ${{ vars.LOLO_ANDROID_CERT_SHA256 }}
+        run: |
+          bash ../scripts/sign_android_release.sh android/app/build/outputs/apk/release/app-release-unsigned.apk "$RUNNER_TEMP/lolo-release.apk"
+      - name: Publish signed release APK
+        if: github.event_name == 'workflow_dispatch' && inputs.signed_release && github.ref == 'refs/heads/main'
+        uses: actions/upload-artifact@v7
+        with:
+          name: lolo-android-signed-release-${{ github.run_number }}
+          path: ${{ runner.temp }}/lolo-release.apk
           if-no-files-found: error
           retention-days: 30

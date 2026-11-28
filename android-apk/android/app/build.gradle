@@ -1,5 +1,11 @@
 apply plugin: 'com.android.application'
 
+// Explicit CI version; local development keeps the historical default.
+def loloVersionCode = providers.environmentVariable('LOLO_ANDROID_VERSION_CODE').orElse('1').get()
+if (!(loloVersionCode ==~ /[1-9][0-9]{0,9}/) || loloVersionCode.toLong() > 2100000000L) {
+    throw new GradleException('Invalid LOLO_ANDROID_VERSION_CODE')
+}
+
 android {
     namespace = "com.heshammera.lolo"
     compileSdk = rootProject.ext.compileSdkVersion
@@ -7,8 +13,8 @@ android {
         applicationId "com.heshammera.lolo"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 1
-        versionName "1.0"
+        versionCode loloVersionCode.toInteger()
+        versionName "1.0.${loloVersionCode}"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
