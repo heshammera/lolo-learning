@@ -5,6 +5,11 @@ on:
     paths:
       - 'family_accounts.py'
       - 'billing.py'
+      - 'offline_license.py'
+      - 'offline-license.js'
+      - 'requirements-offline-license-staging.txt'
+      - 'tests/test_offline_license.py'
+      - 'tests/offline-license-cross.cjs'
       - 'billing_grants.py'
       - 'tests/test_billing_grants.py'
       - 'billing_entitlements.py'
@@ -56,8 +61,11 @@ jobs:
       LOLO_FAMILY_ENABLED: 'false'
     steps:
       - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
       - name: Install PostgreSQL driver
-        run: python3 -m venv .venv && .venv/bin/pip install -r requirements.txt -r requirements-homework-staging.txt
+        run: python3 -m venv .venv && .venv/bin/pip install -r requirements.txt -r requirements-homework-staging.txt -r requirements-offline-license-staging.txt
       - name: Test isolated family database
         run: |
           .venv/bin/python -m unittest discover -s tests -p 'test_family_accounts.py' -v
@@ -70,3 +78,4 @@ jobs:
           .venv/bin/python -m unittest discover -s tests -p 'test_billing_owner.py' -v
           .venv/bin/python -m unittest discover -s tests -p 'test_billing_preview.py' -v
           .venv/bin/python -m unittest discover -s tests -p 'test_billing_grants.py' -v
+          .venv/bin/python -m unittest discover -s tests -p 'test_offline_license.py' -v
