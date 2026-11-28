@@ -3,11 +3,21 @@ import os
 from family_accounts import FamilyError
 from billing import require_staging,parent_for_test,identifier
 from billing_entitlements import policy,slots,owned_child,month_now,used
-from pronunciation_contract import Reference,normalize_evidence
+from pronunciation_contract import Reference,normalize_evidence,practice_feedback
 from voice_consent import POLICY,PURPOSE
 
 # Demonstration reference, not educator-certified production content.
-REFERENCES={"synthetic-cat":Reference("synthetic-cat","en-US","cat",("k","æ","t"))}
+REFERENCES={
+    "synthetic-cat":Reference("synthetic-cat","en-US","cat",("k","æ","t")),
+    "synthetic-ship":Reference("synthetic-ship","en-US","ship",("ʃ","ɪ","p")),
+    "synthetic-sun":Reference("synthetic-sun","en-US","sun",("s","ʌ","n")),
+}
+# Authored instructional examples only; independent educator/provider review still required.
+FIXTURES={
+    "synthetic-cat":((92,61,88),{"k":"استمعي إلى أول صوت في cat ثم كرري الكلمة بهدوء.","æ":"استمعي إلى الصوت الأوسط في cat وكرري الكلمة ببطء.","t":"استمعي إلى آخر صوت في cat ثم كرري."}),
+    "synthetic-ship":((60,68,91),{"ʃ":"استمعي إلى صوت sh في ship ثم كرري.","ɪ":"استمعي إلى الصوت القصير في وسط ship.","p":"استمعي إلى آخر صوت في ship."}),
+    "synthetic-sun":((91,86,90),{"s":"استمعي إلى أول صوت في sun.","ʌ":"استمعي إلى الصوت الأوسط في sun.","n":"استمعي إلى آخر صوت في sun."}),
+}
 def enabled():
     require_staging()
     if os.environ.get("LOLO_PRONUNCIATION_PREVIEW")!="true":raise FamilyError(503,"Preview disabled.")
@@ -30,10 +40,13 @@ def evaluate(store,token,child_id,reference_id,operation_id):
         if prior:raise FamilyError(409,"Operation already used.")
         month=month_now(db);consumed=used(db,parent,month,"pronunciation")
         if consumed>=p["pronunciationLimit"]:raise FamilyError(429,"Test allowance exhausted.")
-        evidence=normalize_evidence(ref,{"activityId":ref.activity_id,"locale":ref.locale,"status":"aligned",
-            "phonemes":[{"index":i,"phoneme":phoneme,"accuracy":score} for i,(phoneme,score) in enumerate(zip(ref.phonemes,(92,61,88)))]})
-        if evidence is None:raise FamilyError(503,"Test evidence unavailable.")
+        scores,guidance=FIXTURES[reference_id]
+        raw={"activityId":ref.activity_id,"locale":ref.locale,"status":"aligned",
+            "phonemes":[{"index":i,"phoneme":phoneme,"accuracy":score} for i,(phoneme,score) in enumerate(zip(ref.phonemes,scores))]}
+        evidence=normalize_evidence(ref,raw)
+        feedback=practice_feedback(ref,raw,guidance=guidance)
+        if evidence is None or feedback is None:raise FamilyError(503,"Test evidence unavailable.")
         db.execute("""INSERT INTO lolo_billing_test_usage(parent_id,operation_id,child_id,feature,units,month)
             VALUES (%s,%s,%s,'pronunciation',1,%s)""",(parent,operation,child,month))
-        return {"testOnly":True,"source":"synthetic-fixture","referenceText":ref.text,"evidence":evidence,
+        return {"testOnly":True,"source":"synthetic-fixture","referenceText":ref.text,"evidence":evidence,"feedback":feedback,
             "remainingTestAttempts":p["pronunciationLimit"]-consumed-1}

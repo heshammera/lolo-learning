@@ -56,3 +56,25 @@ def normalize_evidence(reference, result):
         output.append({"index":index,"phoneme":expected,"accuracy":score})
     return {"activityId":reference.activity_id,"locale":reference.locale,
             "status":"aligned","phonemes":output,"masteryEligible":False}
+
+def practice_feedback(reference, result, *, guidance):
+    """Rank up to two practice targets, not a pronunciation diagnosis or mastery score.
+    Guidance is a reviewed server-owned map of phoneme to instructional hint.
+    No inference from transcripts, no threshold claimed to be clinically calibrated.
+    """
+    evidence=normalize_evidence(reference,result)
+    if evidence is None or type(guidance) is not dict:
+        return None
+    if set(guidance)!=set(reference.phonemes) or not all(safe_text(hint,200) for hint in guidance.values()):
+        return None
+    candidates=sorted((p for p in evidence["phonemes"] if p["accuracy"]<75),key=lambda p:(p["accuracy"],p["index"]))
+    targets=[]
+    seen=set()
+    for item in candidates:
+        if item["phoneme"] in seen:
+            continue
+        seen.add(item["phoneme"])
+        targets.append({"index":item["index"],"phoneme":item["phoneme"],"hint":guidance[item["phoneme"]]})
+        if len(targets)==2:
+            break
+    return {"kind":"guided-repeat" if targets else "listen-and-repeat","targets":targets,"masteryEligible":False}
