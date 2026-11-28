@@ -120,3 +120,21 @@ test('merge rejects stale server revision without automatic retry',async()=>{
  await assert.rejects(client.merge('default',snapshot),e=>e.status===409);assert.equal(saved.status,'conflict');assert.equal(client.state().preview,null);
  await assert.rejects(client.resume('default',snapshot));assert.equal(writes,1);
 });
+
+test('linked profile prevents a different parent or child, retries approved request only',async()=>{
+ const other='22222222-2222-4222-8222-222222222222';let parent=id,linked=null,queued=null,writes=0,lose=true;
+ const c=create(async(path,o)=>{const b=JSON.parse(o.body);
+  if(b.action==='writeProgress'){writes++;if(lose){lose=false;throw Error('lost');}}
+  const data=b.action==='login'?{token:'a'.repeat(43),expiresAt:'2099-01-01T00:00:00Z',parentId:parent}:b.action==='children'?{children:[{id,nickname:'Test',ageBand:'unspecified'},{id:other,nickname:'Other',ageBand:'unspecified'}]}:b.action==='readProgress'?{revision:0,snapshot:null}:{revision:1};
+  return {ok:true,status:200,json:async()=>data};
+ },{allowed:()=>true,randomId:()=>id,linkStore:{read:()=>linked,write:v=>{linked=v;return true;},remove:()=>{linked=null;return true;}},queueStore:{read:()=>queued,write:v=>{queued=v;return true;},remove:()=>{queued=null;return true;}}});
+ await c.login('a@example.test','password');await c.list();assert.equal(c.link(id,'default',true),true);
+ assert.equal(c.link(other,'default',true),false);await assert.rejects(c.compare(other,'default',snapshot));
+ assert.equal(await c.retryLinked('default',snapshot),false);assert.equal(writes,0);
+ await c.compare(id,'default',snapshot);await assert.rejects(c.upload('default',snapshot));assert.equal(c.unlink('default'),false);
+ c.clear();parent=other;await c.login('b@example.test','password');await c.list();assert.equal(c.linkState('default').authorized,false);
+ await assert.rejects(c.compare(id,'default',snapshot));assert.equal(await c.retryLinked('default',snapshot),false);
+ c.clear();parent=id;await c.login('a@example.test','password');await c.list();
+ assert.equal(await c.retryLinked('default',{...snapshot,completedLessonIds:[]}),false);
+ assert.equal(await c.retryLinked('default',snapshot),true);assert.equal(writes,2);assert.equal(queued,null);assert.equal(c.unlink('default'),true);
+});

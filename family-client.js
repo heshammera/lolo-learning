@@ -12,7 +12,7 @@
     if(completedLessonIds.length>2000)return null;
     return {schemaVersion:1,curriculumVersion:local.curriculumVersion,completedLessonIds,path:clone(remote.path)};
   }
-  function create(request,{allowed=()=>false,now=Date.now,randomId=()=>crypto.randomUUID(),queueStore=null}={}){
+  function create(request,{allowed=()=>false,now=Date.now,randomId=()=>crypto.randomUUID(),queueStore=null,linkStore=null}={}){
     let generation=0,session=null,controller=null,busy=false,children=[],preview=null;
     function clear(){
       generation++;controller?.abort();controller=null;session=null;children=[];preview=null;busy=false;
@@ -20,6 +20,43 @@
     function live(){return allowed()&&session&&session.expires>now();}
     function state(){return {signedIn:!!live(),busy,children:live()?children.map(c=>({...c})):[],preview:live()&&preview?JSON.parse(JSON.stringify(preview)):null};}
     const fail=(message,status)=>Object.assign(new Error(message),{status});
+    function readLink(){
+      if(!linkStore)return {valid:true,value:null};
+      try{
+        const raw=linkStore.read();
+        if(raw===null)return {valid:true,value:null};
+        if(!plain(raw)||Object.keys(raw).sort().join(',')!=='childId,localProfileId,parentId,retryApproved,version'||raw.version!==1||!uuid.test(raw.parentId)||!uuid.test(raw.childId)||typeof raw.localProfileId!=='string'||!raw.localProfileId||typeof raw.retryApproved!=='boolean')return {valid:false,value:null};
+        return {valid:true,value:clone(raw)};
+      }catch{return {valid:false,value:null};}
+    }
+    function linkState(localProfileId){
+      const link=readLink();
+      const value=link.value;
+      const authorized=!!(value&&live()&&value.localProfileId===localProfileId&&value.parentId===session.parentId&&children.some(c=>c.id===value.childId));
+      return {valid:link.valid,linked:!!value,authorized,childId:authorized?value.childId:null,retryApproved:authorized&&value.retryApproved};
+    }
+    function permittedTarget(childId,localProfileId){
+      const link=readLink(),value=link.value;
+      return link.valid&&(!value||!!(live()&&value.parentId===session.parentId&&value.childId===childId&&value.localProfileId===localProfileId));
+    }
+    function link(childId,localProfileId,retryApproved=false){
+      if(!linkStore||!live()||busy||!children.some(c=>c.id===childId)||typeof localProfileId!=='string'||!localProfileId||typeof retryApproved!=='boolean'||queued())return false;
+      const prior=readLink();
+      if(!prior.valid||prior.value)return false;
+      if(!linkStore.write({version:1,parentId:session.parentId,childId,localProfileId,retryApproved}))return false;
+      preview=null;return true;
+    }
+    function unlink(localProfileId){
+      if(!linkStore||!live()||busy||queued()||!linkState(localProfileId).authorized)return false;
+      if(!linkStore.remove())return false;
+      preview=null;return true;
+    }
+    async function retryLinked(localProfileId,snapshot){
+      // Only an already approved durable request, never a new upload.
+      const link=linkState(localProfileId),q=queued();
+      if(!link.authorized||!link.retryApproved||!q||q.status!=='pending'||q.childId!==link.childId||q.localProfileId!==localProfileId||JSON.stringify(snapshot)!==JSON.stringify(q.version===2?q.localSnapshot:q.snapshot))return false;
+      await sendQueued(q,localProfileId,snapshot);return true;
+    }
     async function call(body,requiresSession=true){
       if(!allowed()||busy)throw fail('افتحي لوحة ولي الأمر أولًا.');
       if(requiresSession&&!live()){clear();throw fail('سجّلي الدخول من جديد.',401);}
@@ -55,7 +92,7 @@
       await call({action:'createChild',nickname:nickname.trim(),ageBand});return list();
     }
     async function compare(childId,localProfileId,snapshot){
-      if(!children.some(c=>c.id===childId)||!localProfileId||!snapshot)throw fail('اختاري ملفًا صالحًا.');
+      if(!children.some(c=>c.id===childId)||!localProfileId||!snapshot||!permittedTarget(childId,localProfileId))throw fail('اختاري ملفًا صالحًا.');
       preview=null;
       const data=await call({action:'readProgress',childId});
       if(!Number.isSafeInteger(data?.revision)||data.revision<0||(data.revision===0?data.snapshot!==null:!data.snapshot||typeof data.snapshot!=='object'))throw fail('استجابة المزامنة غير صالحة.');
@@ -74,7 +111,7 @@
     function pending(){
       const q=queued();
       if(!q)return null;
-      const authorized=!!live()&&session.parentId===q.parentId&&children.some(c=>c.id===q.childId);
+      const authorized=!!live()&&session.parentId===q.parentId&&children.some(c=>c.id===q.childId)&&permittedTarget(q.childId,q.localProfileId);
       return {status:q.status,authorized,localProfileId:q.localProfileId,kind:q.version===2?'merge':'initial'};
     }
     function discard(){
@@ -82,7 +119,7 @@
       return queueStore?.remove()===true;
     }
     async function sendQueued(q,localProfileId,snapshot){
-      if(!live()||session.parentId!==q.parentId||!children.some(c=>c.id===q.childId)||q.localProfileId!==localProfileId||JSON.stringify(snapshot)!==JSON.stringify(q.version===2?q.localSnapshot:q.snapshot)||q.status!=='pending')throw fail('الطلب المحفوظ يحتاج مراجعة الحساب والملف والتقدم.',409);
+      if(!live()||!permittedTarget(q.childId,localProfileId)||session.parentId!==q.parentId||!children.some(c=>c.id===q.childId)||q.localProfileId!==localProfileId||JSON.stringify(snapshot)!==JSON.stringify(q.version===2?q.localSnapshot:q.snapshot)||q.status!=='pending')throw fail('الطلب المحفوظ يحتاج مراجعة الحساب والملف والتقدم.',409);
       try{
         const result=await call({action:'writeProgress',childId:q.childId,baseRevision:q.baseRevision,operationId:q.operationId,snapshot:q.snapshot});
         if(result?.revision!==q.baseRevision+1)throw fail('تعذر تأكيد الحفظ.');
@@ -100,7 +137,7 @@
     }
     async function upload(localProfileId,snapshot){
       const p=preview;
-      if(!p||p.localProfileId!==localProfileId||JSON.stringify(snapshot)!==JSON.stringify(p.local)||!children.some(c=>c.id===p.childId))throw fail('التقدم المحلي تغيّر. اعملي معاينة جديدة.');
+      if(!p||!permittedTarget(p.childId,localProfileId)||p.localProfileId!==localProfileId||JSON.stringify(snapshot)!==JSON.stringify(p.local)||!children.some(c=>c.id===p.childId))throw fail('التقدم المحلي تغيّر. اعملي معاينة جديدة.');
       // Initial backup only: never overwrite an existing remote snapshot in this milestone.
       if(p.revision!==0)throw fail('في نسخة محفوظة بالفعل. الاستبدال غير متاح في النسخة التجريبية.',409);
       if(!live()||busy)throw fail('سجّلي الدخول من جديد.',401);
@@ -111,7 +148,7 @@
     }
     async function merge(localProfileId,snapshot){
       const p=preview;
-      if(!p||p.revision<1||!p.merged||p.localProfileId!==localProfileId||JSON.stringify(snapshot)!==JSON.stringify(p.local)||!children.some(c=>c.id===p.childId))throw fail('اعملي معاينة دمج جديدة.',409);
+      if(!p||!permittedTarget(p.childId,localProfileId)||p.revision<1||!p.merged||p.localProfileId!==localProfileId||JSON.stringify(snapshot)!==JSON.stringify(p.local)||!children.some(c=>c.id===p.childId))throw fail('اعملي معاينة دمج جديدة.',409);
       if(!live()||busy)throw fail('سجّلي الدخول من جديد.',401);
       if(queued())throw fail('راجعي الطلب المحفوظ أولًا.',409);
       if(!queueStore)throw fail('التخزين المحلي غير متاح. لم يُرسل الطلب.');
@@ -120,7 +157,7 @@
       return sendQueued(q,localProfileId,snapshot);
     }
     async function logout(){try{if(live())await call({action:'logout'});}finally{clear();}}
-    return Object.freeze({state,clear,login,list,add,compare,upload,merge,pending,resume,discard,logout});
+    return Object.freeze({state,clear,login,list,add,compare,upload,merge,pending,resume,discard,logout,link,unlink,linkState,retryLinked});
   }
   const api=Object.freeze({create,mergeSnapshots});
   if(typeof module!=='undefined'&&module.exports)module.exports=api;
