@@ -71,6 +71,18 @@
     return record;
   }
 
+  // Never carry prior evidence or review streaks across explicitly changed versions.
+  function versionedRecord(skillId, raw, metadata = {}) {
+    const record = normalizeRecord(skillId, raw, metadata);
+    const cv = metadata.curriculumVersion || record.curriculumVersion;
+    const lv = metadata.lessonVersion || record.lessonVersion;
+    if (raw && ((metadata.curriculumVersion && record.curriculumVersion !== cv) ||
+                (metadata.lessonVersion && record.lessonVersion !== lv))) {
+      return defaultSkill(skillId, {curriculumVersion: cv, lessonVersion: lv});
+    }
+    return record;
+  }
+
   function getRecord(store, skillId) {
     const safeStore = createStore(store);
     const record = safeStore.skills[skillId];
@@ -83,7 +95,7 @@
     const timestamp = new Date(validTime(at)).toISOString();
     let recorded = false;
     for (const skillId of new Set(skillIds.filter(id => typeof id === 'string' && id.trim()))) {
-      const prior = normalizeRecord(skillId, next.skills[skillId], metadata);
+      const prior = versionedRecord(skillId, next.skills[skillId], metadata);
       if (prior.status === STATUS.NOT_STARTED) prior.status = STATUS.INTRODUCED;
       prior.introducedAt ||= timestamp;
       prior.curriculumVersion = metadata.curriculumVersion || prior.curriculumVersion;
@@ -100,7 +112,7 @@
       return {progress: next, recorded: false, reason: 'Evidence needs skill, question, attempt, and a boolean result.'};
     }
     if (typeof skillId !== 'string' || !skillId.trim()) return {progress: next, recorded: false, reason: 'Skill id is required.'};
-    const record = normalizeRecord(skillId, next.skills[skillId], evidence);
+    const record = versionedRecord(skillId, next.skills[skillId], evidence);
     if (record.attemptIds.includes(evidence.attemptId)) return {progress: next, recorded: false, duplicate: true};
     const at = validTime(evidence.at) ?? Date.now();
     record.status = STATUS.PRACTICING;
@@ -122,12 +134,16 @@
     if (typeof skillId !== 'string' || !skillId.trim() || typeof evidence.assessmentId !== 'string' || !evidence.assessmentId.trim() || !Number.isInteger(total) || total < 1 || !Number.isInteger(correct) || correct < 0 || correct > total || completedAt === null) {
       return {progress: next, recorded: false, reason: 'Assessment evidence is incomplete or invalid.'};
     }
-    const record = normalizeRecord(skillId, next.skills[skillId], evidence);
+    const record = versionedRecord(skillId, next.skills[skillId], evidence);
     if (record.assessments.some(item => item.assessmentId === evidence.assessmentId)) return {progress: next, recorded: false, duplicate: true, status: record.status};
 
+    if (record.lastAssessmentAt && completedAt < validTime(record.lastAssessmentAt)) return {progress: next, recorded: false, reason: 'Out-of-order assessment.'};
     const score = Math.round(correct / total * 100);
     const day = new Date(completedAt).toISOString().slice(0, 10);
-    const earlierStrongSession = record.consecutiveStrongAssessments > 0 && record.assessments.some(item => item.score >= 85 && item.day < day);
+    const earlierStrongSession = record.consecutiveStrongAssessments > 0 && record.assessments.some(item =>
+      item.score >= 85 && item.day < day &&
+      (!record.curriculumVersion || item.curriculumVersion === record.curriculumVersion) &&
+      (!record.lessonVersion || item.lessonVersion === record.lessonVersion));
     const priorInterval = Number(record.reviewIntervalDays) || 0;
     let status;
     let intervalDays = 1;
@@ -150,8 +166,8 @@
 
     const assessment = {
       assessmentId: evidence.assessmentId,
-      curriculumVersion: evidence.curriculumVersion || null,
-      lessonVersion: evidence.lessonVersion || null,
+      curriculumVersion: evidence.curriculumVersion || record.curriculumVersion || null,
+      lessonVersion: evidence.lessonVersion || record.lessonVersion || null,
       correct,
       total,
       score,

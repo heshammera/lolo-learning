@@ -2776,13 +2776,16 @@ if(network.getState()==='offline')renderNetworkNotice('offline');
 if(!nativeBundle&&!window.Capacitor?.isNativePlatform?.()&&'serviceWorker' in navigator&&window.isSecureContext){
   navigator.serviceWorker.register('/sw.js').catch(()=>{ /* App still works online; installation is not assumed. */ });
 }
-function openOfflinePractice(requestedLessonId=null){
+function openOfflinePractice(requestedLessonId=null,focus=null){
   if(!course||invalidPath){setStatus('اختاري خطة تعلم صالحة من لوحة ولي الأمر.');return;}
   if(isActive||isStarting)stopSession();
   const explicit=typeof requestedLessonId==='string';
   if(explicit&&(!parentGate.isUnlocked()||!$('#parentSheet').classList.contains('open')))return;
   const lesson=explicit?allLessons().find(l=>l.id===requestedLessonId):allLessons().find(l=>l.id===pathEngine.current(activePath))||currentLesson;
   if(!lesson)return;
+  // Only a parent-authorized explicit recommendation may select a focused practice.
+  if(explicit&&focus==='visual'&&visualBankReady&&visualBank.bank[lesson.id]){openVisualQuiz(lesson.id);return;}
+  if(explicit&&focus==='trace'&&traceTargets(lesson).length){startTraceTest(lesson.id);return;}
   const dialog=$('#offlinePractice');
   $('#practiceTitle').textContent=lesson.title||lesson.focus||'نتدرّب سوا';
   $('#practiceGoal').textContent=lesson.goal||'راجعي محتوى الدرس.';
@@ -3042,16 +3045,20 @@ function renderParentReport() {
       return r.curriculumVersion===course?.curriculumVersion&&r.lessonVersion===lesson.version&&learningEngine.getStatus(skillProgress,id)===learningEngine.STATUS.REVIEW_REQUIRED;
     })).map(l=>l.id);
     const eligibleIds=lessons.filter(l=>l.board?.tokens?.some(t=>t.text)||l.cards?.length||traceTargets(l).length||visualBankReady&&visualBank.bank[l.id]).map(l=>l.id);
-    const suggestions=window.LoloLearningAnalytics.recommend(analytics,{dueLessonIds,eligibleIds});
+    const capabilities=Object.fromEntries(lessons.map(l=>[l.id,{recap:!!(l.board?.tokens?.some(t=>t.text)||l.cards?.length),visual:!!(visualBankReady&&visualBank.bank[l.id]),trace:!!traceTargets(l).length}]));
+    const suggestions=window.LoloLearningAnalytics.adaptivePlan(analytics,{dueLessonIds,eligibleIds,capabilities});
     const rec=document.createElement('div');rec.className='parent-report-card';rec.id='adaptiveRecommendations';
     const heading2=document.createElement('strong');heading2.textContent='خطة تدريب مقترحة (حتى 3 دروس)';rec.append(heading2);
     const reasonLabels={'scheduled-review':'حان موعد المراجعة','practice':'آخر نتيجة ترديد تحتاج تدريبًا','consolidate':'تثبيت المعلومات','new-lesson':'درس جديد غير مختبر'};
+    const intensityLabels={guided:'تدريب موجه',foundation:'مراجعة الأساسيات',consolidate:'تثبيت المعلومات',refresh:'تنشيط الذاكرة'};
+    const modeLabels={recap:'مراجعة الكلمات والصور',visual:'تحدي الفهم بالصور',trace:'تدريب الكتابة'};
+    const profileAtRender=storage.profiles.activeId;
     if(!suggestions.length){const t=document.createElement('p');t.textContent='لا توجد أولويات واضحة حاليًا في هذا المنهج. يمكنك اختيار الدروس يدويًا.';rec.append(t);}
     for(const item of suggestions){
       const row=document.createElement('div');row.className='parent-analytics-row';
-      const t=document.createElement('p');t.textContent=item.title+' · '+reasonLabels[item.reason]+(item.percent===null?'':' · '+item.percent+'%');row.append(t);
-      const b=document.createElement('button');b.type='button';b.className='small-btn';b.textContent='تدريب محلي على الدرس';
-      b.onclick=()=>{if(parentGate.isUnlocked()&&$('#parentSheet').classList.contains('open'))openOfflinePractice(item.lessonId);};row.append(b);rec.append(row);
+      const t=document.createElement('p');t.textContent=item.title+' · '+reasonLabels[item.reason]+(item.percent===null?'':' · '+item.percent+'%')+' · '+intensityLabels[item.intensity];row.append(t);
+      const b=document.createElement('button');b.type='button';b.className='small-btn';b.textContent=modeLabels[item.mode];
+      b.onclick=()=>{if(profileAtRender&&storage.profiles.activeId===profileAtRender&&storage.profiles.selectedId()===profileAtRender&&parentGate.isUnlocked()&&$('#parentSheet').classList.contains('open'))openOfflinePractice(item.lessonId,item.mode);};row.append(b);rec.append(row);
     }
     report.append(rec);
   }

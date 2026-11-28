@@ -19,3 +19,16 @@ test('recommendations respect due schedule, scope, evidence and limit',()=>{
  assert.deepEqual(recommend(report,{eligibleIds:['d','e','f']}).map(r=>r.lessonId),['e']);
  assert.deepEqual(recommend(report,{eligibleIds:['b'],limit:1}).map(r=>r.lessonId),['b']);
 });
+
+test('adaptive practice chooses only available local modes and does not mix evidence into mastery',()=>{
+ const {adaptivePlan}=require('../learning-analytics.js');
+ const report=summarize({lessons:['a','b','c','d'].map(lesson),tests:{a:a('a',10,10),b:a('b',3,10),c:a('c',7,10)},curriculumVersion:'c1',now,
+ traces:{b:{percent:40,completedAt:'2026-11-25T00:00:00Z'}},visualVersion:'bank',
+ visual:{c:[{bankVersion:'bank',correct:1,total:5,completedAt:'2026-11-25T00:00:00Z'}]}});
+ const before=JSON.stringify(report);
+ const options={dueLessonIds:['a'],eligibleIds:['a','b','c','d'],limit:4,capabilities:{a:{recap:true,visual:true},b:{recap:true,trace:true},c:{recap:true,visual:true},d:{recap:true}}};
+ assert.deepEqual(adaptivePlan(report,options).map(x=>[x.lessonId,x.mode,x.intensity]),[['a','visual','refresh'],['b','trace','foundation'],['c','visual','consolidate'],['d','recap','guided']]);
+ assert.equal(JSON.stringify(report),before);
+ assert.equal(adaptivePlan(report,{...options,eligibleIds:['b'],capabilities:{}}).length,0);
+ assert.deepEqual(adaptivePlan(report,{...options,eligibleIds:['b'],capabilities:{b:{recap:true}}}).map(x=>x.mode),['recap']);
+});

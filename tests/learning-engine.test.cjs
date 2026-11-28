@@ -48,3 +48,17 @@ const corrupt = {schemaVersion: 1, skills: {skill: {status: 'UNKNOWN', assessmen
 assert.equal(learning.recordAssessment(corrupt, 'skill', {assessmentId: 'safe', total: 2, correct: 2, completedAt: start}).recorded, true);
 
 console.log('Learning engine progress and review checks passed.');
+
+// A different curriculum or lesson version cannot inherit a prior strong streak.
+const v1={curriculumVersion:'c1',lessonVersion:'l1'},v2={curriculumVersion:'c1',lessonVersion:'l2'};
+let versioned=learning.recordAssessment({},'versioned',{...v1,assessmentId:'v1-a',total:10,correct:10,completedAt:start}).progress;
+versioned=learning.recordAssessment(versioned,'versioned',{...v1,assessmentId:'v1-b',total:10,correct:10,completedAt:start+day}).progress;
+assert.equal(learning.getRecord(versioned,'versioned').status,learning.STATUS.MASTERED);
+const reset=learning.recordAssessment(versioned,'versioned',{...v2,assessmentId:'v2-a',total:10,correct:10,completedAt:start+2*day});
+assert.equal(reset.status,learning.STATUS.PROFICIENT);
+assert.equal(learning.getRecord(reset.progress,'versioned').assessmentCount,1);
+assert.equal(learning.recordAssessment(reset.progress,'versioned',{...v2,assessmentId:'older',total:10,correct:0,completedAt:start}).recorded,false);
+const newCurriculum=learning.markIntroduced(reset.progress,['versioned'],{curriculumVersion:'c2',lessonVersion:'l2'},start+3*day);
+assert.equal(learning.getRecord(newCurriculum.progress,'versioned').assessmentCount,0);
+assert.equal(learning.getRecord(newCurriculum.progress,'versioned').nextReviewAt,null);
+assert.equal(learning.getRecord(newCurriculum.progress,'versioned').status,learning.STATUS.INTRODUCED);
