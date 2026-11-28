@@ -4,6 +4,9 @@ on:
   push:
     paths:
       - 'family_accounts.py'
+      - 'homework_storage.py'
+      - 'requirements-homework-staging.txt'
+      - 'tests/test_homework_storage.py'
       - 'voice_consent.py'
       - 'pronunciation_contract.py'
       - 'tests/test_pronunciation_contract.py'
@@ -41,9 +44,10 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - name: Install PostgreSQL driver
-        run: python3 -m venv .venv && .venv/bin/pip install -r requirements.txt
+        run: python3 -m venv .venv && .venv/bin/pip install -r requirements.txt -r requirements-homework-staging.txt
       - name: Test isolated family database
         run: |
           .venv/bin/python -m unittest discover -s tests -p 'test_family_accounts.py' -v
           .venv/bin/python -m unittest discover -s tests -p 'test_progress_sync.py' -v
           .venv/bin/python -m unittest discover -s tests -p 'test_pronunciation_contract.py' -v
+          .venv/bin/python -m unittest discover -s tests -p 'test_homework_storage.py' -v
