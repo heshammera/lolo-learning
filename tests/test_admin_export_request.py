@@ -21,6 +21,7 @@ class ExportRequestTests(unittest.TestCase):
             source.write_text(" "*4097)
             with self.assertRaises(FamilyError):read_request(source)
     def test_wrong_trust_denied_before_store(self):
-        from cryptography.hazmat.primitives.asymmetric import ec
+        try:from cryptography.hazmat.primitives.asymmetric import ec
+        except ImportError:self.skipTest('Admin signing dependencies not installed in student-only test environment')
         key=ec.generate_private_key(ec.SECP256R1())
         with self.assertRaises(FamilyError):sign_request(None,"unused",{"format":1,"draftId":D,"releaseId":R},"fixture",key,{})
