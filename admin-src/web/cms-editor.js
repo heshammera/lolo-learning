@@ -57,7 +57,11 @@
       const c=a.config;
       if(a.type==='true-false')select(box,'الإجابة الصحيحة',String(c.answer),[{id:'true',label:'صح'},{id:'false',label:'خطأ'}],v=>c.answer=v===''?null:v==='true');
       else if(a.type==='numeric')field(box,'الإجابة الرقمية الصحيحة',c.answer,v=>c.answer=v,{type:'number'});
-      else if(a.type==='fill-blank'||a.type==='free-text'||a.type==='dictation'){
+      else if(a.type==='speech-repeat'){
+        select(box,'لغة العبارة',c.language,[{id:'ar',label:'العربية'},{id:'en',label:'English'}],v=>c.language=v);
+        field(box,'النص المسموع',c.spokenText,v=>c.spokenText=v,{max:200});
+        box.append(el('p','التكرار ذاتي دون ميكروفون أو تقييم للنطق. يلزم صوت محلي مناسب.'));
+      }else if(a.type==='fill-blank'||a.type==='free-text'||a.type==='dictation'){
         if(a.type==='dictation'){
           select(box,'لغة الإملاء',c.language,[{id:'ar',label:'العربية'},{id:'en',label:'English'}],v=>c.language=v);
           field(box,'النص المسموع',c.spokenText,v=>c.spokenText=v,{max:200});

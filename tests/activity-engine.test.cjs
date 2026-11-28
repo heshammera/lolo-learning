@@ -102,3 +102,13 @@ test('dictation validates language and spoken answer; no grade before listening'
  assert.equal(engine.evaluate(a,{heard:true,answer:' Water '}).status,'correct');
  assert.equal(engine.evaluate(a,{heard:true,answer:'fire'}).status,'incorrect');
 });
+
+test('speech repetition is strictly completion-only without recording',()=>{
+ const a=activities.find(x=>x.type==='speech-repeat');
+ assert.equal(engine.validate(a).valid,true);
+ assert.equal(engine.types['speech-repeat'].evaluator,'completion-only');
+ assert.equal(engine.types['speech-repeat'].offline,false);
+ for(const config of [{...a.config,language:'xx'},{...a.config,spokenText:''},{...a.config,record:true}])assert.equal(engine.validate({...a,config}).valid,false);
+ for(const response of [null,true,{heard:false,repeated:true},{heard:true,repeated:false},{heard:true,repeated:true,score:100}])assert.equal(engine.evaluate(a,response).status,'unresolved');
+ assert.equal(engine.evaluate(a,{heard:true,repeated:true}).status,'completed');
+});
