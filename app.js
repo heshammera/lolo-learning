@@ -3234,6 +3234,7 @@ function renderExtraReview(){
   const report=window.LoloContentRuntime.review(extraPackage,scope,unit,lesson,saved.results);
   if(!report)return;
   $('#extraReviewPanel').hidden=false;$('#extraReviewText').textContent=extraReviewMessage(report);
+  if(saved.reviewSchedule){const due=saved.reviewSchedule.dueAt;$('#extraReviewText').textContent+=' '+(Date.now()>=due?'حان موعد المراجعة.':'موعد المراجعة المقترح: '+new Date(due).toLocaleDateString('ar-EG')+' (بعد '+saved.reviewSchedule.intervalDays+' يوم من التدريب المجدول).');}
   const rec=report.recommendation;
   if(rec?.kind==='review-lesson'){
     extraReviewTarget={package:extraPackage,generation:extraGeneration,unit:rec.unitId,lesson:rec.lessonId};
