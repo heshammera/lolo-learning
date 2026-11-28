@@ -211,10 +211,12 @@ async function verifyPractice(page){
       else if(body.action==='children')data={children:[{id:remoteChild,nickname:'Synthetic child',ageBand:'unspecified'}]};
       else if(body.action==='readProgress')data={revision,snapshot:remote};
       else if(body.action==='writeProgress'){
-        writes++;assert.equal(body.childId,remoteChild);assert.equal(body.baseRevision,0);
+        writes++;assert.equal(body.childId,remoteChild);assert.equal(body.baseRevision,writes<=2?0:revision);
         assert.deepEqual(Object.keys(body.snapshot).sort(),['completedLessonIds','curriculumVersion','path','schemaVersion']);
         if(writes===1){firstOperation=body.operationId;revision=1;remote=body.snapshot;await route.abort();return;}
-        assert.equal(body.operationId,firstOperation);assert.deepEqual(body.snapshot,remote);data={revision,snapshot:remote};
+        if(writes===2){assert.equal(body.operationId,firstOperation);assert.deepEqual(body.snapshot,remote);}
+        else{assert.notEqual(body.operationId,firstOperation);assert.deepEqual(body.snapshot.path,remote.path);assert.ok(remote.completedLessonIds.every(id=>body.snapshot.completedLessonIds.includes(id)));remote=body.snapshot;revision++;}
+        data={revision,snapshot:remote};
       }
       await route.fulfill({json:data});
     });
@@ -271,6 +273,11 @@ async function verifyPractice(page){
     const copyId=await sp.evaluate(()=>window.LoloStorage.profiles.list()[1].id);
     assert.deepEqual(await sp.evaluate(id=>JSON.parse(localStorage.getItem('lolo-profile:'+id+':lolo-learning-path-v1')),copyId),remote.path);
     assert.equal(writes,2);
+    assert.equal(await sp.locator('#cloudMerge').isDisabled(),true);
+    await sp.locator('#cloudMergeConfirm').check();await sp.locator('#cloudMerge').click();
+    await sp.waitForFunction(()=>document.querySelector('#cloudStatus').textContent.includes('تم دمج'));
+    assert.equal(writes,3);assert.equal(revision,2);
+    assert.equal(await sp.evaluate(()=>window.LoloStorage.get('lolo-learning-path-v1')),oldPath);
     assert.equal(await sp.evaluate(t=>JSON.stringify(localStorage).includes(t)||JSON.stringify(sessionStorage).includes(t),token),false);
     await sp.locator('#parentClose').click();
     await sp.locator('#parentOpen').click();
@@ -278,8 +285,8 @@ async function verifyPractice(page){
     await sp.locator('#parentGateVerify button[type="submit"]').click();
     await sp.locator('#cloudLogin:not([hidden])').waitFor();
     assert.equal(await sp.locator('#cloudAccount').isVisible(),false);
-    assert.equal(writes,2);
-    assert.deepEqual(actions,['login','children','readProgress','writeProgress','login','children','writeProgress','readProgress']);
+    assert.equal(writes,3);
+    assert.deepEqual(actions,['login','children','readProgress','writeProgress','login','children','writeProgress','readProgress','writeProgress']);
     assert.deepEqual(stagingErrors,[]);
     await staging.close();
     // Simulate native offline connectivity while serving the bundled files locally.
