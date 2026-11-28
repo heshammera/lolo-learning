@@ -1,0 +1,4 @@
+psycopg[binary]>=3.2,<4
+cryptography>=44,<48
+pyotp>=2.9,<3
+quickjs==1.19.4

@@ -1,0 +1,52 @@
+{
+  "framework": null,
+  "buildCommand": "node prepare.cjs",
+  "outputDirectory": "public",
+  "functions": {
+    "api/dispatch.py": {
+      "maxDuration": 30,
+      "includeFiles": "runtime/**"
+    }
+  },
+  "rewrites": [
+    {
+      "source": "/activity-engine.js",
+      "destination": "/api/dispatch?route=activity-engine.js"
+    },
+    {
+      "source": "/api/:path((?!dispatch$).*)",
+      "destination": "/api/dispatch?route=:path"
+    }
+  ],
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-store"
+        },
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "X-Frame-Options",
+          "value": "DENY"
+        },
+        {
+          "key": "Referrer-Policy",
+          "value": "no-referrer"
+        },
+        {
+          "key": "Permissions-Policy",
+          "value": "camera=(), microphone=(), geolocation=()"
+        },
+        {
+          "key": "Content-Security-Policy",
+          "value": "default-src 'none'; script-src 'self'; style-src 'self'; connect-src 'self'; img-src 'self'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'; object-src 'none'"
+        }
+      ]
+    }
+  ]
+}
