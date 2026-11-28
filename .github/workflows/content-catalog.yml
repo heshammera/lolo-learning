@@ -1,0 +1,50 @@
+name: Signed dynamic curriculum catalog
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'content_catalog_db.py'
+      - 'content_delivery.py'
+      - 'server.py'
+      - 'content-package.js'
+      - 'content-schema.js'
+      - 'content-trust.js'
+      - 'activity-engine.js'
+      - 'admin-src/content_packages.py'
+      - 'database/content-catalog/**'
+      - 'scripts/publish_content.py'
+      - 'tests/test_content_catalog_db.py'
+      - 'tests/test_content_delivery.py'
+      - '.github/workflows/content-catalog.yml'
+permissions:
+  contents: read
+jobs:
+  catalog:
+    runs-on: ubuntu-24.04
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: catalog_test
+          POSTGRES_PASSWORD: disposable-catalog-only
+          POSTGRES_DB: catalog_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U catalog_test -d catalog_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      LOLO_TEST_CATALOG_DATABASE_URL: postgresql://catalog_test:disposable-catalog-only@127.0.0.1:5432/catalog_test
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - run: python -m pip install -r admin-src/requirements.txt
+      - run: python -m unittest discover -s tests -p 'test_content_catalog_db.py' -v
+      - run: python -m unittest discover -s tests -p 'test_content_delivery.py' -v

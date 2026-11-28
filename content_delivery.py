@@ -29,7 +29,9 @@ def load_catalog(filename):
     with Path(filename).open("rb") as source:
         raw=source.read(MAX_FILE+1)
     if len(raw)>MAX_FILE:raise ValueError("Catalog too large")
-    catalog=json.loads(raw,parse_constant=reject_constant)
+    return parse_catalog(json.loads(raw,parse_constant=reject_constant))
+
+def parse_catalog(catalog):
     if not isinstance(catalog,dict) or set(catalog)!={"format","packages"} or type(catalog["format"]) is not int or catalog["format"]!=1 or not isinstance(catalog["packages"],list) or len(catalog["packages"])>MAX_ENTRIES:
         raise ValueError("Invalid catalog")
     entries={}

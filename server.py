@@ -407,8 +407,14 @@ class Handler(BaseHTTPRequestHandler):
         if not allowed:return self.send_rate_limit(retry)
         allowed,retry=CONTENT_DELIVERY_GLOBAL.check("content",120,60)
         if not allowed:return self.send_rate_limit(retry)
-        try:entries=load_catalog(os.environ.get("LOLO_CONTENT_CATALOG_FILE"))
-        except (OSError,ValueError,TypeError,RecursionError):
+        try:
+            backend=os.environ.get("LOLO_CONTENT_CATALOG_BACKEND","file")
+            if backend=="database":
+                from content_catalog_db import read_catalog,configured_dsn
+                entries=read_catalog(configured_dsn(os.environ),require_tls=True)
+            elif backend=="file":entries=load_catalog(os.environ.get("LOLO_CONTENT_CATALOG_FILE"))
+            else:raise ValueError("Invalid catalog backend")
+        except (OSError,ValueError,TypeError,RecursionError,RuntimeError):
             return self.send_json(503,{"error":"قائمة المناهج غير متاحة."})
         if action=="list":return self.send_json(200,{"packages":[item[0] for item in entries.values()]})
         item=entries.get(body["draftId"])
