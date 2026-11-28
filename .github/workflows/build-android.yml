@@ -30,6 +30,8 @@ on:
       - 'content-trust.js'
       - 'content-runtime.js'
       - 'content-progress.js'
+      - 'offline-license.js'
+      - 'offline-license-vault.js'
       - 'content-client.js'
       - 'content_delivery.py'
       - 'api/content.py'
@@ -95,6 +97,7 @@ jobs:
           node tests/curriculum-engine.test.cjs
           node tests/learning-engine.test.cjs
           node --test tests/learning-path-engine.test.cjs
+          node --test tests/offline-license-vault.test.cjs
           node --check app.js
           node --check learning-path-engine.js
           node --check network.js
