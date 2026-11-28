@@ -16,6 +16,7 @@ import math
 from request_budget import admit as admit_shared_budget, BudgetUnavailable
 from database_connection import database_dsn
 from family_accounts import FamilyStore, FamilyError
+from family_credentials import redeem_code
 
 ROOT = Path(__file__).resolve().parent
 PORT = int(os.environ.get("PORT", "4173"))
@@ -426,25 +427,34 @@ class Handler(BaseHTTPRequestHandler):
         if error:
             return self.send_json(400, {"error": error})
         action = body.get("action")
-        if not isinstance(action,str) or action not in ("login","children","createChild","deleteChild","logout","readProgress","writeProgress"):
+        credential_actions=("registerWithCode","resetWithCode")
+        if action in credential_actions and (not family_pilot_dsn() or os.environ.get("LOLO_FAMILY_PILOT_CREDENTIALS")!="true"):
+            return self.send_json(503, {"error":"خدمة التسجيل التجريبي غير متاحة."})
+        if not isinstance(action,str) or action not in ("login","children","createChild","deleteChild","logout","readProgress","writeProgress")+credential_actions:
             return self.send_json(400, {"error": "العملية غير متاحة."})
         if action in ("readProgress","writeProgress") and not PROGRESS_SYNC_ENABLED:
             return self.send_json(503, {"error": "المزامنة غير متاحة حاليًا."})
         ip = (self.headers.get("x-real-ip") if os.environ.get("VERCEL") else None) or self.client_address[0]
         key = hmac_new(_RATE_LIMIT_SECRET,ip.encode(),"sha256").hexdigest()
-        allowed,retry = FAMILY_RATE_LIMITER.check((key,"login" if action=="login" else "manage"), 5 if action=="login" else 60, 60)
+        credential_attempt=action=="login" or action in credential_actions
+        allowed,retry = FAMILY_RATE_LIMITER.check((key,"login" if credential_attempt else "manage"), 5 if credential_attempt else 60, 60)
         if not allowed:
             return self.send_rate_limit(retry)
-        if action == "login":
+        if credential_attempt:
             allowed,retry = FAMILY_GLOBAL_LIMITER.check("login",30,60)
             if not allowed:
                 return self.send_rate_limit(retry)
-        if action=="login" and not self.shared_admission("login"):return
+        if credential_attempt and not self.shared_admission("login"):return
         auth = self.headers.get("Authorization","")
         token = auth[7:] if auth.startswith("Bearer ") else ""
         try:
             pilot=family_pilot_dsn() if os.environ.get("VERCEL") or os.environ.get("VERCEL_ENV") else None
             store = FamilyStore(pilot,synthetic_only=True) if pilot else FamilyStore(database_dsn("family"))
+            if action in credential_actions:
+                if not pilot:return self.send_json(503,{"error":"خدمة التسجيل التجريبي غير متاحة."})
+                purpose="register" if action=="registerWithCode" else "reset"
+                redeem_code(store,purpose,body.get("email"),body.get("code"),body.get("password"))
+                return self.send_json(201 if purpose=="register" else 200,{"ok":True})
             if action == "login":
                 return self.send_json(200,store.login(body.get("email"),body.get("password")))
             if action == "children":

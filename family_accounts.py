@@ -116,7 +116,7 @@ class FamilyStore:
         except FamilyError:
             raise FamilyError(401, "بيانات الدخول غير صحيحة.") from None
         with self.connect() as db:
-            row = db.execute("SELECT id,password_hash,disabled_at FROM lolo_parents WHERE email=%s", (email,)).fetchone() if not self.synthetic_only or email.endswith('@example.test') else None
+            row = db.execute("SELECT id,password_hash,disabled_at FROM lolo_parents WHERE email=%s FOR UPDATE", (email,)).fetchone() if not self.synthetic_only or email.endswith('@example.test') else None
             # Equalize the expensive hash work for unknown valid-format email addresses.
             dummy = "scrypt-v1:" + "00"*16 + ":" + "00"*32
             valid = verify_password(password, row[1] if row else dummy)
