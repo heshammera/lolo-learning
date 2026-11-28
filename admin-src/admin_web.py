@@ -19,6 +19,7 @@ from family_accounts import FamilyStore
 import billing_owner
 import billing_grants
 import billing_discounts
+import remote_config
 ROOT = Path(__file__).resolve().parent
 COOKIE = "lolo_admin_session"
 SECURE_COOKIE = "__Host-lolo_admin_session"
@@ -155,6 +156,11 @@ class Handler(BaseHTTPRequestHandler):
             if self.path=="/activity-engine.js":
                 self.server.store.inspect(self.token(),"library:read")
                 return self.reply(200,(ROOT.parent/"activity-engine.js").read_bytes(),"text/javascript; charset=utf-8")
+            if self.path in ("/api/settings/config","/api/settings/config/history"):
+                self.server.store.inspect(self.token(),"settings:manage")
+                if self.server.billing_store is None:raise FamilyError(503,"Test configuration disabled.")
+                fn=remote_config.history if self.path.endswith("/history") else remote_config.read
+                return self.reply(200,fn(self.server.billing_store,self.server.store,self.token()))
             if self.path=="/api/billing/discounts":
                 self.server.store.inspect(self.token(),"billing:manage")
                 if self.server.billing_store is None:raise FamilyError(503,"Billing disabled.")
@@ -182,6 +188,12 @@ class Handler(BaseHTTPRequestHandler):
         if not self.valid_host() or not self.valid_origin():
             return self.reply(403,{"error":"Invalid origin."})
         try:
+            if self.path=="/api/settings/config":
+                self.server.store.inspect(self.token(),"settings:manage")
+                if self.server.billing_store is None:raise FamilyError(503,"Test configuration disabled.")
+                body=self.json_body()
+                if set(body)!={"revision","policy"}:raise FamilyError(400,"Invalid fields.")
+                return self.reply(200,remote_config.change(self.server.billing_store,self.server.store,self.token(),body["revision"],body["policy"]))
             if self.path in ("/api/billing/discount/create","/api/billing/discount/disable"):
                 self.server.store.inspect(self.token(),"billing:manage")
                 if self.server.billing_store is None:raise FamilyError(503,"Billing disabled.")
