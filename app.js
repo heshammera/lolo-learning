@@ -1577,6 +1577,15 @@ function recordLessonAnswer(lessonId, answer, isCorrect, questionNumber, questio
     setStatus('لولو ماقدرتش تسجل تقييم الإجابة دي. قوليها مرة تانية بصوتك.');
     return {recorded: false};
   }
+  // Model-supplied text alone is not an observed learner response.
+  // If transcription arrives after the tool call, leave the turn ungraded for the
+  // existing transcript/feedback fallback rather than inventing an answer.
+  const observed=pendingChildAnswer.trim();
+  if(!answerPending||!observed||observed.length>300||!window.LoloAssessment.normalizeAnswer(observed)||
+      window.LoloAssessment.normalizeAnswer(answer)!==window.LoloAssessment.normalizeAnswer(observed)){
+    return {recorded:false,reason:'انتظري كلامًا واضحًا من الطفلة؛ لا تسجلي إجابة من عندك.'};
+  }
+  answer=observed;
   if (!pathEngine.mayRecordTurn(answerTurnId,gradedAnswerTurnId)) {
     return {recorded:false,duplicate:answerTurnId>0 && gradedAnswerTurnId===answerTurnId,reason:'مفيش محاولة صوتية جديدة للتقييم.'};
   }
@@ -1598,7 +1607,8 @@ function recordLessonAnswer(lessonId, answer, isCorrect, questionNumber, questio
   lessonStats[lessonId] = events;
   activeAnswerEvents.push({answer: answer.trim(), is_correct: isCorrect, question_number: question});
   const didSave=storage.set('lolo-lesson-stats', JSON.stringify(lessonStats));
-  if(didSave&&isActive){const feedback=$('#sessionFeedback');feedback.dataset.result=isCorrect?'correct':'practice';feedback.textContent=isCorrect?'محاولة جميلة! ⭐':'نجرّب تاني براحتنا 🌱';feedback.hidden=false;}
+  const guidance=window.LoloAssessment.lessonGuidance(activeAnswerEvents,parentSettings.hintLevel,sessionMode);
+  if(didSave&&isActive){const feedback=$('#sessionFeedback');feedback.dataset.result=isCorrect?'correct':'practice';feedback.textContent=isCorrect?'محاولة جميلة! ⭐':guidance?.kind==='offer-break'?'ممكن ناخد راحة لو حبيتي 💛':guidance?.kind==='example'?'نجرب مثال أسهل 🌱':'نجرّب تلميح صغير براحتنا 🌱';feedback.hidden=false;}
   updateProgress();
   renderParentReport();
   if (currentLesson && !$('#parentSheet').classList.contains('open')) refreshLessonPicker(currentLesson.programId, currentLesson.unitId);
@@ -1607,7 +1617,8 @@ function recordLessonAnswer(lessonId, answer, isCorrect, questionNumber, questio
     const verifiedAnswers = activeAnswerEvents.filter(item => item.is_correct).slice(0, 2).map(item => item.answer);
     if (verifiedAnswers.length === 2) mastery = updateCurrentLesson(lessonId, 2, verifiedAnswers);
   }
-  return {recorded: true, correct: events.correct, wrong: events.wrong, percent: Math.round(events.correct / (events.correct + events.wrong) * 100), mastery};
+  return {recorded: true, correct: events.correct, wrong: events.wrong, percent: Math.round(events.correct / (events.correct + events.wrong) * 100), mastery,
+    guidance:mastery?.saved||!didSave?null:guidance};
 }
 
 function saveSpokenAssessmentResult(assessment) {

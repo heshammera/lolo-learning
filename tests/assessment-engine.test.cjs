@@ -99,3 +99,16 @@ const strict=Assessment.create();
 assert.equal(strict.grade({kind:'math',answer:'not five',expected:'5'}).status,'unresolved');
 for(const quality of [null,'90',-1,101,NaN])assert.equal(strict.grade({kind:'handwriting',quality}).status,'unresolved');
 console.log('Deterministic assessment checks passed.');
+
+const guidance=Assessment.lessonGuidance;
+const wrong={is_correct:false},right={is_correct:true};
+assert.equal(guidance([], 'guided'),null);
+assert.equal(guidance([wrong],'guided','test'),null);
+assert.equal(guidance([{is_correct:'false'}]),null);
+assert.equal(guidance([wrong]).kind,'hint');
+assert.notEqual(guidance([wrong],'guided').prompt,guidance([wrong],'gentle').prompt);
+assert.equal(guidance([wrong,wrong]).kind,'example');
+assert.equal(guidance([wrong,wrong,wrong]).kind,'offer-break');
+assert.equal(guidance([wrong,wrong,right]).kind,'continue');
+assert.equal(guidance([wrong,right,wrong]).kind,'hint');
+assert.equal(JSON.stringify(guidance([{...wrong,answer:'PRIVATE TRANSCRIPT'}])).includes('PRIVATE TRANSCRIPT'),false);
