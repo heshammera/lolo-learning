@@ -3665,6 +3665,15 @@ $('#parentSheet').addEventListener('click', () => { parentGate.touch(); if (pare
 $('#parentSheet').addEventListener('keydown', () => { parentGate.touch(); if (parentGate.isUnlocked()) scheduleParentAutoLock(); });
 $('#parentLessonsTab').onclick = () => showParentTab('lessons');
 $('#parentSettingsTab').onclick = () => showParentTab('settings');
+$('#parentQuickNav').addEventListener('click',event=>{
+  const button=event.target.closest('button[data-parent-jump]');
+  if(!button||!parentGate.isUnlocked()||!$('#parentSheet').classList.contains('open')||$('#parentSettingsPanel').hidden)return;
+  const section=document.getElementById(button.dataset.parentJump);
+  if(!section||section.hidden||!$('#parentSettingsPanel').contains(section))return;
+  const heading=section.querySelector('h3');if(!heading)return;
+  heading.tabIndex=-1;heading.focus({preventScroll:true});
+  const scroll=$('#parentScroll');scroll.scrollTop+=section.getBoundingClientRect().top-scroll.getBoundingClientRect().top-8;
+});
 for (const id of ['learningPath', 'sessionMinutes', 'speechPace', 'hintLevel', 'rewardSeconds', 'reminderHour']) $(`#${id}`).onchange = saveParentSettings;
 for (const id of ['repeatWords', 'rewardEnabled','remindersEnabled','dailyReminder']) $(`#${id}`).onchange = saveParentSettings;
 $('#lessonTab').onclick = () => showPickerTab('lessons');

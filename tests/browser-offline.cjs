@@ -102,6 +102,10 @@ async function verifyPractice(page){
     await page.locator('#parentGateSetup button[type="submit"]').click();
     await page.locator('#parentGateRecoveryDone').click();
     await page.locator('#parentSettingsTab').click();
+    await page.locator('#parentQuickNav [data-parent-jump="parentProgressGroup"]').click();
+    assert.equal(await page.evaluate(()=>document.activeElement.closest('section')?.id),'parentProgressGroup');
+    assert.equal(await page.locator('#parentProgressGroup').isVisible(),true);
+    await page.locator('#parentSettingsTab').click();
     assert.equal(await page.evaluate(()=>typeof window.LoloLearningAnalytics?.recommend),'function');
     await page.locator('#adaptiveRecommendations').waitFor({state:'visible'});
     assert.equal(await page.evaluate(()=>typeof window.LoloLearningReminders?.derive),'function');
