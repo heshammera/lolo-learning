@@ -19,6 +19,7 @@ from family_accounts import FamilyStore
 import billing_owner
 import billing_grants
 import billing_discounts
+import billing_analytics
 import remote_config
 ROOT = Path(__file__).resolve().parent
 COOKIE = "lolo_admin_session"
@@ -161,6 +162,10 @@ class Handler(BaseHTTPRequestHandler):
                 if self.server.billing_store is None:raise FamilyError(503,"Test configuration disabled.")
                 fn=remote_config.history if self.path.endswith("/history") else remote_config.read
                 return self.reply(200,fn(self.server.billing_store,self.server.store,self.token()))
+            if self.path=="/api/billing/analytics":
+                self.server.store.inspect(self.token(),"billing:manage")
+                if self.server.billing_store is None:raise FamilyError(503,"Billing disabled.")
+                return self.reply(200,billing_analytics.snapshot(self.server.billing_store,self.server.store,self.token()))
             if self.path=="/api/billing/discounts":
                 self.server.store.inspect(self.token(),"billing:manage")
                 if self.server.billing_store is None:raise FamilyError(503,"Billing disabled.")
