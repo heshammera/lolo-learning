@@ -44,22 +44,26 @@ def order_record(row):
     return {"id":str(row[0]),"planId":row[1],"period":row[2],"amountMinor":row[3],"currency":row[4],
             "status":row[5],"expiresAt":row[6].isoformat(),"testOnly":True}
 
-def create_order(store,token,plan,period,operation_id):
+def create_order(store,token,plan,period,operation_id,expected_amount=None):
     require_staging()
     if plan not in ("plus","family") or period not in ("monthly","yearly"):
         raise FamilyError(400,"Invalid paid plan or period.")
+    if expected_amount is not None and (type(expected_amount) is not int or expected_amount<=0):
+        raise FamilyError(400,"Invalid quote.")
     operation=identifier(operation_id)
     with store.connect() as db:
         parent=parent_for_test(store,db,token,lock=True)
         previous=db.execute("""SELECT id,plan_id,period,amount_minor,currency,status,expires_at
             FROM lolo_billing_orders WHERE parent_id=%s AND operation_id=%s""",(parent,operation)).fetchone()
         if previous:
-            if previous[1]!=plan or previous[2]!=period:
+            if previous[1]!=plan or previous[2]!=period or (expected_amount is not None and previous[3]!=expected_amount):
                 raise FamilyError(409,"Operation already used.")
             return order_record(previous)
-        row=db.execute("SELECT monthly_minor,yearly_minor FROM lolo_billing_plans WHERE id=%s AND enabled=true",(plan,)).fetchone()
+        row=db.execute("SELECT monthly_minor,yearly_minor FROM lolo_billing_plans WHERE id=%s AND enabled=true FOR SHARE",(plan,)).fetchone()
         if not row:raise FamilyError(404,"Plan unavailable.")
         amount=row[0] if period=="monthly" else row[1]
+        if expected_amount is not None and amount!=expected_amount:
+            raise FamilyError(409,"Quote changed; review current price.")
         # Avoid unlimited pending orders; expired intents are not usable.
         db.execute("UPDATE lolo_billing_orders SET status='cancelled' WHERE parent_id=%s AND status='pending' AND expires_at<=CURRENT_TIMESTAMP",(parent,))
         if db.execute("SELECT count(*) FROM lolo_billing_orders WHERE parent_id=%s AND status='pending'",(parent,)).fetchone()[0]>=3:
@@ -114,3 +118,22 @@ def test_subscription(store,token):
         row=db.execute("""SELECT plan_id,ends_at FROM lolo_billing_test_entitlements
             WHERE parent_id=%s AND starts_at<=CURRENT_TIMESTAMP AND ends_at>CURRENT_TIMESTAMP""",(parent,)).fetchone()
         return {"planId":row[0] if row else "free","endsAt":row[1].isoformat() if row else None,"testOnly":True}
+
+def list_orders(store,token):
+    require_staging()
+    with store.connect() as db:
+        parent=parent_for_test(store,db,token)
+        rows=db.execute("""SELECT id,plan_id,period,amount_minor,currency,
+            CASE WHEN status='pending' AND expires_at<=CURRENT_TIMESTAMP THEN 'cancelled' ELSE status END,expires_at
+            FROM lolo_billing_orders WHERE parent_id=%s ORDER BY created_at DESC,id LIMIT 30""",(parent,)).fetchall()
+        return [order_record(row) for row in rows]
+
+def cancel_order(store,token,order_id):
+    require_staging()
+    with store.connect() as db:
+        parent=parent_for_test(store,db,token,lock=True)
+        row=db.execute("SELECT status FROM lolo_billing_orders WHERE id=%s AND parent_id=%s FOR UPDATE",(identifier(order_id),parent)).fetchone()
+        if not row:raise FamilyError(404,"Order not found.")
+        if row[0]=="test_paid":raise FamilyError(409,"Paid test order cannot be cancelled.")
+        db.execute("UPDATE lolo_billing_orders SET status='cancelled' WHERE id=%s AND parent_id=%s",(identifier(order_id),parent))
+        return {"status":"cancelled","testOnly":True}
