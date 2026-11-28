@@ -2849,6 +2849,28 @@ function saveParentSettings() {
   renderParentReport();
 }
 
+let nativeReminderBusy=false;
+function nativeReminderAllowed(){return parentGate.isUnlocked()&&$('#parentSheet').classList.contains('open')&&document.visibilityState!=='hidden';}
+async function refreshNativeReminder(action='status'){
+  const plugin=window.Capacitor?.Plugins?.LearningReminder,panel=$('#nativeReminderPanel');
+  if(!plugin||!window.Capacitor?.isNativePlatform?.()||!nativeReminderAllowed()){panel.hidden=true;return;}
+  if(nativeReminderBusy)return;nativeReminderBusy=true;panel.hidden=false;
+  for(const id of ['nativeReminderPermission','nativeReminderEnable','nativeReminderDisable'])$(id).disabled=true;
+  try{
+    let r;
+    if(action==='permission')r=await plugin.requestNotificationPermission();
+    else if(action==='enable')r=await plugin.enable({hour:Number($('#nativeReminderHour').value)});
+    else if(action==='disable')r=await plugin.disable();
+    else r=await plugin.status();
+    if(!nativeReminderAllowed())return;
+    if(action!=='permission')$('#nativeReminderHour').value=String(r.hour);
+    $('#nativeReminderStatus').textContent=r.enabled?'التذكير مفعّل على هذا الجهاز.':r.permission?'يمكن تشغيل تذكير الهاتف.':'الإذن غير متاح. راجع إعدادات إشعارات Android.';
+  }catch{if(nativeReminderAllowed())$('#nativeReminderStatus').textContent='تعذر تغيير إعداد إشعار الهاتف.';}
+  finally{nativeReminderBusy=false;for(const id of ['nativeReminderPermission','nativeReminderEnable','nativeReminderDisable'])$(id).disabled=false;}
+}
+$('#nativeReminderPermission').onclick=()=>refreshNativeReminder('permission');
+$('#nativeReminderEnable').onclick=()=>{if(nativeReminderAllowed()&&confirm('تشغيل تذكير عام يومي على هذا الجهاز؟'))refreshNativeReminder('enable');};
+$('#nativeReminderDisable').onclick=()=>refreshNativeReminder('disable');
 function renderLearningReminders(){
   const target=$('#learningReminders');if(!target)return;target.replaceChildren();
   if(!parentGate.isUnlocked()||!$('#parentSheet').classList.contains('open')||document.visibilityState==='hidden'||!window.LoloLearningReminders)return;
@@ -3034,6 +3056,7 @@ function closeParentGateModal(restoreFocus = true) {
 }
 
 function closeParentSettings() {
+  $('#nativeReminderPanel').hidden=true;$('#nativeReminderStatus').textContent='';
   $('#learningReminders')?.replaceChildren();
   clearLocalBackup();
   clearExtraParent();
@@ -3505,6 +3528,7 @@ function showParentSettingsUnlocked(tab = 'settings') {
   showParentTab(tab);
   $('#parentClose').focus();
   syncParentSettingsUI();
+  refreshNativeReminder();
   renderLocalProfiles();
   renderActivityPreview();
   refreshExtraContent();
@@ -3612,8 +3636,8 @@ $('#parentSheet').addEventListener('click', () => { parentGate.touch(); if (pare
 $('#parentSheet').addEventListener('keydown', () => { parentGate.touch(); if (parentGate.isUnlocked()) scheduleParentAutoLock(); });
 $('#parentLessonsTab').onclick = () => showParentTab('lessons');
 $('#parentSettingsTab').onclick = () => showParentTab('settings');
-for (const id of ['learningPath', 'sessionMinutes', 'speechPace', 'hintLevel', 'rewardSeconds']) $(`#${id}`).onchange = saveParentSettings;
-for (const id of ['repeatWords', 'rewardEnabled']) $(`#${id}`).onchange = saveParentSettings;
+for (const id of ['learningPath', 'sessionMinutes', 'speechPace', 'hintLevel', 'rewardSeconds', 'reminderHour']) $(`#${id}`).onchange = saveParentSettings;
+for (const id of ['repeatWords', 'rewardEnabled','remindersEnabled','dailyReminder']) $(`#${id}`).onchange = saveParentSettings;
 $('#lessonTab').onclick = () => showPickerTab('lessons');
 $('#testsTab').onclick = () => showPickerTab('tests');
 $('#gradeSelect').onchange = () => {
