@@ -51,3 +51,11 @@ class DiagnosticTests(unittest.TestCase):
         with patch.dict(sys.modules,{"psycopg":SimpleNamespace(connect=Mock(return_value=db))}):
             with self.assertRaisesRegex(VerificationError,"^TABLE_COUNT_0_OF_26$"):
                 verify("secret-dsn")
+
+    def test_driver_import_failure_is_redacted(self):
+        import sys
+        from unittest.mock import patch
+        from scripts.verify_neon_schema import VerificationError
+        with patch.dict(sys.modules,{"psycopg":None}):
+            with self.assertRaisesRegex(VerificationError,"^DRIVER_IMPORT_FAILED$"):
+                verify("secret-dsn")

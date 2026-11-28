@@ -40,7 +40,10 @@ class VerificationError(RuntimeError):
 def verify(dsn):
     if not dsn:
         raise VerificationError("CONFIG_MISSING")
-    import psycopg
+    try:
+        import psycopg
+    except Exception:
+        raise VerificationError("DRIVER_IMPORT_FAILED") from None
     stage="CONNECT"
     try:
         with psycopg.connect(dsn, connect_timeout=8) as db:
@@ -73,6 +76,7 @@ def verify(dsn):
         # Never print connection strings, exception messages, addresses, or records.
         # Only fixed categories, SQLSTATE from an allowlist, and schema counts.
         code=getattr(exc,"sqlstate",None)
+        if not isinstance(code,str):code=None
         safe_codes={"28P01","28000","3D000","42501","42P01","42703","57014","08001","08006","25006","53300","57P03"}
         # classify connection failures internally; the source message is never emitted.
         category="OTHER"
@@ -93,7 +97,7 @@ def main():
         print("LOLO_NEON_VERIFY=FAILED: "+str(exc),file=sys.stderr)
         return 1
     except Exception:
-        print("LOLO_NEON_VERIFY=FAILED: INTERNAL",file=sys.stderr)
+        print("LOLO_NEON_VERIFY=FAILED: INTERNAL_UNCLASSIFIED",file=sys.stderr)
         return 1
     print(f"LOLO_NEON_VERIFY=PASS: {count}/{len(EXPECTED)} tables; core access checks passed; read only.")
     return 0
