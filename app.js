@@ -3203,6 +3203,7 @@ let extraGeneration=0,extraPackage=null,extraSession=null,extraBusy=false,extraC
 const extraAllowed=()=>parentGate.isUnlocked()&&$('#parentSheet').classList.contains('open')&&storage.profiles.activeId&&storage.profiles.selectedId()===storage.profiles.activeId;
 const extraTrusted=()=>Object.keys(window.LoloContentTrust).length>0;
 function clearExtraParent(){
+  clearExtraReview();
   extraGeneration++;extraPackage=null;$('#extraContentFile').value='';
   extraRemoteController?.abort();extraRemoteItems=[];$('#extraRemoteSelect').replaceChildren();$('#extraRemoteStatus').textContent='';$('#extraDownload').disabled=true;$('#extraRefreshRemote').disabled=true;
   for(const id of ['extraContentSelect','extraUnit','extraLesson'])$('#'+id).replaceChildren();
@@ -3212,6 +3213,40 @@ function extraOptions(select,items,label){
   select.replaceChildren(new Option(label,''));
   for(const item of items)select.append(new Option(item.title,item.id));
 }
+let extraReviewTarget=null;
+function clearExtraReview(){
+  extraReviewTarget=null;$('#extraReviewPanel').hidden=true;$('#extraReviewText').textContent='';$('#extraReviewSelect').hidden=true;
+}
+function extraReviewMessage(report){
+  if(!report||!report.recommendation)return '';
+  const r=report.recommendation;
+  if(r.kind==='resume')return 'يوجد تدريب غير مكتمل. استكمليه قبل اقتراح مراجعة جديدة.';
+  if(r.kind==='review-lesson')return 'مراجعة مقترحة: '+r.title+' — ظهرت إجابات غير صحيحة في آخر تدريب. هذه توصية تدريبية وليست حكمًا على مستوى الطالب.';
+  if(r.kind==='continue')return 'كل الإجابات المقيمة في آخر تدريب صحيحة. يمكنك متابعة المنهج؛ لا تثبت هذه المحاولة وحدها الإتقان.';
+  return 'تم إكمال أنشطة تدريبية بلا درجات. لا توجد أدلة كافية لتحديد مراجعة مقيمة.';
+}
+function renderExtraReview(){
+  clearExtraReview();
+  if(!extraAllowed()||extraBusy||!extraPackage||$('#extraStart').disabled)return;
+  const scope=$('#extraScope').value,unit=$('#extraUnit').value,lesson=$('#extraLesson').value;
+  const saved=extraProgress.load(extraPackage,scope,unit,lesson);
+  if(!saved.valid||!saved.results.length)return;
+  const report=window.LoloContentRuntime.review(extraPackage,scope,unit,lesson,saved.results);
+  if(!report)return;
+  $('#extraReviewPanel').hidden=false;$('#extraReviewText').textContent=extraReviewMessage(report);
+  const rec=report.recommendation;
+  if(rec?.kind==='review-lesson'){
+    extraReviewTarget={package:extraPackage,generation:extraGeneration,unit:rec.unitId,lesson:rec.lessonId};
+    $('#extraReviewSelect').hidden=false;
+  }
+}
+$('#extraReviewSelect').onclick=()=>{
+  const t=extraReviewTarget;
+  if(!t||!extraAllowed()||extraBusy||t.package!==extraPackage||t.generation!==extraGeneration)return;
+  $('#extraScope').value='lesson';$('#extraUnit').value=t.unit;renderExtraScope();
+  $('#extraLesson').value=t.lesson;renderExtraScope();
+  $('#extraContentStatus').textContent='تم اختيار درس المراجعة. ابدئي التدريب عند الاستعداد.';
+};
 function renderExtraScope(){
   const scope=$('#extraScope').value,unit=extraPackage?.content.units.find(u=>u.id===$('#extraUnit').value);
   const prior=$('#extraLesson').value;
@@ -3219,10 +3254,11 @@ function renderExtraScope(){
   if(unit?.lessons.some(l=>l.id===prior))$('#extraLesson').value=prior;
   $('#extraUnit').disabled=scope==='curriculum';$('#extraLesson').disabled=scope!=='lesson';
   $('#extraStart').disabled=!extraAllowed()||extraBusy||!extraPackage||!(scope==='curriculum'||scope==='unit'&&unit||scope==='lesson'&&unit?.lessons.some(l=>l.id===$('#extraLesson').value));
+  renderExtraReview();
 }
 async function refreshExtraContent(){
   if(!extraAllowed())return;
-  const generation=++extraGeneration;extraPackage=null;$('#extraStart').disabled=true;
+  const generation=++extraGeneration;extraPackage=null;$('#extraStart').disabled=true;clearExtraReview();
   $('#extraImport').disabled=!extraTrusted()||extraBusy;$('#extraContentFile').disabled=!extraTrusted()||extraBusy;
   $('#extraRefreshRemote').disabled=!extraTrusted()||extraBusy||navigator.onLine===false;$('#extraDownload').disabled=true;
   if(!extraTrusted()){$('#extraContentStatus').textContent='إضافة المناهج غير مفعّلة: لا توجد مفاتيح نشر موثوقة في هذا الإصدار.';return;}
@@ -3307,7 +3343,7 @@ function renderExtraPractice(){
   const session=extraSession;if(!session)return;
   const state=session.state(),step=session.current(),body=$('#extraPracticeBody');
   body.replaceChildren();$('#extraPracticeNext').hidden=true;
-  if(state.done){$('#extraPracticeProgress').textContent='انتهى التدريب';$('#extraPracticeGoal').textContent='أجبت بشكل صحيح على '+state.correct+' من '+(state.attempted-state.ungraded)+' نشاط قابل للتقييم.'+(state.ungraded?' وأنهيت '+state.ungraded+' نشاطًا دون درجة.':'')+' النتيجة تدريبية فقط وليست دليل إتقان.';return;}
+  if(state.done){$('#extraPracticeProgress').textContent='انتهى التدريب';$('#extraPracticeGoal').textContent='أجبت بشكل صحيح على '+state.correct+' من '+(state.attempted-state.ungraded)+' نشاط قابل للتقييم.'+(state.ungraded?' وأنهيت '+state.ungraded+' نشاطًا دون درجة.':'')+' النتيجة تدريبية فقط وليست دليل إتقان.';const c=extraContext;if(c){const report=window.LoloContentRuntime.review(c.package,c.scope,c.unit,c.lesson,session.results());const message=extraReviewMessage(report);if(message)$('#extraPracticeGoal').textContent+=' '+message;}return;}
   if(!step)return;
   $('#extraPracticeTitle').textContent=step.lessonTitle;$('#extraPracticeGoal').textContent=step.goal;
   $('#extraPracticeProgress').textContent='النشاط '+(state.index+1)+' من '+state.total;

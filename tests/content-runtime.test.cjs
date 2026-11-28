@@ -42,3 +42,23 @@ test('reading practice cannot inflate scores',()=>{
  const candidate=JSON.parse(JSON.stringify(p));candidate.content.units[0].lessons[0].activities=[{id:'reading',type:'reading-aloud',version:1,prompt:'Read',config:{language:'en',segments:['Hello','Good morning']}}];
  const s=runtime.create(candidate,'lesson','u1','l1');assert.equal(s.record('reading',{status:'correct'}),false);assert.equal(s.record('reading',{status:'completed'}),true);assert.equal(s.state().correct,0);assert.equal(s.state().ungraded,1);
 });
+
+test('review uses exact scope, resolved graded evidence and stable ordering only',()=>{
+ const s=runtime.create(p,'unit','u1');
+ for(const [id,status] of [['l1-a','incorrect'],['l1-b','correct'],['l2-a','incorrect'],['l2-b','incorrect']]){
+   assert.equal(s.record(id,{status}),true);s.advance();
+ }
+ const results=s.results(),report=runtime.review(p,'unit','u1',null,results);
+ assert.equal(report.graded,4);assert.equal(report.recommendation.lessonId,'l2');
+ assert.equal(report.recommendation.unitId,'u1');
+ assert.equal(runtime.review(p,'unit','u1',null,results.slice(0,1)).recommendation.kind,'resume');
+ assert.equal(runtime.review(p,'lesson','u2','l3',results),null);
+ assert.equal(runtime.review(p,'unit','u1',null,[]).status,'no-evidence');
+ assert.equal(runtime.review(p,'unit','u1',null,[{activityId:'l1-a',status:'completed'}]),null);
+ assert.equal(runtime.review(p,'unit','u1',null,[{activityId:'l1-a',status:'correct',score:100}]),null);
+});
+test('completion-only practice is not evidence of weakness or mastery',()=>{
+ const q=JSON.parse(JSON.stringify(p));q.content.units[0].lessons[0].activities=[{id:'draw',type:'free-drawing',version:1,prompt:'Draw',config:{}}];
+ const report=runtime.review(q,'lesson','u1','l1',[{activityId:'draw',status:'completed'}]);
+ assert.equal(report.graded,0);assert.equal(report.ungraded,1);assert.equal(report.recommendation.kind,'practice-only');
+});
