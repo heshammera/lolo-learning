@@ -57,7 +57,12 @@
       const c=a.config;
       if(a.type==='true-false')select(box,'الإجابة الصحيحة',String(c.answer),[{id:'true',label:'صح'},{id:'false',label:'خطأ'}],v=>c.answer=v===''?null:v==='true');
       else if(a.type==='numeric')field(box,'الإجابة الرقمية الصحيحة',c.answer,v=>c.answer=v,{type:'number'});
-      else if(a.type==='fill-blank'||a.type==='free-text'){
+      else if(a.type==='fill-blank'||a.type==='free-text'||a.type==='dictation'){
+        if(a.type==='dictation'){
+          select(box,'لغة الإملاء',c.language,[{id:'ar',label:'العربية'},{id:'en',label:'English'}],v=>c.language=v);
+          field(box,'النص المسموع',c.spokenText,v=>c.spokenText=v,{max:200});
+          box.append(el('p','أضيفي النص المسموع ضمن البدائل المقبولة. يلزم صوت محلي مناسب على جهاز الطالب.'));
+        }
         box.append(el('p','أضيفي البدائل المقبولة. لا يُستخدم هذا النشاط لتقييم المقالات أو الفهم المفتوح.'));
         c.answers.forEach((answer,i)=>{
           const row=el('div');row.className='cms-row';box.append(row);
