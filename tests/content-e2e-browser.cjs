@@ -119,6 +119,7 @@ const content={schemaVersion:1,subjectId:'science',gradeId:'grade-1',title:'عل
     assert.match(await page.locator('#extraPracticeProgress').textContent(),/2 من 2/);
     await answer(false);await page.locator('#extraPracticeNext').click();
     assert.match(await page.locator('#extraPracticeGoal').textContent(),/1 من 2/);
+    assert.match(await page.locator('#extraPracticeGoal').textContent(),/مراجعة مقترحة/);
     assert.equal(await page.locator('#extraPracticeNext').isVisible(),false);
     await page.locator('#extraPracticeClose').click();
     const checkpoint=await page.evaluate(()=>JSON.parse(localStorage.getItem('lolo-extra-practice-v1')));

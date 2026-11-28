@@ -31,7 +31,29 @@
       stop(){stopped=true;}
     });
   }
-  const api=Object.freeze({plan,create});
+  // Recommendations only, never mastery, never change the authored learning order.
+  function review(p,scope,unitId,lessonId,prior){
+    const session=create(p,scope,unitId,lessonId,prior);
+    if(!session)return null;
+    const steps=plan(p,scope,unitId,lessonId),results=session.results();
+    if(!results.length)return {status:'no-evidence',graded:0,ungraded:0,lessons:[],recommendation:null};
+    const groups=new Map();let graded=0,ungraded=0;
+    for(let i=0;i<results.length;i++){
+      const step=steps[i],r=results[i];
+      if(!groups.has(step.lessonId))groups.set(step.lessonId,{unitId:step.unitId,lessonId:step.lessonId,title:step.lessonTitle,correct:0,incorrect:0,ungraded:0});
+      const group=groups.get(step.lessonId);
+      if(r.status==='completed'){group.ungraded++;ungraded++;}
+      else{group[r.status]++;graded++;}
+    }
+    const lessons=[...groups.values()];
+    // A single error suggests review, not a diagnosis or a proficiency label.
+    // Prioritize largest observed error count, then authored order.
+    const needsReview=lessons.filter(l=>l.incorrect>0).sort((a,b)=>b.incorrect-a.incorrect);
+    const complete=results.length===steps.length;
+    const recommendation=!complete?{kind:'resume'}:needsReview.length?{kind:'review-lesson',unitId:needsReview[0].unitId,lessonId:needsReview[0].lessonId,title:needsReview[0].title}:graded?{kind:'continue'}:{kind:'practice-only'};
+    return {status:complete?'complete':'partial',graded,ungraded,lessons,recommendation};
+  }
+  const api=Object.freeze({plan,create,review});
   if(typeof window!=='undefined')window.LoloContentRuntime=api;
   if(typeof module!=='undefined'&&module.exports)module.exports=api;
 })();
