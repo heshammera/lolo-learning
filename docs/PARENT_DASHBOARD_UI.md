@@ -1,0 +1,1 @@
+Improved protected parent panel layout with quick section navigation, accessible headings, responsive scroll, larger controls and separate destructive-action styling. Preserves existing IDs, settings forms and parent gate; no cloud or billing changes. Offline browser test checks navigation after unlocking. Device visual verification pending.
