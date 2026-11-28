@@ -27,29 +27,34 @@ def issue(store,token,device_id,key_id,key):
     device=identifier(device_id)
     with store.connect() as db:
         parent=parent_for_test(store,db,token,lock=True)
-        p=policy(db,parent);plan=p["planId"]
-        if plan not in DEVICE_LIMITS:raise FamilyError(403,"Paid test subscription required.")
-        children=slots(db,parent,p["childLimit"])
-        if not children:raise FamilyError(409,"Assign a child first.")
-        time=db.execute("""SELECT floor(extract(epoch FROM clock_timestamp()))::bigint,
-            floor(extract(epoch FROM ends_at))::bigint FROM lolo_billing_test_effective WHERE parent_id=%s""",(parent,)).fetchone()
-        if not time:raise FamilyError(409,"Subscription unavailable.")
-        now,expiry=time;ends=min(now+MAX_AGE,expiry)
-        if ends<=now:raise FamilyError(409,"Subscription expired.")
-        existing=db.execute("SELECT parent_id,sequence,revoked_at FROM lolo_offline_test_devices WHERE device_id=%s",(device,)).fetchone()
-        if existing and (existing[0]!=parent or existing[2] is not None):raise FamilyError(409,"Device unavailable.")
-        # On downgrade, only earliest registered devices remain eligible for new leases.
-        active=db.execute("""SELECT device_id FROM lolo_offline_test_devices WHERE parent_id=%s AND revoked_at IS NULL
-            ORDER BY registered_at,device_id LIMIT %s""",(parent,DEVICE_LIMITS[plan])).fetchall()
-        if existing and (device,) not in active:raise FamilyError(409,"Device exceeds plan limit.")
-        if not existing:
-            if len(active)>=DEVICE_LIMITS[plan]:raise FamilyError(409,"Device limit reached.")
-            db.execute("INSERT INTO lolo_offline_test_devices(parent_id,device_id) VALUES (%s,%s)",(parent,device))
-        seq=db.execute("UPDATE lolo_offline_test_devices SET sequence=sequence+1 WHERE parent_id=%s AND device_id=%s RETURNING sequence",(parent,device)).fetchone()[0]
-        payload={"format":1,"audience":"lolo-offline-test","testOnly":True,"licenseId":str(__import__("uuid").uuid4()),
-            "parentId":str(parent),"deviceId":str(device),"planId":plan,"childIds":sorted(str(c) for c in children),
-            "features":list(LOCAL_FEATURES),"issuedAt":now,"expiresAt":ends,"subscriptionEndsAt":expiry,"sequence":seq}
-        return sign(payload,key_id,key)
+        return _issue_locked(db,parent,device,key_id,key)
+
+def _issue_locked(db,parent,device,key_id,key,key_digest=None):
+    p=policy(db,parent);plan=p["planId"]
+    if plan not in DEVICE_LIMITS:raise FamilyError(403,"Paid test subscription required.")
+    children=slots(db,parent,p["childLimit"])
+    if not children:raise FamilyError(409,"Assign a child first.")
+    time=db.execute("""SELECT floor(extract(epoch FROM clock_timestamp()))::bigint,
+        floor(extract(epoch FROM ends_at))::bigint FROM lolo_billing_test_effective WHERE parent_id=%s""",(parent,)).fetchone()
+    if not time:raise FamilyError(409,"Subscription unavailable.")
+    now,expiry=time;ends=min(now+MAX_AGE,expiry)
+    if ends<=now:raise FamilyError(409,"Subscription expired.")
+    existing=db.execute("SELECT parent_id,sequence,revoked_at,key_digest FROM lolo_offline_test_devices WHERE device_id=%s",(device,)).fetchone()
+    if existing and (existing[0]!=parent or existing[2] is not None or (bytes(existing[3]) if existing[3] is not None else None)!=key_digest):raise FamilyError(409,"Device unavailable.")
+    # On downgrade, only earliest registered devices remain eligible for new leases.
+    active=db.execute("""SELECT device_id FROM lolo_offline_test_devices WHERE parent_id=%s AND revoked_at IS NULL
+        ORDER BY registered_at,device_id LIMIT %s""",(parent,DEVICE_LIMITS[plan])).fetchall()
+    if existing and (device,) not in active:raise FamilyError(409,"Device exceeds plan limit.")
+    if not existing:
+        if len(active)>=DEVICE_LIMITS[plan]:raise FamilyError(409,"Device limit reached.")
+        db.execute("INSERT INTO lolo_offline_test_devices(parent_id,device_id,key_digest) VALUES (%s,%s,%s)",(parent,device,key_digest))
+    seq=db.execute("UPDATE lolo_offline_test_devices SET sequence=sequence+1 WHERE parent_id=%s AND device_id=%s RETURNING sequence",(parent,device)).fetchone()[0]
+    payload={"format":1,"audience":"lolo-offline-test","testOnly":True,"licenseId":str(__import__("uuid").uuid4()),
+        "parentId":str(parent),"deviceId":str(device),"planId":plan,"childIds":sorted(str(c) for c in children),
+        "features":list(LOCAL_FEATURES),"issuedAt":now,"expiresAt":ends,"subscriptionEndsAt":expiry,"sequence":seq}
+    if key_digest is not None:
+        payload["format"]=2;payload["deviceKeySha256"]=key_digest.hex()
+    return sign(payload,key_id,key)
 
 def revoke(store,token,device_id):
     require_staging()
