@@ -69,6 +69,18 @@ class ApiInputTests(unittest.TestCase):
         finally:
             response.close()
 
+    def test_duplicate_keys_and_overflow_rejected(self):
+        with patch.object(server,"VOICE_ENABLED",True), patch.object(server,"API_RATE_LIMITER",server.SlidingWindowRateLimiter()), patch.object(server,"GLOBAL_RATE_LIMITER",server.SlidingWindowRateLimiter()), patch.dict("os.environ",{"LOLO_SHARED_REQUEST_BUDGET":"off"}), patch.object(server,"urlopen") as upstream:
+            for raw in (b'{"provider":"gemini","provider":"openai"}',b'{"excellenceCount":1e999}',b'{"x":{"a":1,"a":2}}'):
+                req=Request(self.base_url+"/api/provider-token",data=raw,headers={"Content-Type":"application/json"})
+                with self.assertRaises(HTTPError) as err:urlopen(req)
+                self.assertEqual(err.exception.code,400);err.exception.close()
+            upstream.assert_not_called()
+
+    def test_brand_traversal_not_served(self):
+        with self.assertRaises(HTTPError) as err:urlopen(self.base_url+"/assets/branding/../../curriculum.json")
+        self.assertEqual(err.exception.code,404);err.exception.close()
+
     def test_unsupported_content_type_is_rejected(self):
         request = Request(self.base_url + "/api/provider-token", data=b"not-json", headers={"Content-Type": "text/plain"})
         try:
