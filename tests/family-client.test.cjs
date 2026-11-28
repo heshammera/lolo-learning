@@ -138,3 +138,23 @@ test('linked profile prevents a different parent or child, retries approved requ
  assert.equal(await c.retryLinked('default',{...snapshot,completedLessonIds:[]}),false);
  assert.equal(await c.retryLinked('default',snapshot),true);assert.equal(writes,2);assert.equal(queued,null);assert.equal(c.unlink('default'),true);
 });
+
+test('synthetic registration and reset are explicit, no session or persisted credentials',async()=>{
+  const calls=[];let unlocked=true;const client=create(async(path,o)=>{calls.push({body:JSON.parse(o.body),headers:o.headers});return {ok:true,status:201,json:async()=>({ok:true})};},{allowed:()=>unlocked});
+  const code='a'.repeat(43),password='synthetic-long-password';
+  await assert.rejects(client.redeem('register','real@example.invalid',code,password));
+  await assert.rejects(client.redeem('reset','test@example.test','short',password));
+  assert.equal(calls.length,0);
+  await client.redeem('register','test@example.test',code,password);
+  await client.redeem('reset','test@example.test',code,password);
+  assert.deepEqual(calls.map(x=>x.body.action),['registerWithCode','resetWithCode']);
+  assert.ok(calls.every(x=>!x.headers.Authorization));
+  assert.equal(client.state().signedIn,false);
+  assert.ok(!JSON.stringify(client.state()).includes(password));
+  unlocked=false;await assert.rejects(client.redeem('reset','test@example.test',code,password));assert.equal(calls.length,2);
+});
+test('closing parent panel invalidates late credential redemption response',async()=>{
+  let resolve;const client=create(()=>new Promise(r=>resolve=r),{allowed:()=>true});
+  const p=client.redeem('register','test@example.test','a'.repeat(43),'synthetic-long-password');
+  client.clear();resolve({ok:true,status:201,json:async()=>({ok:true})});await assert.rejects(p);assert.equal(client.state().signedIn,false);
+});

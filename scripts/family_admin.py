@@ -7,6 +7,8 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from family_accounts import FamilyStore, FamilyError
 from database_connection import database_dsn
+from family_credentials import migrate_pilot_credentials, issue_code
+from family_mail import pilot_mail_config, deliver_pilot_code
 
 
 def pilot_store(env=None):
@@ -37,9 +39,9 @@ def check_pilot(store):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("action", choices=("migrate","provision","check-pilot","provision-pilot"))
+    parser.add_argument("action", choices=("migrate","provision","check-pilot","provision-pilot","migrate-pilot-credentials","issue-register-code","issue-reset-code"))
     args = parser.parse_args()
-    if args.action in ("check-pilot","provision-pilot"):
+    if args.action in ("check-pilot","provision-pilot","migrate-pilot-credentials","issue-register-code","issue-reset-code"):
         store=pilot_store()
         counts=check_pilot(store)
         if args.action=="check-pilot":
@@ -47,6 +49,25 @@ def main():
             return
         if input("Confirm independent, reviewed synthetic pilot database (type PILOT): ")!="PILOT":
             raise FamilyError(400,"Pilot provisioning cancelled.")
+        if args.action=="migrate-pilot-credentials":
+            migrate_pilot_credentials(store)
+            print("Pilot credentials schema applied.")
+            return
+        if args.action in ("issue-register-code","issue-reset-code"):
+            if not sys.stdout.isatty():raise FamilyError(400,"Use a private interactive terminal; never redirect codes to logs.")
+            purpose="register" if args.action=="issue-register-code" else "reset"
+            email=input("Synthetic email: ")
+            if os.environ.get("LOLO_PILOT_MAIL_ENABLED")=="true":
+                config=pilot_mail_config()
+                if input("Send fixture code to configured approved test inbox (type SEND): ")!="SEND":
+                    raise FamilyError(400,"Pilot mail cancelled.")
+                code=issue_code(store,purpose,email)
+                deliver_pilot_code(config,purpose,email,code)
+                print("Pilot code delivered to approved test inbox.")
+            else:
+                code=issue_code(store,purpose,email)
+                print("One-time synthetic code; deliver privately to the fixture tester:",code)
+            return
     else:
         store = FamilyStore(os.environ.get("LOLO_DATABASE_URL"))
     if args.action == "migrate":

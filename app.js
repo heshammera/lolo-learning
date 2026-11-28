@@ -3248,12 +3248,15 @@ $('#localProfileForm').addEventListener('submit',event=>{
 });
 renderActiveLocalProfile();
 
-let cloudUiEnabled=false,cloudSyncEnabled=false;
+let cloudUiEnabled=false,cloudSyncEnabled=false,cloudCredentialsEnabled=false;
+let cloudCredentialMode='login';
+function clearCloudCredentials(){$('#cloudCredentialForm').reset();cloudCredentialMode='login';}
+function setCloudCredentialMode(mode){clearCloudCredentials();cloudCredentialMode=mode;renderCloudFamily();}
 const BACKUP_QUEUE_KEY='lolo-pending-cloud-backup-v1';
 const CLOUD_LINK_KEY='lolo-cloud-profile-link-v1';
 const familyClient=window.LoloFamilyClient.create(apiFetch,{linkStore:{read:()=>{const raw=storage.get(CLOUD_LINK_KEY);return raw===null?null:JSON.parse(raw);},write:v=>storage.profiles.selectedId()===storage.profiles.activeId&&storage.set(CLOUD_LINK_KEY,JSON.stringify(v)),remove:()=>storage.profiles.selectedId()===storage.profiles.activeId&&storage.remove(CLOUD_LINK_KEY)},queueStore:{read:()=>storage.getJSON(BACKUP_QUEUE_KEY,null),write:q=>storage.set(BACKUP_QUEUE_KEY,JSON.stringify(q)),remove:()=>storage.remove(BACKUP_QUEUE_KEY)},allowed:()=>cloudUiEnabled&&!!storage.profiles.activeId&&storage.profiles.selectedId()===storage.profiles.activeId&&parentGate.isUnlocked()&&$('#parentSheet').classList.contains('open')&&!$('#parentSettingsPanel').hidden&&document.visibilityState!=='hidden'});
 function resetCloudFamily(){
-  familyClient.clear();$('#cloudEmail').value='';$('#cloudPassword').value='';$('#cloudNickname').value='';$('#cloudConfirm').checked=false;$('#cloudMergeConfirm').checked=false;$('#cloudRestoreConfirm').checked=false;$('#cloudLinkConfirm').checked=false;$('#cloudLinkRetry').checked=false;$('#cloudStatus').textContent='';renderCloudFamily();
+  familyClient.clear();clearCloudCredentials();$('#cloudEmail').value='';$('#cloudPassword').value='';$('#cloudNickname').value='';$('#cloudConfirm').checked=false;$('#cloudMergeConfirm').checked=false;$('#cloudRestoreConfirm').checked=false;$('#cloudLinkConfirm').checked=false;$('#cloudLinkRetry').checked=false;$('#cloudStatus').textContent='';renderCloudFamily();
 }
 function localProgressSnapshot(){
   if(!course||invalidPath||!storage.profiles.activeId||storage.profiles.selectedId()!==storage.profiles.activeId)return null;
@@ -3319,7 +3322,12 @@ $('#localBackupRestore').onclick=()=>{
 };
 function renderCloudFamily(){
   const s=familyClient.state();$('#cloudFamilyPanel').hidden=!cloudUiEnabled;
-  $('#cloudLogin').hidden=s.signedIn;$('#cloudAccount').hidden=!s.signedIn;
+  if(!cloudCredentialsEnabled||s.signedIn)clearCloudCredentials();
+  $('#cloudLogin').hidden=s.signedIn||cloudCredentialMode!=='login';$('#cloudAccount').hidden=!s.signedIn;
+  $('#cloudCredentialNav').hidden=!cloudCredentialsEnabled||s.signedIn;
+  $('#cloudCredentialForm').hidden=!cloudCredentialsEnabled||s.signedIn||cloudCredentialMode==='login';
+  $('#cloudCredentialTitle').textContent=cloudCredentialMode==='reset'?'استعادة كلمة المرور':'إنشاء حساب تجريبي';
+  $('#cloudCredentialSubmit').textContent=cloudCredentialMode==='reset'?'تغيير كلمة المرور':'إنشاء الحساب';
   $('#cloudFamilyPanel').querySelectorAll('button,input,select').forEach(el=>el.disabled=s.busy||navigator.onLine===false);
   const list=$('#cloudChildren');list.replaceChildren();
   const profileId=storage.profiles.activeId,link=familyClient.linkState(profileId);
@@ -3370,6 +3378,19 @@ $('#cloudLogin').addEventListener('submit',event=>{
   event.preventDefault();
   const email=$('#cloudEmail').value,password=$('#cloudPassword').value;$('#cloudPassword').value='';
   runCloud(async()=>{await familyClient.login(email,password);await familyClient.list();if(cloudSyncEnabled)await familyClient.retryLinked(storage.profiles.activeId,localProgressSnapshot());},'تم تسجيل الدخول ومراجعة الطلبات الموافق عليها.');
+});
+$('#cloudRegisterOpen').onclick=()=>setCloudCredentialMode('register');
+$('#cloudResetOpen').onclick=()=>setCloudCredentialMode('reset');
+$('#cloudCredentialBack').onclick=()=>setCloudCredentialMode('login');
+$('#cloudCredentialForm').addEventListener('submit',event=>{
+  event.preventDefault();
+  if(!cloudCredentialsEnabled||cloudCredentialMode==='login'||!parentGate.isUnlocked()||familyClient.state().signedIn||familyClient.state().busy||navigator.onLine===false)return;
+  const purpose=cloudCredentialMode,email=$('#cloudCredentialEmail').value,code=$('#cloudCredentialCode').value.trim(),password=$('#cloudCredentialPassword').value,confirmation=$('#cloudCredentialConfirm').value;
+  $('#cloudCredentialCode').value='';$('#cloudCredentialPassword').value='';$('#cloudCredentialConfirm').value='';
+  if(!/^[^\s@]+@example\.test$/i.test(email.trim())||password!==confirmation||password.length<12||!(/^[A-Za-z0-9_-]{43}$/).test(code)){
+    $('#cloudStatus').textContent='راجعي البريد التجريبي والرمز وتطابق كلمة المرور.';return;
+  }
+  runCloud(async()=>{await familyClient.redeem(purpose,email,code,password);setCloudCredentialMode('login');},purpose==='reset'?'تم تغيير كلمة المرور وإلغاء الجلسات السابقة. سجلي الدخول مجددًا.':'تم إنشاء الحساب التجريبي. سجلي الدخول الآن.');
 });
 $('#cloudChildForm').addEventListener('submit',event=>{event.preventDefault();const nickname=$('#cloudNickname').value;$('#cloudNickname').value='';runCloud(()=>familyClient.add(nickname,$('#cloudAgeBand').value),'تم إضافة الملف.');});
 $('#cloudRefresh').onclick=()=>runCloud(()=>familyClient.list(),'تم تحديث الملفات.');
@@ -3640,10 +3661,10 @@ function showParentSettingsUnlocked(tab = 'settings') {
   $('#pathScope').value = activePath?.scope || 'lesson';
   renderPathChoice();
   scheduleParentAutoLock();
-  cloudUiEnabled=false;cloudSyncEnabled=false;resetCloudFamily();
+  cloudUiEnabled=false;cloudSyncEnabled=false;cloudCredentialsEnabled=false;resetCloudFamily();
   if(navigator.onLine===false){$('#apiState').textContent='وضع بدون إنترنت: المناهج والتدريبات المحلية متاحة.';return;}
   apiFetch('/api/status').then(response => response.json()).then(status => {
-    if(parentGate.isUnlocked()&&$('#parentSheet').classList.contains('open')){cloudUiEnabled=status.familyUiEnabled===true;cloudSyncEnabled=status.progressSyncEnabled===true;renderCloudFamily();}
+    if(parentGate.isUnlocked()&&$('#parentSheet').classList.contains('open')){cloudUiEnabled=status.familyUiEnabled===true;cloudSyncEnabled=status.progressSyncEnabled===true;cloudCredentialsEnabled=cloudUiEnabled&&status.familyCredentialsPilotEnabled===true;renderCloudFamily();}
     const labels = {gemini: 'Gemini الأساسي', openai: 'OpenAI', 'gemini-backup': 'Gemini الاحتياطي'};
     const enabled = (status.providers || []).map(provider => labels[provider]);
     $('#apiState').textContent = enabled.length
