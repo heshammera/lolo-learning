@@ -23,6 +23,19 @@ class FamilyUnitTests(unittest.TestCase):
             with self.assertRaises(FamilyError):
                 child_fields(nickname,band)
 
+    def test_hosted_pilot_fail_closed(self):
+        env={"VERCEL_ENV":"production","LOLO_DATABASE_URL":"primary-fixture"}
+        with patch.object(server,"FAMILY_ENABLED",True):
+            self.assertFalse(server.family_route_enabled(env))
+            ready={**env,"LOLO_FAMILY_PILOT_MODE":"synthetic","LOLO_FAMILY_PILOT_DATABASE_URL":"pilot-fixture","LOLO_BUDGET_DATABASE_URL":"pilot-budget-fixture","LOLO_SHARED_REQUEST_BUDGET":"required"}
+            self.assertTrue(server.family_route_enabled(ready))
+            for key in ("LOLO_FAMILY_PILOT_MODE","LOLO_FAMILY_PILOT_DATABASE_URL","LOLO_BUDGET_DATABASE_URL","LOLO_SHARED_REQUEST_BUDGET"):
+                self.assertFalse(server.family_route_enabled({k:v for k,v in ready.items() if k!=key}))
+            self.assertFalse(server.family_route_enabled({**ready,"LOLO_FAMILY_PILOT_DATABASE_URL":"primary-fixture"}))
+            self.assertFalse(server.family_route_enabled({**ready,"LOLO_BUDGET_DATABASE_URL":"primary-fixture"}))
+        with patch.object(server,"FAMILY_ENABLED",False):
+            self.assertFalse(server.family_route_enabled(ready))
+
     def test_default_disabled(self):
         from io import BytesIO
         handler = object.__new__(server.Handler)
@@ -50,6 +63,27 @@ class FamilyDatabaseTests(unittest.TestCase):
         with self.store.connect() as db:
             for email in self.emails:
                 db.execute("DELETE FROM lolo_parents WHERE email=%s",(email,))
+
+    def test_synthetic_pilot_isolates_nonfixture_accounts(self):
+        import uuid
+        email=f"{uuid.uuid4()}@example.invalid"
+        self.emails.append(email)
+        self.store.provision(email,self.password)
+        pilot=FamilyStore(self.store.dsn,synthetic_only=True)
+        token=self.store.login(email,self.password)["token"]
+        for action in (lambda:pilot.login(email,self.password),lambda:pilot.children(token),lambda:pilot.logout(token)):
+            with self.assertRaises(FamilyError) as denied:
+                action()
+            self.assertEqual(denied.exception.status,401)
+        self.assertEqual(self.store.children(token),[])
+        with self.assertRaises(FamilyError):
+            pilot.provision(email,self.password)
+        fixture=pilot.login(self.emails[0],self.password)["token"]
+        with self.assertRaises(FamilyError):
+            pilot.create_child(fixture,"Real-looking name","4-6")
+        profile=pilot.create_child(fixture,"Synthetic 1","4-6")
+        self.assertEqual(pilot.children(fixture),[profile])
+        pilot.logout(fixture)
 
     def test_voice_receipt_requires_ownership_review_and_expiry(self):
         from voice_consent import grant_reviewed_receipt, eligible_staging, revoke, POLICY
