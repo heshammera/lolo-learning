@@ -2864,6 +2864,29 @@ function renderParentReport() {
   };
   addCard('الدروس', `${completed} من ${lessons.length} مكتمل`);
   addCard('الإجابات', `${correct} صح · ${wrong} محتاجة مراجعة · ${total ? Math.round(correct / total * 100) : 0}% صح`);
+  const analytics=window.LoloLearningAnalytics?.summarize({lessons,completedIds:[...mastered],tests:testResults,traces:traceResults,visual:visualHistory,visualVersion:visualBank.version,curriculumVersion:course?.curriculumVersion});
+  if(analytics?.summary){
+    const a=analytics.summary;
+    addCard('تحليل النتائج الحالية',a.latestPercent===null?'لا توجد اختبارات ترديد قابلة للمقارنة مع إصدار المنهج الحالي.':a.latestPercent+'% من '+a.latestTotal+' سؤالًا في أحدث اختبار لكل درس · '+a.assessed+' / '+a.lessonCount+' درس له اختبار');
+    const panel=document.createElement('details');panel.className='parent-report-card';
+    const heading=document.createElement('summary');heading.textContent='النتائج حسب الدرس وأولويات المراجعة';panel.append(heading);
+    const note=document.createElement('p');note.textContent='التقييم خاص بالترديد وليس بالنطق أو الإتقان العام. الكتابة والفهم بالصور نتائج تدريبية مستقلة. لا نصنف الدرس قبل توفر خمسة أسئلة في أحدث اختبار.';panel.append(note);
+    const labels={'practice':'يحتاج تدريبًا','strong-result':'نتيجة ترديد قوية','developing':'في مرحلة التحسن','limited-evidence':'أدلة قليلة','not-assessed':'لا يوجد اختبار حديث مطابق'};
+    for(const row of analytics.rows){
+      const section=document.createElement('div');section.className='parent-analytics-row';
+      const name=document.createElement('strong');name.textContent=row.title+' · '+labels[row.status];section.append(name);
+      const text=document.createElement('p');const pieces=[];
+      if(row.latest){pieces.push('أحدث اختبار: '+row.latest.correct+'/'+row.latest.total+' ('+row.latest.percent+'%)');if(row.trend!==null)pieces.push('التغير عن الاختبار السابق: '+(row.trend>0?'+':'')+row.trend+' نقطة مئوية');}
+      if(row.hasUncomparableTest)pieces.push('النتائج القديمة غير داخلة في التحليل الحالي');
+      if(row.tracePercent!==null)pieces.push('الكتابة: '+row.tracePercent+'%');
+      if(row.visualPercent!==null)pieces.push('الفهم بالصور: '+row.visualPercent+'%');
+      text.textContent=pieces.join(' · ')||'لا توجد نتائج حديثة قابلة للعرض.';section.append(text);
+      if(row.latest){const meter=document.createElement('progress');meter.max=100;meter.value=row.latest.percent;meter.setAttribute('aria-label','نتيجة الترديد '+row.title);section.append(meter);}
+      if(a.priorities.includes(row.id)){const button=document.createElement('button');button.type='button';button.className='small-btn';button.textContent='اختيار الدرس للمراجعة';button.onclick=()=>{if(parentGate.isUnlocked()&&$('#parentSheet').classList.contains('open'))chooseLesson(row.id,'test');};section.append(button);}
+      panel.append(section);
+    }
+    report.append(panel);
+  }
   addCard('الاختبارات', `${testEntries.length} شفهي · ${traceEntries.length} كتابة باللمس`);
   const visualEntries=lessons.filter(l=>Array.isArray(visualHistory[l.id])&&visualHistory[l.id].some(r=>r?.bankVersion===visualBank.version));
   if(visualEntries.length)addCard('تحدّي الفهم بالصور',`${visualEntries.length} دروس لها نتائج محلية مستقلة · محتوى تجريبي، لا يمثل إتقان المنهج`);
