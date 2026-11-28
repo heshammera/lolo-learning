@@ -15,6 +15,8 @@ for(const url of paths){
 const index=path.join(output,'index.html');
 let html=fs.readFileSync(index,'utf8');
 if(!html.includes('<head>'))throw Error('Missing index head');
-html=html.replace('<head>','<head>\n<script>window.LoloNativeBundled=true;</script>');
+const commit=process.env.GITHUB_SHA||'local-build';
+if(!/^(?:[a-f0-9]{40}|local-build)$/.test(commit))throw Error('Invalid build commit');
+html=html.replace('<head>','<head>\n<script>window.LoloNativeBundled=true;window.LoloBuildCommit='+JSON.stringify(commit)+';</script>');
 fs.writeFileSync(index,html);
 console.log('Bundled '+paths.length+' public offline assets; no API code or secrets.');

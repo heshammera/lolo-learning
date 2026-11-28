@@ -31,6 +31,32 @@ async function seed(context){
   });
   await context.route('https://**/*',route=>route.abort());
 }
+
+async function verifyHub(page){
+  const path=await page.evaluate(()=>window.LoloStorage.get('lolo-learning-path-v1'));
+  const mastery=await page.evaluate(()=>window.LoloStorage.get('lolo-mastered'));
+  await page.locator('#homeActivityHub').click();
+  await page.locator('#activityHub[open]').waitFor();
+  assert.equal(await page.locator('#hubCatalog [data-activity-id]').count(),27);
+  await page.locator('#hubFilter').selectOption('games');
+  assert.equal(await page.locator('#hubCatalog [data-activity-id]').count(),3);
+  await page.locator('#hubCatalog [data-activity-id="game-maze"]').click();
+  await page.locator('#hubBody .activity-maze-grid').waitFor();
+  await page.locator('#hubBack').click();
+  await page.locator('#hubFilter').selectOption('questions');
+  await page.locator('#hubCatalog [data-activity-id="science-choice"]').click();
+  await page.locator('#hubBody input[value="i1"]').check();
+  await page.locator('#hubBody button[type="submit"]').click();
+  assert.match(await page.locator('#hubBody [role="status"]').textContent(),/أحسنت/);
+  await page.locator('#hubAgain').click();
+  assert.equal(await page.locator('#hubBody input[value="i1"]').isChecked(),false);
+  await page.locator('#hubClose').click();
+  assert.equal(await page.locator('#activityHub').isVisible(),false);
+  await page.waitForFunction(()=>document.getElementById('hubBody').childElementCount===0);
+  assert.equal(await page.evaluate(()=>window.LoloStorage.get('lolo-learning-path-v1')),path);
+  assert.equal(await page.evaluate(()=>window.LoloStorage.get('lolo-mastered')),mastery);
+}
+
 async function verifyPractice(page){
   await page.locator('#homePractice').click();
   await page.locator('#offlinePractice[open]').waitFor();
@@ -100,6 +126,7 @@ async function verifyPractice(page){
       for(const b of layout.buttons){assert.ok(b.w>=44&&b.h>=44);assert.ok(b.left>=-1&&b.right<=layout.width+1);}
     }
     await page.setViewportSize({width:390,height:800});
+    await verifyHub(page);
     await page.locator('#homeStart').click();
     await verifyPractice(page);
     await page.locator('#homeChoose').click();
@@ -325,16 +352,46 @@ async function verifyPractice(page){
     // This checks bundle boot and API gating, not the Android WebView itself.
     const native=await browser.newContext();
     await seed(native);
-    await native.addInitScript(()=>{Object.defineProperty(navigator,'onLine',{get:()=>false});});
+    await native.addInitScript(()=>{
+      Object.defineProperty(navigator,'onLine',{get:()=>false});
+      window.__bootObserved=[];
+      let last=null;
+      const observer=new MutationObserver(()=>{
+        const root=document.getElementById('loloBoot'),bar=document.getElementById('bootProgress');
+        if(!root||!bar||root.dataset.painted!=='true'||root.hidden)return;
+        const value=bar.value;if(value===last)return;last=value;
+        window.__bootObserved.push({value,at:performance.now(),art:document.getElementById('loloBootArt').naturalWidth>0});
+      });
+      observer.observe(document,{subtree:true,childList:true,attributes:true,attributeFilter:['value','data-painted','hidden']});
+    });
     const np=await native.newPage();const nativeErrors=[];
     np.on('pageerror',error=>nativeErrors.push(error.message));
     await np.goto(local,{waitUntil:'domcontentloaded'});
+    await np.locator('#loloBoot[data-painted="true"]:not([hidden])').waitFor();
+    assert.equal(await np.locator('#app').evaluate(el=>el.hasAttribute('inert')),true);
+    await np.locator('#loloBoot').waitFor({state:'hidden'});
+    const stages=await np.evaluate(()=>window.__bootObserved);
+    assert.deepEqual(stages.map(s=>s.value),[10,20,45,70,100]);
+    assert.ok(stages.every(s=>s.art),'approved splash image loaded during every visible stage');
+    assert.ok(stages.at(-1).at-stages[0].at>=1700,'startup stages are actually visible over time');
+    assert.equal(await np.locator('#app').evaluate(el=>el.hasAttribute('inert')),false);
     await np.locator('#networkNotice[data-state="offline"]').waitFor();
     await np.waitForFunction(()=>document.querySelector('#mic')&&!document.querySelector('#mic').disabled);
     assert.equal(await np.evaluate(()=>window.LoloNativeBundled),true);
+    await verifyHub(np);
     await verifyPractice(np);
     assert.deepEqual(nativeErrors,[]);
     await native.close();
+    // Failed startup shows retry; never unlock an unvalidated curriculum.
+    const failed=await browser.newContext({serviceWorkers:'block'});
+    await failed.route('**/curriculum.json',route=>route.fulfill({status:503,body:'unavailable'}));
+    const fp=await failed.newPage();await fp.goto(local,{waitUntil:'domcontentloaded'});
+    await fp.locator('#loloBoot[data-phase="error"]').waitFor();
+    assert.equal(await fp.locator('#bootRetry').isVisible(),true);
+    assert.equal(await fp.locator('#app').evaluate(el=>el.hasAttribute('inert')),true);
+    await failed.unroute('**/curriculum.json');await fp.locator('#bootRetry').click();
+    await fp.locator('#loloBoot').waitFor({state:'hidden'});
+    await failed.close();
     console.log('Browser: offline reload, saved plan, local review, writing canvas, PIN gate and bundled-shell offline simulation passed.');
   }finally{
     if(browser)await browser.close();

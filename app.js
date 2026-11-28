@@ -2853,6 +2853,66 @@ $('#visualQuizNext').onclick=()=>{
 $('#visualQuizClose').onclick=$('#visualQuizDone').onclick=()=>$('#visualQuiz').close();
 $('#visualQuiz').addEventListener('close',()=>{visualSession=null;});
 $('#homePractice').onclick=openOfflinePractice;
+
+const hubGroups=[
+  ['questions','🧠 أسئلة وتحديات',['choice','true-false','multi-choice','fill-blank','free-text']],
+  ['interaction','🧩 ترتيب وتوصيل',['sequence','match','classify','drag-drop']],
+  ['math','🔢 الرياضيات',['numeric','number-line','fractions','geometry','equations']],
+  ['science','🌱 العلوم',['image-hotspot','science-simulation']],
+  ['games','🎮 ألعاب تعليمية',['memory-game','puzzle','maze']],
+  ['art','🎨 الرسم والكتابة',['trace','free-drawing','coloring']],
+  ['language','📖 اللغة والقصص',['dictation','speech-repeat','reading-aloud','conversation','interactive-story']]
+];
+let hubActivity=null;
+function clearHubActivity(){
+  hubActivity=null;$('#hubBody').replaceChildren();window.speechSynthesis?.cancel();
+  $('#hubPlay').hidden=true;$('#hubCatalog').hidden=false;$('#hubActivityTitle').textContent='';$('#hubNotice').textContent='';
+}
+function renderHubCatalog(){
+  const engine=window.LoloActivities,pilot=window.LoloActivityPilot;
+  const target=$('#hubCatalog');target.replaceChildren();
+  const activities=pilot.lessons.flatMap(l=>l.activities).filter(a=>engine.validate(a).valid);
+  const filter=$('#hubFilter').value;let count=0;
+  for(const [id,label,types] of hubGroups){
+    if(filter!=='all'&&filter!==id)continue;
+    const items=activities.filter(a=>types.includes(a.type));
+    if(!items.length)continue;
+    const section=document.createElement('section'),heading=document.createElement('h3'),grid=document.createElement('div');
+    heading.textContent=label;grid.className='hub-grid';
+    for(const a of items){
+      const b=document.createElement('button'),name=document.createElement('strong'),detail=document.createElement('small');
+      b.type='button';b.dataset.activityId=a.id;
+      name.textContent=engine.types[a.type].label;
+      detail.textContent=engine.types[a.type].offline?'على الجهاز':'يحتاج صوت اللغة على الجهاز';
+      b.append(name,detail);b.onclick=()=>showHubActivity(a);grid.append(b);count++;
+    }
+    section.append(heading,grid);target.append(section);
+  }
+  $('#hubCount').textContent=count+' نشاط للتدريب';
+}
+function showHubActivity(a){
+  if(!$('#activityHub').open||!window.LoloActivities.validate(a).valid)return;
+  clearHubActivity();hubActivity=a;
+  $('#hubCatalog').hidden=true;$('#hubPlay').hidden=false;
+  $('#hubActivityTitle').textContent=window.LoloActivities.types[a.type].label;
+  window.LoloActivities.render(a,$('#hubBody'),result=>{
+    if(hubActivity!==a||!$('#activityHub').open)return;
+    $('#hubNotice').textContent=result.status==='completed'?'تم التدريب دون درجة.':'تمت المحاولة! يمكنك المحاولة من جديد.';
+  });
+  $('#hubActivityTitle').focus();
+}
+$('#homeActivityHub').onclick=()=>{
+  if(isActive||isStarting)stopSession();
+  clearHubActivity();$('#hubFilter').value='all';renderHubCatalog();
+  $('#activityHub').showModal();
+};
+$('#hubFilter').onchange=()=>{clearHubActivity();renderHubCatalog();};
+$('#hubAgain').onclick=()=>{if(hubActivity)showHubActivity(hubActivity);};
+$('#hubBack').onclick=()=>{clearHubActivity();renderHubCatalog();$('#hubFilter').focus();};
+$('#hubClose').onclick=()=>$('#activityHub').close();
+$('#activityHub').addEventListener('close',()=>{clearHubActivity();$('#homeActivityHub').focus();});
+window.addEventListener('pagehide',clearHubActivity);
+
 $('#practiceClose').onclick=$('#practiceBack').onclick=()=>$('#offlinePractice').close();
 $('#offlinePractice').addEventListener('close',()=>window.speechSynthesis?.cancel());
 function saveParentSettings() {
