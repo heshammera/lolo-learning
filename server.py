@@ -14,6 +14,7 @@ import os
 import secrets
 import math
 from request_budget import admit as admit_shared_budget, BudgetUnavailable
+from database_connection import database_dsn
 from family_accounts import FamilyStore, FamilyError
 
 ROOT = Path(__file__).resolve().parent
@@ -313,7 +314,7 @@ class Handler(BaseHTTPRequestHandler):
         if mode!="required":
             self.send_json(503,{"error":"إعداد حماية الطلبات غير صالح."});return False
         try:
-            ok,retry=admit_shared_budget(os.environ.get("LOLO_BUDGET_DATABASE_URL"),kind,
+            ok,retry=admit_shared_budget(database_dsn("budget"),kind,
                 bounded_env_int("LOLO_SHARED_PAID_PER_MINUTE",120,1,1000000) if kind=="paid" else bounded_env_int("LOLO_SHARED_LOGIN_PER_MINUTE",30,1,1000000),
                 bounded_env_int("LOLO_SHARED_PAID_PER_DAY",3000,1,1000000) if kind=="paid" else None)
         except (BudgetUnavailable,ValueError):
@@ -418,7 +419,7 @@ class Handler(BaseHTTPRequestHandler):
         auth = self.headers.get("Authorization","")
         token = auth[7:] if auth.startswith("Bearer ") else ""
         try:
-            store = FamilyStore(os.environ.get("LOLO_DATABASE_URL"))
+            store = FamilyStore(database_dsn("family"))
             if action == "login":
                 return self.send_json(200,store.login(body.get("email"),body.get("password")))
             if action == "children":
