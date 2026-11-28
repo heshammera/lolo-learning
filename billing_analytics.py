@@ -10,13 +10,13 @@ def snapshot(store,admin,token):
         # Always filter to synthetic accounts, even if a staging database was mispopulated.
         accounts=db.execute("""SELECT COALESCE(e.plan_id,'free'),count(*)
           FROM lolo_parents p LEFT JOIN lolo_billing_test_effective e ON e.parent_id=p.id
-          WHERE p.disabled_at IS NULL AND p.email LIKE '%@example.test' GROUP BY 1""").fetchall()
+          WHERE p.disabled_at IS NULL AND right(p.email,13)='@example.test' GROUP BY 1""").fetchall()
         plans={k:0 for k in ("free","plus","family")}
         for k,v in accounts:
             if k not in plans:raise FamilyError(503,"Unknown reporting plan.")
             plans[k]=v
         students=db.execute("""SELECT count(*) FROM lolo_children c JOIN lolo_parents p ON p.id=c.parent_id
-          WHERE p.disabled_at IS NULL AND p.email LIKE '%@example.test'""").fetchone()[0]
+          WHERE p.disabled_at IS NULL AND right(p.email,13)='@example.test'""").fetchone()[0]
         sources=db.execute("""SELECT
           count(*) FILTER(WHERE e.order_id IS NOT NULL),
           count(*) FILTER(WHERE e.order_id IS NULL AND g.source='manual'),
@@ -24,23 +24,23 @@ def snapshot(store,admin,token):
           FROM lolo_billing_test_effective a JOIN lolo_parents p ON p.id=a.parent_id
           LEFT JOIN lolo_billing_test_entitlements e ON e.parent_id=a.parent_id AND e.starts_at<=CURRENT_TIMESTAMP AND e.ends_at>CURRENT_TIMESTAMP
           LEFT JOIN lolo_billing_test_grants g ON g.parent_id=a.parent_id AND g.revoked_at IS NULL AND g.starts_at<=CURRENT_TIMESTAMP AND g.ends_at>CURRENT_TIMESTAMP
-          WHERE p.disabled_at IS NULL AND p.email LIKE '%@example.test'""").fetchone()
+          WHERE p.disabled_at IS NULL AND right(p.email,13)='@example.test'""").fetchone()
         orders=db.execute("""SELECT count(*) FILTER(WHERE o.status='pending' AND o.expires_at>CURRENT_TIMESTAMP),
           count(*) FILTER(WHERE o.status='cancelled' OR (o.status='pending' AND o.expires_at<=CURRENT_TIMESTAMP)),
           count(*) FILTER(WHERE o.status='test_paid'),
           COALESCE(sum(o.amount_minor) FILTER(WHERE o.status='test_paid'),0),
           COALESCE(sum(o.discount_minor) FILTER(WHERE o.status='test_paid'),0)
-          FROM lolo_billing_orders o JOIN lolo_parents p ON p.id=o.parent_id WHERE p.email LIKE '%@example.test'""").fetchone()
+          FROM lolo_billing_orders o JOIN lolo_parents p ON p.id=o.parent_id WHERE right(p.email,13)='@example.test'""").fetchone()
         usage=db.execute("""SELECT u.feature,COALESCE(sum(u.units),0),count(*) FROM lolo_billing_test_usage u
-          JOIN lolo_parents p ON p.id=u.parent_id WHERE p.email LIKE '%@example.test' AND u.month=%s GROUP BY u.feature""",(month,)).fetchall()
+          JOIN lolo_parents p ON p.id=u.parent_id WHERE right(p.email,13)='@example.test' AND u.month=%s GROUP BY u.feature""",(month,)).fetchall()
         uses={"voice":{"reservedUnits":0,"reservations":0},"pronunciation":{"reservedUnits":0,"reservations":0}}
         for name,units,n in usage:
             if name in uses:uses[name]={"reservedUnits":units,"reservations":n}
-        trial=db.execute("""SELECT count(*) FROM lolo_billing_test_redemptions r JOIN lolo_parents p ON p.id=r.parent_id WHERE p.email LIKE '%@example.test'""").fetchone()[0]
+        trial=db.execute("""SELECT count(*) FROM lolo_billing_test_redemptions r JOIN lolo_parents p ON p.id=r.parent_id WHERE right(p.email,13)='@example.test'""").fetchone()[0]
         discounts=db.execute("""SELECT count(*) FILTER(WHERE o.status='test_paid'), count(*) FILTER(WHERE o.status='pending' AND o.expires_at>CURRENT_TIMESTAMP)
-          FROM lolo_billing_orders o JOIN lolo_parents p ON p.id=o.parent_id WHERE o.discount_id IS NOT NULL AND p.email LIKE '%@example.test'""").fetchone()
+          FROM lolo_billing_orders o JOIN lolo_parents p ON p.id=o.parent_id WHERE o.discount_id IS NOT NULL AND right(p.email,13)='@example.test'""").fetchone()
         devices=db.execute("""SELECT count(*) FILTER(WHERE d.revoked_at IS NULL), count(*) FILTER(WHERE d.revoked_at IS NOT NULL)
-          FROM lolo_offline_test_devices d JOIN lolo_parents p ON p.id=d.parent_id WHERE p.email LIKE '%@example.test'""").fetchone()
+          FROM lolo_offline_test_devices d JOIN lolo_parents p ON p.id=d.parent_id WHERE right(p.email,13)='@example.test'""").fetchone()
         return {"testOnly":True,"asOf":now.isoformat(),"usageMonth":month.isoformat(),"currency":"EGP",
           "activeAccounts":sum(plans.values()),"studentProfiles":students,"plans":plans,
           "activeSources":{"testSettlement":sources[0],"manual":sources[1],"trial":sources[2]},
