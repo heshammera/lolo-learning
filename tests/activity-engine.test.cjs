@@ -119,3 +119,10 @@ test('reading aloud is offline completion-only with ordered segment confirmation
  for(const response of [null,{readSegments:[0]},{readSegments:[0,2,1]},{readSegments:[0,0,1]},{readSegments:Array(3)},{readSegments:[0,1,2],score:100}])assert.equal(engine.evaluate(a,response).status,'unresolved');
  assert.equal(engine.evaluate(a,{readSegments:[0,1,2]}).status,'completed');
 });
+
+test('guided conversation grades only a complete ordered set of authored replies',()=>{
+ const a=activities.find(x=>x.type==='conversation');assert.equal(engine.validate(a).valid,true);assert.equal(engine.types.conversation.offline,true);
+ assert.equal(engine.evaluate(a,['i1','i1']).status,'correct');assert.equal(engine.evaluate(a,['i2','i1']).status,'incorrect');
+ for(const response of [null,['i1'],['i1','unknown'],['i1','i1','i1'],Array(2),{transcript:'hi'}])assert.equal(engine.evaluate(a,response).status,'unresolved');
+ for(const config of [{...a.config,language:'xx'},{...a.config,turns:Array(2)},{...a.config,turns:[]},{...a.config,network:true}])assert.equal(engine.validate({...a,config}).valid,false);
+});

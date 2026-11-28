@@ -7,9 +7,9 @@
     ['drag-drop','السحب والإفلات'],['geometry','الأشكال الهندسية'],['equations','المعادلات الخطية'],
     ['memory-game','لعبة الذاكرة'],['puzzle','بازل الترتيب'],['maze','المتاهة'],
     ['image-hotspot','تحديد أجزاء الرسم'],['science-simulation','محاكاة الميزان'],['interactive-story','قصة تفاعلية'],
-    ['trace','تتبع الحروف والأرقام'],['free-drawing','الرسم الحر'],['coloring','التلوين'],['dictation','الإملاء الصوتي'],['speech-repeat','الاستماع والتكرار'],['reading-aloud','القراءة الجهرية'],
+    ['trace','تتبع الحروف والأرقام'],['free-drawing','الرسم الحر'],['coloring','التلوين'],['dictation','الإملاء الصوتي'],['speech-repeat','الاستماع والتكرار'],['reading-aloud','القراءة الجهرية'],['conversation','المحادثة الموجهة'],
   ].map(([id,label])=>[id,Object.freeze({id,label,version:1,offline:!['dictation','speech-repeat'].includes(id),evaluator:['free-drawing','speech-repeat','reading-aloud'].includes(id)?'completion-only':'deterministic',renderer:'generic-v1'})])));
-  const planned=Object.freeze(['phoneme-score','conversation','homework-upload']);
+  const planned=Object.freeze(['phoneme-score','homework-upload']);
   const plain=v=>v!==null&&typeof v==='object'&&!Array.isArray(v)&&[Object.prototype,null].includes(Object.getPrototypeOf(v));
   const exact=(o,keys)=>plain(o)&&Object.keys(o).length===keys.length&&keys.every(k=>Object.hasOwn(o,k));
   const id=v=>typeof v==='string'&&/^[a-zA-Z0-9][a-zA-Z0-9_-]{0,63}$/.test(v);
@@ -122,6 +122,7 @@
       case 'numeric':valid=exact(c,['answer'])&&integer(c.answer);break;
       case 'fill-blank':
       case 'free-text':valid=exact(c,['answers'])&&alternatives(c.answers);break;
+      case 'conversation':valid=exact(c,['language','turns'])&&['ar','en'].includes(c.language)&&Array.isArray(c.turns)&&c.turns.length>=2&&c.turns.length<=8&&dense(c.turns)&&c.turns.every(t=>exact(t,['line','options','answer'])&&answerText(t.line)&&entries(t.options,2,4)&&dense(t.options)&&t.options.every(o=>answerText(o.label))&&t.options.some(o=>o.id===t.answer));break;
       case 'reading-aloud':valid=exact(c,['language','segments'])&&['ar','en'].includes(c.language)&&Array.isArray(c.segments)&&c.segments.length>=1&&c.segments.length<=8&&dense(c.segments)&&c.segments.every(answerText);break;
       case 'speech-repeat':valid=exact(c,['language','spokenText'])&&['ar','en'].includes(c.language)&&answerText(c.spokenText);break;
       case 'dictation':valid=exact(c,['language','spokenText','answers'])&&['ar','en'].includes(c.language)&&answerText(c.spokenText)&&alternatives(c.answers)&&dense(c.answers)&&c.answers.some(a=>normalize(a)===normalize(c.spokenText));break;
@@ -162,6 +163,7 @@
       case 'numeric':resolved=integer(response);correct=response===c.answer;break;
       case 'fill-blank':
       case 'free-text':resolved=answerText(response);correct=resolved&&c.answers.some(a=>normalize(a)===normalize(response));break;
+      case 'conversation':resolved=Array.isArray(response)&&response.length===c.turns.length&&dense(response)&&response.every((v,i)=>c.turns[i].options.some(o=>o.id===v));correct=resolved&&response.every((v,i)=>v===c.turns[i].answer);break;
       case 'reading-aloud':return exact(response,['readSegments'])&&Array.isArray(response.readSegments)&&response.readSegments.length===c.segments.length&&dense(response.readSegments)&&response.readSegments.every((value,index)=>value===index)?{status:'completed'}:{status:'unresolved'};
       case 'speech-repeat':return exact(response,['heard','repeated'])&&response.heard===true&&response.repeated===true?{status:'completed'}:{status:'unresolved'};
       case 'dictation':resolved=exact(response,['heard','answer'])&&response.heard===true&&answerText(response.answer);correct=resolved&&c.answers.some(a=>normalize(a)===normalize(response.answer));break;
@@ -447,6 +449,29 @@
       }
       gameResponse=()=>({...chosen});refresh();
     }
+    function conversationBoard(){
+      const board=doc.createElement('div');board.lang=c.language;board.dir=c.language==='ar'?'rtl':'ltr';
+      const log=doc.createElement('div');log.setAttribute('role','log');log.setAttribute('aria-label','الحوار');log.setAttribute('aria-live','polite');
+      const choices=doc.createElement('div'),status=doc.createElement('p');status.setAttribute('aria-live','polite');
+      const note=doc.createElement('p');note.textContent='حوار تعليمي معد مسبقًا. اختاري الرد المناسب؛ لا يوجد تسجيل صوتي أو اتصال بالذكاء الاصطناعي.';
+      fieldset.append(note,board,status);board.append(log,choices);
+      const responses=[];let pos=0;
+      function message(speaker,text){
+        const line=doc.createElement('p'),label=doc.createElement('strong');label.textContent=speaker+'：';line.append(label,doc.createTextNode(text));log.append(line);
+      }
+      function draw(){
+        choices.replaceChildren();
+        if(pos===c.turns.length){status.textContent='اكتمل الحوار. تحققي من الإجابات.';return;}
+        status.textContent='الدور '+(pos+1)+' / '+c.turns.length;
+        const t=c.turns[pos];message(c.language==='ar'?'لولو':'Lolo',t.line);
+        for(const option of t.options)gameButton(choices,option.label,()=>{
+          if(fieldset.disabled||c.turns[pos]!==t)return;
+          responses.push(option.id);message(c.language==='ar'?'أنا':'Me',option.label);pos++;draw();
+        });
+      }
+      gameButton(fieldset,'ابدئي الحوار من جديد',()=>{if(fieldset.disabled)return;responses.length=0;pos=0;log.replaceChildren();draw();});
+      gameResponse=()=>[...responses];draw();
+    }
     function readingBoard(){
       const line=doc.createElement('p');line.lang=c.language;line.dir=c.language==='ar'?'rtl':'ltr';line.style.fontSize='1.35em';line.style.lineHeight='1.8';
       const status=doc.createElement('p');status.setAttribute('aria-live','polite');
@@ -527,6 +552,7 @@
       const equationText=doc.createElement('p');equationText.dir='ltr';equationText.className='activity-equation';equationText.textContent=c.coefficient+' × x '+(c.constant<0?'− '+Math.abs(c.constant):'+ '+c.constant)+' = '+c.result;fieldset.append(equationText);
       const input=doc.createElement('input');input.type='number';input.step='1';input.setAttribute('aria-label','قيمة س');fieldset.append(input);controls.push(input);
     }else if(activity.type==='drag-drop')dragBoard();
+    else if(activity.type==='conversation')conversationBoard();
     else if(activity.type==='reading-aloud')readingBoard();
     else if(activity.type==='dictation'||activity.type==='speech-repeat')localSpeechBoard();
     else if(activity.type==='memory-game')memoryBoard();

@@ -57,7 +57,19 @@
       const c=a.config;
       if(a.type==='true-false')select(box,'الإجابة الصحيحة',String(c.answer),[{id:'true',label:'صح'},{id:'false',label:'خطأ'}],v=>c.answer=v===''?null:v==='true');
       else if(a.type==='numeric')field(box,'الإجابة الرقمية الصحيحة',c.answer,v=>c.answer=v,{type:'number'});
-      else if(a.type==='reading-aloud'){
+      else if(a.type==='conversation'){
+        select(box,'لغة الحوار',c.language,[{id:'ar',label:'العربية'},{id:'en',label:'English'}],v=>c.language=v);
+        c.turns.forEach((turn,i)=>{
+          const pane=el('div');pane.className='cms-story-page';box.append(pane);pane.append(el('h5','دور '+(i+1)));
+          field(pane,'عبارة لولو '+(i+1),turn.line,v=>turn.line=v,{max:200});
+          list(pane,'الردود',turn.options,4);
+          select(pane,'الرد الصحيح',turn.answer,turn.options,v=>turn.answer=v);
+          move(pane,c.turns,i);
+          if(c.turns.length>2)remove(pane,c.turns,i,'حذف الدور');
+        });
+        const add=button(box,'إضافة دور',()=>{const first=uid('reply');c.turns.push({line:'عبارة جديدة',options:[{id:first,label:'رد أول'},{id:uid('reply'),label:'رد ثانٍ'}],answer:first});rebuild();});add.disabled=c.turns.length>=8;
+        box.append(el('p','حوار معد مسبقًا دون اتصال أو تسجيل. الردود تُقيّم وفق الإجابات المعتمدة فقط.'));
+      }else if(a.type==='reading-aloud'){
         select(box,'لغة القراءة',c.language,[{id:'ar',label:'العربية'},{id:'en',label:'English'}],v=>c.language=v);
         c.segments.forEach((segment,i)=>{
           const row=el('div');row.className='cms-row';box.append(row);
